@@ -1,0 +1,164 @@
+09:06:25 **** Incremental Build of configuration Debug for project SPIDER2-DataHub-EMUScience-uC ****
+make all 
+arm-none-eabi-gcc -c "../Src/main.c" -mcpu=cortex-m7 -std=gnu11 -g3 '-D__weak=__attribute__((weak))' '-D__packed=__attribute__((__packed__))' -DUSE_HAL_DRIVER -DSTM32F767xx -c -I../Inc -I../Drivers/STM32F7xx_HAL_Driver/Inc -I../Drivers/STM32F7xx_HAL_Driver/Inc/Legacy -I../Middlewares/Third_Party/FatFs/src -I../Middlewares/Third_Party/FreeRTOS/Source/include -I../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS -I../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1 -I../Drivers/CMSIS/Device/ST/STM32F7xx/Include -I../Drivers/CMSIS/Include -O2 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Src/main.d" -MT"Src/main.o"  -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Src/main.o"
+../Src/main.c:2:8: error: expected '=', ',', ';', 'asm' or '__attribute__' before 'CODE'
+    2 | * USER CODE BEGIN Header */
+      |        ^~~~
+../Src/main.c:2:8: error: unknown type name 'CODE'
+In file included from ../Drivers/CMSIS/Device/ST/STM32F7xx/Include/stm32f7xx.h:150,
+                 from ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_def.h:30,
+                 from ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_rcc.h:29,
+                 from ../Inc/stm32f7xx_hal_conf.h:244,
+                 from ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal.h:30,
+                 from ../Inc/main.h:31,
+                 from ../Src/main.c:23:
+../Drivers/CMSIS/Device/ST/STM32F7xx/Include/stm32f767xx.h:185:3: warning: data definition has no type or storage class
+  185 | } IRQn_Type;
+      |   ^~~~~~~~~
+../Drivers/CMSIS/Device/ST/STM32F7xx/Include/stm32f767xx.h:185:3: warning: type defaults to 'int' in declaration of 'IRQn_Type' [-Wimplicit-int]
+In file included from ../Drivers/CMSIS/Device/ST/STM32F7xx/Include/stm32f767xx.h:201,
+                 from ../Drivers/CMSIS/Device/ST/STM32F7xx/Include/stm32f7xx.h:150,
+                 from ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_def.h:30,
+                 from ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_rcc.h:29,
+                 from ../Inc/stm32f7xx_hal_conf.h:244,
+                 from ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal.h:30,
+                 from ../Inc/main.h:31,
+                 from ../Src/main.c:23:
+../Drivers/CMSIS/Include/core_cm7.h:1896:39: error: expected declaration specifiers or '...' before 'IRQn_Type'
+ 1896 | __STATIC_INLINE void __NVIC_EnableIRQ(IRQn_Type IRQn)
+      |                                       ^~~~~~~~~
+../Drivers/CMSIS/Include/core_cm7.h:1913:46: error: expected declaration specifiers or '...' before 'IRQn_Type'
+ 1913 | __STATIC_INLINE uint32_t __NVIC_GetEnableIRQ(IRQn_Type IRQn)
+      |                                              ^~~~~~~~~
+../Drivers/CMSIS/Include/core_cm7.h:1932:40: error: expected declaration specifiers or '...' before 'IRQn_Type'
+ 1932 | __STATIC_INLINE void __NVIC_DisableIRQ(IRQn_Type IRQn)
+      |                                        ^~~~~~~~~
+../Drivers/CMSIS/Include/core_cm7.h:1951:47: error: expected declaration specifiers or '...' before 'IRQn_Type'
+ 1951 | __STATIC_INLINE uint32_t __NVIC_GetPendingIRQ(IRQn_Type IRQn)
+      |                                               ^~~~~~~~~
+../Drivers/CMSIS/Include/core_cm7.h:1970:43: error: expected declaration specifiers or '...' before 'IRQn_Type'
+ 1970 | __STATIC_INLINE void __NVIC_SetPendingIRQ(IRQn_Type IRQn)
+      |                                           ^~~~~~~~~
+../Drivers/CMSIS/Include/core_cm7.h:1985:45: error: expected declaration specifiers or '...' before 'IRQn_Type'
+ 1985 | __STATIC_INLINE void __NVIC_ClearPendingIRQ(IRQn_Type IRQn)
+      |                                             ^~~~~~~~~
+../Drivers/CMSIS/Include/core_cm7.h:2002:43: error: expected declaration specifiers or '...' before 'IRQn_Type'
+ 2002 | __STATIC_INLINE uint32_t __NVIC_GetActive(IRQn_Type IRQn)
+      |                                           ^~~~~~~~~
+../Drivers/CMSIS/Include/core_cm7.h:2024:41: error: expected declaration specifiers or '...' before 'IRQn_Type'
+ 2024 | __STATIC_INLINE void __NVIC_SetPriority(IRQn_Type IRQn, uint32_t priority)
+      |                                         ^~~~~~~~~
+../Drivers/CMSIS/Include/core_cm7.h:2046:45: error: expected declaration specifiers or '...' before 'IRQn_Type'
+ 2046 | __STATIC_INLINE uint32_t __NVIC_GetPriority(IRQn_Type IRQn)
+      |                                             ^~~~~~~~~
+../Drivers/CMSIS/Include/core_cm7.h:2121:39: error: expected declaration specifiers or '...' before 'IRQn_Type'
+ 2121 | __STATIC_INLINE void __NVIC_SetVector(IRQn_Type IRQn, uint32_t vector)
+      |                                       ^~~~~~~~~
+../Drivers/CMSIS/Include/core_cm7.h:2136:43: error: expected declaration specifiers or '...' before 'IRQn_Type'
+ 2136 | __STATIC_INLINE uint32_t __NVIC_GetVector(IRQn_Type IRQn)
+      |                                           ^~~~~~~~~
+../Drivers/CMSIS/Include/core_cm7.h: In function 'SysTick_Config':
+../Drivers/CMSIS/Include/core_cm7.h:1829:39: warning: implicit declaration of function '__NVIC_SetPriority'; did you mean 'NVIC_SetPriority'? [-Wimplicit-function-declaration]
+ 1829 |   #define NVIC_SetPriority            __NVIC_SetPriority
+      |                                       ^~~~~~~~~~~~~~~~~~
+../Drivers/CMSIS/Include/core_cm7.h:2572:3: note: in expansion of macro 'NVIC_SetPriority'
+ 2572 |   NVIC_SetPriority (SysTick_IRQn, (1UL << __NVIC_PRIO_BITS) - 1UL); /* set Priority for Systick Interrupt */
+      |   ^~~~~~~~~~~~~~~~
+In file included from ../Drivers/CMSIS/Device/ST/STM32F7xx/Include/stm32f767xx.h:201,
+                 from ../Drivers/CMSIS/Device/ST/STM32F7xx/Include/stm32f7xx.h:150,
+                 from ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_def.h:30,
+                 from ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_rcc.h:29,
+                 from ../Inc/stm32f7xx_hal_conf.h:244,
+                 from ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal.h:30,
+                 from ../Inc/main.h:31,
+                 from ../Src/main.c:23:
+../Drivers/CMSIS/Include/core_cm7.h:2572:21: error: 'SysTick_IRQn' undeclared (first use in this function); did you mean 'SysTick_Type'?
+ 2572 |   NVIC_SetPriority (SysTick_IRQn, (1UL << __NVIC_PRIO_BITS) - 1UL); /* set Priority for Systick Interrupt */
+      |                     ^~~~~~~~~~~~
+      |                     SysTick_Type
+../Drivers/CMSIS/Include/core_cm7.h:2572:21: note: each undeclared identifier is reported only once for each function it appears in
+In file included from ../Inc/stm32f7xx_hal_conf.h:260,
+                 from ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal.h:30,
+                 from ../Inc/main.h:31,
+                 from ../Src/main.c:23:
+../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_cortex.h: At top level:
+../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_cortex.h:262:27: error: expected declaration specifiers or '...' before 'IRQn_Type'
+  262 | void HAL_NVIC_SetPriority(IRQn_Type IRQn, uint32_t PreemptPriority, uint32_t SubPriority);
+      |                           ^~~~~~~~~
+../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_cortex.h:263:25: error: expected declaration specifiers or '...' before 'IRQn_Type'
+  263 | void HAL_NVIC_EnableIRQ(IRQn_Type IRQn);
+      |                         ^~~~~~~~~
+../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_cortex.h:264:26: error: expected declaration specifiers or '...' before 'IRQn_Type'
+  264 | void HAL_NVIC_DisableIRQ(IRQn_Type IRQn);
+      |                          ^~~~~~~~~
+../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_cortex.h:281:27: error: expected declaration specifiers or '...' before 'IRQn_Type'
+  281 | void HAL_NVIC_GetPriority(IRQn_Type IRQn, uint32_t PriorityGroup, uint32_t* pPreemptPriority, uint32_t* pSubPriority);
+      |                           ^~~~~~~~~
+../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_cortex.h:282:33: error: expected declaration specifiers or '...' before 'IRQn_Type'
+  282 | uint32_t HAL_NVIC_GetPendingIRQ(IRQn_Type IRQn);
+      |                                 ^~~~~~~~~
+../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_cortex.h:283:29: error: expected declaration specifiers or '...' before 'IRQn_Type'
+  283 | void HAL_NVIC_SetPendingIRQ(IRQn_Type IRQn);
+      |                             ^~~~~~~~~
+../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_cortex.h:284:31: error: expected declaration specifiers or '...' before 'IRQn_Type'
+  284 | void HAL_NVIC_ClearPendingIRQ(IRQn_Type IRQn);
+      |                               ^~~~~~~~~
+../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_cortex.h:285:29: error: expected declaration specifiers or '...' before 'IRQn_Type'
+  285 | uint32_t HAL_NVIC_GetActive(IRQn_Type IRQn);
+      |                             ^~~~~~~~~
+../Src/main.c: In function 'MX_NVIC_Init':
+../Src/main.c:269:3: warning: implicit declaration of function 'HAL_NVIC_SetPriority'; did you mean 'NVIC_SetPriority'? [-Wimplicit-function-declaration]
+  269 |   HAL_NVIC_SetPriority(SDMMC1_IRQn, 5, 0);
+      |   ^~~~~~~~~~~~~~~~~~~~
+      |   NVIC_SetPriority
+../Src/main.c:269:24: error: 'SDMMC1_IRQn' undeclared (first use in this function)
+  269 |   HAL_NVIC_SetPriority(SDMMC1_IRQn, 5, 0);
+      |                        ^~~~~~~~~~~
+../Src/main.c:270:3: warning: implicit declaration of function 'HAL_NVIC_EnableIRQ'; did you mean 'NVIC_EnableIRQ'? [-Wimplicit-function-declaration]
+  270 |   HAL_NVIC_EnableIRQ(SDMMC1_IRQn);
+      |   ^~~~~~~~~~~~~~~~~~
+      |   NVIC_EnableIRQ
+../Src/main.c:272:24: error: 'DMA1_Stream0_IRQn' undeclared (first use in this function); did you mean 'DMA1_Stream0_BASE'?
+  272 |   HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 5, 0);
+      |                        ^~~~~~~~~~~~~~~~~
+      |                        DMA1_Stream0_BASE
+../Src/main.c:275:24: error: 'ADC_IRQn' undeclared (first use in this function)
+  275 |   HAL_NVIC_SetPriority(ADC_IRQn, 5, 0);
+      |                        ^~~~~~~~
+../Src/main.c:278:24: error: 'DMA1_Stream7_IRQn' undeclared (first use in this function); did you mean 'DMA1_Stream7_BASE'?
+  278 |   HAL_NVIC_SetPriority(DMA1_Stream7_IRQn, 5, 0);
+      |                        ^~~~~~~~~~~~~~~~~
+      |                        DMA1_Stream7_BASE
+../Src/main.c:281:24: error: 'UART5_IRQn' undeclared (first use in this function)
+  281 |   HAL_NVIC_SetPriority(UART5_IRQn, 5, 0);
+      |                        ^~~~~~~~~~
+../Src/main.c:284:24: error: 'DMA2_Stream3_IRQn' undeclared (first use in this function); did you mean 'DMA2_Stream3_BASE'?
+  284 |   HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, 5, 0);
+      |                        ^~~~~~~~~~~~~~~~~
+      |                        DMA2_Stream3_BASE
+../Src/main.c:287:24: error: 'DMA2_Stream6_IRQn' undeclared (first use in this function); did you mean 'DMA2_Stream6_BASE'?
+  287 |   HAL_NVIC_SetPriority(DMA2_Stream6_IRQn, 5, 0);
+      |                        ^~~~~~~~~~~~~~~~~
+      |                        DMA2_Stream6_BASE
+../Src/main.c:290:24: error: 'DMA1_Stream1_IRQn' undeclared (first use in this function); did you mean 'DMA1_Stream1_BASE'?
+  290 |   HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 5, 0);
+      |                        ^~~~~~~~~~~~~~~~~
+      |                        DMA1_Stream1_BASE
+../Src/main.c:293:24: error: 'DMA1_Stream5_IRQn' undeclared (first use in this function); did you mean 'DMA1_Stream5_BASE'?
+  293 |   HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 5, 0);
+      |                        ^~~~~~~~~~~~~~~~~
+      |                        DMA1_Stream5_BASE
+../Src/main.c:296:24: error: 'DMA2_Stream0_IRQn' undeclared (first use in this function); did you mean 'DMA2_Stream0_BASE'?
+  296 |   HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 5, 0);
+      |                        ^~~~~~~~~~~~~~~~~
+      |                        DMA2_Stream0_BASE
+../Src/main.c:299:24: error: 'EXTI9_5_IRQn' undeclared (first use in this function)
+  299 |   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
+      |                        ^~~~~~~~~~~~
+../Src/main.c:302:24: error: 'DMA2_Stream1_IRQn' undeclared (first use in this function); did you mean 'DMA2_Stream1_BASE'?
+  302 |   HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 0, 0);
+      |                        ^~~~~~~~~~~~~~~~~
+      |                        DMA2_Stream1_BASE
+make[1]: *** [Src/subdir.mk:64: Src/main.o] Error 1
+make: *** [makefile:64: all] Error 2
+"make all" terminated with exit code 2. Build might be incomplete.

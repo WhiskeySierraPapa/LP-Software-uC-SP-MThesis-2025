@@ -1,0 +1,49 @@
+!SESSION 2022-11-28 14:42:38.880 -----------------------------------------------
+eclipse.buildId=Version 1.8.0
+java.version=11.0.11
+java.vendor=AdoptOpenJDK
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=en_US
+Framework arguments:  \\ug.kth.se\dfs\home\j\s\jstude\appdata\xp.V2\Documents\Data Hub Intro Resources\SPIDER2-DataHub-EMUScience-uC\.cproject
+Command-line arguments:  -os win32 -ws win32 -arch x86_64 -data D:\SPIDER2-DataHub-EMUScience-uC \\ug.kth.se\dfs\home\j\s\jstude\appdata\xp.V2\Documents\Data Hub Intro Resources\SPIDER2-DataHub-EMUScience-uC\.cproject
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2022-11-28 14:42:45.682
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2022-11-28 14:42:45.761
+!MESSAGE Log4j initialized with config file D:\SPIDER2-DataHub-EMUScience-uC\.metadata\.log4j.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2022-11-28 14:42:47.995
+!MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY org.eclipse.cdt.core 1 0 2022-11-28 14:43:16.279
+!MESSAGE Indexed 'SPIDER2-DataHub-EMUScience-uC' (55 sources, 147 headers) in 11 sec: 15 641 declarations; 85 447 references; 2 unresolved inclusions; 38 syntax errors; 160 unresolved names (0,16 %)
+!SESSION 2022-12-01 08:57:31.367 -----------------------------------------------
+eclipse.buildId=Version 1.8.0
+java.version=11.0.11
+java.vendor=AdoptOpenJDK
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=en_US
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2022-12-01 08:57:41.683
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2022-12-01 08:57:41.787
+!MESSAGE Log4j initialized with config file D:\SPIDER2-DataHub-EMUScience-uC\.metadata\.log4j.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2022-12-01 08:57:53.278
+!MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2022-12-01 09:00:33.949 -----------------------------------------------
+eclipse.buildId=Version 1.8.0
+java.version=11.0.11
+java.vendor=AdoptOpenJDK
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=en_US
+Command-line arguments:  -os win32 -ws win32 -arch x86_64 -data D:\SPIDER2-DataHub-EMUScience-uC
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2022-12-01 09:00:37.446
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2022-12-01 09:00:37.494
+!MESSAGE Log4j initialized with config file D:\SPIDER2-DataHub-EMUScience-uC\.metadata\.log4j.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2022-12-01 09:00:45.160
+!MESSAGE Started RMI Server, listening on port 41337

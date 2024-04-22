@@ -1,5 +1,4 @@
 TAGS
-.*
-!.git*
+.vscode
 Debug/*
 Build/*
