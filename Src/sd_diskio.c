@@ -59,14 +59,14 @@ See BSP_SD_ErrorCallback() and BSP_SD_AbortCallback() below
 /*
  * Depending on the use case, the SD card initialization could be done at the
  * application level: if it is the case define the flag below to disable
- * the BSP_SD_Init() call in the SD_Initialize() and add a call to 
+ * the BSP_SD_Init() call in the SD_Initialize() and add a call to
  * BSP_SD_Init() elsewhere in the application.
  */
 /* USER CODE BEGIN disableSDInit */
 /* #define DISABLE_SD_INIT */
 /* USER CODE END disableSDInit */
 
-/* 
+/*
  * when using cachable memory region, it may be needed to maintain the cache
  * validity. Enable the define below to activate a cache maintenance at each
  * read and write operation.
@@ -85,7 +85,7 @@ See BSP_SD_ErrorCallback() and BSP_SD_AbortCallback() below
 
 /* Private variables ---------------------------------------------------------*/
 #if defined(ENABLE_SCRATCH_BUFFER)
-#if defined (ENABLE_SD_DMA_CACHE_MAINTENANCE)  
+#if defined (ENABLE_SD_DMA_CACHE_MAINTENANCE)
 ALIGN_32BYTES(static uint8_t scratch[BLOCKSIZE]); // 32-Byte aligned for cache maintenance
 #else
 __ALIGN_BEGIN static uint8_t scratch[BLOCKSIZE] __ALIGN_END;
@@ -154,7 +154,7 @@ static DSTATUS SD_CheckStatus(BYTE lun)
 
   return Stat;
 }
- 
+
 /**
   * @brief  Initializes a Drive
   * @param  lun : not used
@@ -162,7 +162,7 @@ static DSTATUS SD_CheckStatus(BYTE lun)
   */
 DSTATUS SD_initialize(BYTE lun)
 {
-Stat = STA_NOINIT; 
+Stat = STA_NOINIT;
 
   /*
    * check that the kernel has been started before continuing
@@ -216,12 +216,12 @@ DSTATUS SD_status(BYTE lun)
   * @param  count: Number of sectors to read (1..128)
   * @retval DRESULT: Operation result
   */
-   
+
 DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
 {
   DRESULT res = RES_ERROR;
   osEvent event;
-#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)  
+#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
   uint32_t alignedAddr;
 #endif
   /*
@@ -246,7 +246,7 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
       if (event.status == osEventMessage) {
         if (event.value.v == READ_CPLT_MSG) {
           res = RES_OK;
-#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1) 
+#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
           /*
           * Invalidate the chache before reading into the buffer,  to get actual data
           */
@@ -269,7 +269,7 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
 
         if (event.status == osEventMessage) {
           if (event.value.v == READ_CPLT_MSG) {
-#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)  
+#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
             /*
             *
             * invalidate the scratch buffer before the next read to get the actual data instead of the cached one
@@ -294,8 +294,7 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
 #endif
 
   return res;
-} 
- 
+}
 
 /* USER CODE BEGIN beforeWriteSection */
 /* can be used to modify previous code / undefine following code / add new code */
@@ -309,14 +308,14 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
   * @retval DRESULT: Operation result
   */
 #if _USE_WRITE == 1
-   
+
 DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
 {
   osEvent event;
   DRESULT res = RES_ERROR;
   uint32_t timer;
 
-#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)   
+#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
   uint32_t alignedAddr;
 #endif
 
@@ -329,7 +328,7 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
   if (!((uint32_t)buff & 0x3))
   {
 #endif
-#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)   
+#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
     /*
     * Invalidate the chache before writting into the buffer.
     * This is not needed if the memory region is configured as W/T.
@@ -367,7 +366,7 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
     /* Slow path, fetch each sector a part and memcpy to destination buffer */
     int i;
     uint8_t ret;
-#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)   
+#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
     /*
     * invalidate the scratch buffer before the next write to get the actual data instead of the cached one
     */
@@ -398,8 +397,8 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
   }
 #endif
   return res;
-} 
- #endif /* _USE_WRITE == 1 */  
+}
+ #endif /* _USE_WRITE == 1 */
 
 /* USER CODE BEGIN beforeIoctlSection */
 /* can be used to modify previous code / undefine following code / add new code */
@@ -459,7 +458,7 @@ DRESULT SD_ioctl(BYTE lun, BYTE cmd, void *buff)
 /* can be used to modify previous code / undefine following code / add new code */
 /* USER CODE END afterIoctlSection */
 
-/* USER CODE BEGIN callbackSection */ 
+/* USER CODE BEGIN callbackSection */
 /* can be used to modify / following code or add new code */
 /* USER CODE END callbackSection */
 /**
@@ -469,7 +468,7 @@ DRESULT SD_ioctl(BYTE lun, BYTE cmd, void *buff)
   */
 void BSP_SD_WriteCpltCallback(void)
 {
-  
+
   /*
    * No need to add an "osKernelRunning()" check here, as the SD_initialize()
    * is always called before any SD_Read()/SD_Write() call
@@ -491,7 +490,7 @@ void BSP_SD_ReadCpltCallback(void)
   osMessagePut(SDQueueID, READ_CPLT_MSG, osWaitForever);
 }
 
-/* USER CODE BEGIN ErrorAbortCallbacks */ 
+/* USER CODE BEGIN ErrorAbortCallbacks */
 /*
  ======================================================================
  enable the callbacks below to deal with Error/Abort usecases.
@@ -510,9 +509,9 @@ void BSP_SD_AbortCallback(void)
   osMessagePut(SDQueueID, RW_ABORT_MSG, osWaitForever);
 }
 */ 
-/* USER CODE END ErrorAbortCallbacks */ 
+/* USER CODE END ErrorAbortCallbacks */
 
-/* USER CODE BEGIN lastSection */ 
+/* USER CODE BEGIN lastSection */
 /* can be used to modify / undefine previous code or add new code */
 /* USER CODE END lastSection */
 
