@@ -32,6 +32,7 @@
 #include "GS_Telemetry.h"
 #include "uC_Data_Saving.h"
 #include "COBS.h"
+#include "Space_Packet_Protocol.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
