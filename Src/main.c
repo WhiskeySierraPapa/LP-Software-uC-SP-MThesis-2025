@@ -62,7 +62,10 @@ SD_HandleTypeDef hsd1;
 DMA_HandleTypeDef hdma_sdmmc1_rx;
 DMA_HandleTypeDef hdma_sdmmc1_tx;
 
+UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart5;
+DMA_HandleTypeDef hdma_uart4_rx;
+DMA_HandleTypeDef hdma_uart4_tx;
 DMA_HandleTypeDef hdma_uart5_rx;
 DMA_HandleTypeDef hdma_uart5_tx;
 
@@ -103,6 +106,7 @@ static void MX_SDMMC1_SD_Init(void);
 static void MX_UART5_Init(void);
 static void MX_I2C4_Init(void);
 static void MX_FMC_Init(void);
+static void MX_UART4_Init(void);
 void StartDefaultTask(void const * argument);
 
 static void MX_NVIC_Init(void);
@@ -147,6 +151,7 @@ int main(void)
   MX_ADC1_Init();
   MX_SDMMC1_SD_Init();
   MX_UART5_Init();
+  MX_UART4_Init();
   MX_I2C4_Init();
   MX_FMC_Init();
 
@@ -245,8 +250,10 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_UART5|RCC_PERIPHCLK_I2C4
-                              |RCC_PERIPHCLK_SDMMC1|RCC_PERIPHCLK_CLK48;
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_UART4|RCC_PERIPHCLK_UART5
+                              |RCC_PERIPHCLK_I2C4|RCC_PERIPHCLK_SDMMC1
+                              |RCC_PERIPHCLK_CLK48;
+  PeriphClkInitStruct.Uart4ClockSelection = RCC_UART4CLKSOURCE_PCLK1;
   PeriphClkInitStruct.Uart5ClockSelection = RCC_UART5CLKSOURCE_PCLK1;
   PeriphClkInitStruct.I2c4ClockSelection = RCC_I2C4CLKSOURCE_PCLK1;
   PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48SOURCE_PLL;
@@ -458,6 +465,41 @@ static void MX_SDMMC1_SD_Init(void)
 }
 
 /**
+  * @brief UART4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_UART4_Init(void)
+{
+
+  /* USER CODE BEGIN UART4_Init 0 */
+
+  /* USER CODE END UART4_Init 0 */
+
+  /* USER CODE BEGIN UART4_Init 1 */
+
+  /* USER CODE END UART4_Init 1 */
+  huart4.Instance = UART4;
+  huart4.Init.BaudRate = 115200;
+  huart4.Init.WordLength = UART_WORDLENGTH_8B;
+  huart4.Init.StopBits = UART_STOPBITS_1;
+  huart4.Init.Parity = UART_PARITY_NONE;
+  huart4.Init.Mode = UART_MODE_TX_RX;
+  huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart4.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart4.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart4.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN UART4_Init 2 */
+
+  /* USER CODE END UART4_Init 2 */
+
+}
+
+/**
   * @brief UART5 Initialization Function
   * @param None
   * @retval None
@@ -521,6 +563,14 @@ static void MX_DMA_Init(void)
   {
     Error_Handler( );
   }
+
+  /* DMA interrupt init */
+  /* DMA1_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
+  /* DMA1_Stream4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
 
 }
 /* FMC initialization function */
@@ -633,7 +683,10 @@ void HAL_SRAM_DMA_XferCpltCallback(DMA_HandleTypeDef *hdma) {
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart5) {
 		FPGA_RX_CpltCallback();
+	} else if (huart == &huart4) {
+		SPP_Callback();
 	}
+
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
@@ -682,6 +735,7 @@ void StartDefaultTask(void const * argument)
 
   // Start listening on UART5 (FPGA)
   HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 4);
+  HAL_UART_Receive_DMA(&huart4, Space_Packet_Data_Buffer, 16);
 
   { // Update boot count in FRAM
 	  uint16_t boot_cnt = 0;
@@ -752,7 +806,7 @@ void StartDefaultTask(void const * argument)
 
   uint32_t current_ticks = 0;
   uint32_t ucFileTicks = 0;
-
+  uint32_t SPP_test_ticks = 0;
   uint8_t oldFlightState = 0;
 
 	f_open(&stateFile, "/FLIGHT_STATES.log", FA_OPEN_APPEND | FA_WRITE);
@@ -764,6 +818,12 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   for(;;) {
 	  current_ticks = xTaskGetTickCount();
+
+    if (current_ticks - SPP_test_ticks > 5000) {
+      HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
+      //SPP_send_HK_test_packet();
+      SPP_test_ticks = current_ticks;
+    }
 
 	  if (FPGAFlightState < 7)
 		  HandleFPGAStream();

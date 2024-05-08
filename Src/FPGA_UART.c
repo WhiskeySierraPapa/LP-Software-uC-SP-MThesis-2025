@@ -1,4 +1,5 @@
 #include <FPGA_UART.h>
+#include "Space_Packet_Protocol.h"
 
 uint8_t FPGARxBuffer[FPGA_RX_BUFFER_SIZE];
 uint8_t FPGATxBuffer[FPGA_TX_BUFFER_SIZE];
@@ -525,6 +526,31 @@ void HandleConsole() {
 					   uc3v_int, uc3v_dec);
 
 		  FPGA_Transmit(str);
+		  HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 1);
+	  }
+	  else if (strcmp(cmd, "spp_message") == 0 ) {
+		  if (arg1 == 0) {
+			  FPGA_Transmit("\n\r\n\rMissing message\n\r\n\r>");
+		  } else {
+		  	  // This will be used to simulate sending spp message to datahub
+			  // spp <HEX String of message> <Hex String message length (number of letters NOT BYTES)>
+			  //FPGA_Transmit("\n\r\n\rMessage received!\n\r\n\r>");
+		  	  uint32_t hex_str_len = strlen(arg1); 
+		  	  uint8_t data[256];
+		  	  //uint8_t response[1024];
+		  	  char hex[2];
+		  	  for(int i = 0; i < hex_str_len; i += 2) {
+			  	  memcpy(hex, arg1 + i, 2); // copy two letters to hex char array
+			  	  data[i/2] = (uint8_t)strtol(hex, NULL, 16); // convert hexcstring to number
+		  	  }
+		  
+
+		  	  //SPP_handle_incoming_packet(data, response);
+			  //response[1023] = 0x00;
+		  	  FPGA_Transmit("\n\r\n\r");
+			  FPGA_Transmit(arg1);
+		  	  FPGA_Transmit("\n\r\n\r");
+		  }
 		  HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 1);
 	  }
 	  else if (strcmp(cmd, "exit") == 0) {

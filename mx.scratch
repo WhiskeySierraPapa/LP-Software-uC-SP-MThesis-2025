@@ -16,10 +16,13 @@
       <Secure />
       <filestoremove>
         <file>
-          <name>ffconf.h</name>
+          <name>FreeRTOSConfig.h</name>
         </file>
         <file>
           <name>..\Src\custom.c</name>
+        </file>
+        <file>
+          <name>ffconf.h</name>
         </file>
         <file>
           <name>bsp_driver_sd.h</name>
@@ -32,9 +35,6 @@
         </file>
         <file>
           <name>fatfs_platform.h</name>
-        </file>
-        <file>
-          <name>FreeRTOSConfig.h</name>
         </file>
         <file>
           <name>stm32f7xx_it.h</name>
