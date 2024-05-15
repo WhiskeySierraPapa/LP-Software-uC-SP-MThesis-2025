@@ -15,7 +15,7 @@
 	@return Encoded buffer length in bytes
 	@note Does not output delimiter byte
 */
-size_t cobsEncode(const void *data, size_t length, uint8_t *buffer) {
+size_t COBS_encode(const void *data, size_t length, uint8_t *buffer) {
 	assert(data && buffer);
 
 	uint8_t *p_output = buffer + 1; // Pointer to first byte of encoded output.
@@ -50,7 +50,7 @@ size_t cobsEncode(const void *data, size_t length, uint8_t *buffer) {
 	@return Number of bytes successfully decoded
 	@note Stops decoding if delimiter byte is found
 */
-size_t cobsDecode(const uint8_t *buffer, size_t length, void *data) {
+size_t COBS_decode(const uint8_t *buffer, size_t length, void *data) {
 	assert(buffer && data);
 
 	const uint8_t *p_input_byte = buffer; // Pointer to input byte
@@ -80,42 +80,3 @@ size_t cobsDecode(const uint8_t *buffer, size_t length, void *data) {
 	return (size_t)(p_output - (uint8_t *)data);
 }
 
-/*
-int main() {
-	#define INPUT_LEN 512
-	#define OUTPUT_LEN 514
-	uint8_t input[INPUT_LEN];
-	uint8_t output[OUTPUT_LEN];
-	uint8_t decoded[INPUT_LEN];
-	for(int i = 0; i < INPUT_LEN; i++) {
-		//if (i % 5 == 0) {
-		//	input[i] = 0;
-		//} else {
-		input[i] = 244;
-		//}
-		printf("%d ", input[i]);
-	}
-	printf("\n");
-	printf("\n");
-
-	cobsEncode(input, INPUT_LEN, output);
-	cobsDecode(output, INPUT_LEN, decoded);
-
-	for(int i = 0; i < OUTPUT_LEN; i++) {
-		printf("%d ", output[i]);
-	}
-	printf("\n");printf("\n");
-
-	for(int i = 0; i < INPUT_LEN; i++) {
-		printf("%d ", decoded[i]);
-	}
-	printf("\n");
-
-	for(int i = 0; i < INPUT_LEN; i++) {
-		if (input[i] != decoded[i])
-			printf("DECODE DOES NOT MATCH! %d", i);
-	}
-
-
-}
-*/

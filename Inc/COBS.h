@@ -13,9 +13,11 @@
 #include <assert.h>
 #include <stdio.h>
 
-size_t cobsEncode(const void *data, size_t length, uint8_t *buffer);
+#define COBS_FRAME_LEN 256
 
-size_t cobsDecode(const uint8_t *buffer, size_t length, void *data);
+size_t COBS_encode(const void *data, size_t length, uint8_t *buffer);
+
+size_t COBS_decode(const uint8_t *buffer, size_t length, void *data);
 
 
 #endif /* COBS_H_ */

@@ -87,6 +87,8 @@ FIL stateFile;
 uint8_t unitID = 0;
 uint8_t ffuID = 0;
 
+uint8_t SPP_message_received = 0;
+
 uint16_t ADCBuffer[11];		// Buffer for ADC values
 uint16_t ADCValues[11];		// Current ADC values
 float temperature = 0;
@@ -684,7 +686,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart5) {
 		FPGA_RX_CpltCallback();
 	} else if (huart == &huart4) {
-		SPP_Callback();
+    SPP_message_received = 1;
 	}
 
 }
@@ -730,12 +732,12 @@ void StartDefaultTask(void const * argument)
 
   // Initialize SD card
   HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_SET);
-  BSP_SD_Init();
-  f_mount(&FatFs, (TCHAR const*) SDPath, 0);
+  //BSP_SD_Init();
+  //f_mount(&FatFs, (TCHAR const*) SDPath, 0);
 
   // Start listening on UART5 (FPGA)
   HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 4);
-  HAL_UART_Receive_DMA(&huart4, Space_Packet_Data_Buffer, 16);
+  HAL_UART_Receive_DMA(&huart4, OBCRxBuffer, COBS_FRAME_LEN);
 
   { // Update boot count in FRAM
 	  uint16_t boot_cnt = 0;
@@ -772,13 +774,13 @@ void StartDefaultTask(void const * argument)
   ADCPacket[0] = 'A';
   ADCPacket[19] = '\n';
 
-  uint8_t SD_Card_switch = 1;
-  SD_Card_switch = HAL_GPIO_ReadPin(SD_SW_B_GPIO_Port, SD_SW_B_Pin);
+  //uint8_t SD_Card_switch = 1;
+  //SD_Card_switch = HAL_GPIO_ReadPin(SD_SW_B_GPIO_Port, SD_SW_B_Pin);
 
   FRESULT result = 0;
 
   HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
-
+/*
   if (SD_Card_switch == 0) {
 	  result = openFPGADataFile();
 
@@ -802,23 +804,28 @@ void StartDefaultTask(void const * argument)
   }
   else
 	  HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, GPIO_PIN_SET);
-
-
+*/
   uint32_t current_ticks = 0;
   uint32_t ucFileTicks = 0;
   uint32_t SPP_test_ticks = 0;
   uint8_t oldFlightState = 0;
-
+/*
 	f_open(&stateFile, "/FLIGHT_STATES.log", FA_OPEN_APPEND | FA_WRITE);
 	char bootstr[256];
 	sprintf(bootstr, "Boot completed, entering main loop at t = %ld ms\n", current_ticks);
 	f_write(&stateFile, bootstr, strlen(bootstr), 0);
 	f_close(&stateFile);
-
+*/
   /* Infinite loop */
   for(;;) {
 	  current_ticks = xTaskGetTickCount();
 
+    if (SPP_message_received) {
+      //SPP_Callback();
+      SPP_handle_incoming_TC();
+      SPP_message_received = 0;
+    }
+    
     if (current_ticks - SPP_test_ticks > 5000) {
       HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
       //SPP_send_HK_test_packet();
@@ -827,7 +834,7 @@ void StartDefaultTask(void const * argument)
 
 	  if (FPGAFlightState < 7)
 		  HandleFPGAStream();
-
+/*
 	  // uC Binary file
 	  if (FPGAFlightState > 2 && FPGAFlightState < 7) {
 		  if (uCFileOpen) {
@@ -845,7 +852,7 @@ void StartDefaultTask(void const * argument)
 			  }
 		  }
 	  }
-
+*/
 	  // This pin controls UART line switching inside the FPGA
 	  if (console_enabled)
 		  HAL_GPIO_WritePin(UC_CONSOLE_EN_GPIO_Port, UC_CONSOLE_EN_Pin, GPIO_PIN_SET);
@@ -858,14 +865,14 @@ void StartDefaultTask(void const * argument)
 	  }
 
 	  if (FPGAFlightState != oldFlightState) {
-		  	char str[256];
-
+		  	//char str[256];
+			  oldFlightState = FPGAFlightState;
+/*
 			f_open(&stateFile, "/FLIGHT_STATES.log", FA_OPEN_APPEND | FA_WRITE);
 			sprintf(str, "Time: %ld, State: %d\n", current_ticks, FPGAFlightState);
 			f_write(&stateFile, str, strlen(str), 0);
 			f_close(&stateFile);
 
-			oldFlightState = FPGAFlightState;
 	  }
 
 	  if (FPGAFlightState == STATE_LANDED) {
@@ -877,6 +884,7 @@ void StartDefaultTask(void const * argument)
 			  f_close(&uCDataFile);
 			  uCFileOpen = 0;
 		  }
+*/
 	  }
   }
   /* USER CODE END 5 */

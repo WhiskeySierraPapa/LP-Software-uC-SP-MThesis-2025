@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 uint8_t Space_Packet_Data_Buffer[1024];
+uint8_t OBCRxBuffer[COBS_FRAME_LEN];
 
 #define HK_TEST_LEN 172
 uint8_t HK_test_packet[HK_TEST_LEN] = { // Hard coded test response
@@ -25,18 +26,23 @@ uint8_t HK_test_packet[HK_TEST_LEN] = { // Hard coded test response
 		        0x00, 0x00, 0x00, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC9, 0x55}; 
 
 
+
 void SPP_Callback() {
 	HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
+
+    COBS_decode(OBCRxBuffer, COBS_FRAME_LEN, Space_Packet_Data_Buffer);
+    
+
     SPP_primary_header_t primary_header;
     SPP_decode_primary_header(Space_Packet_Data_Buffer, &primary_header);
 
-    HAL_UART_Transmit_DMA(&huart5, Space_Packet_Data_Buffer, SPP_PRIMARY_HEADER_LEN + primary_header.packet_data_length + 1);
-    //memcpy(test_arr, &ht, 1);
-    //memcpy(test_arr+1, &rt, 1);
+    HAL_UART_Transmit(&huart4, Space_Packet_Data_Buffer, SPP_PRIMARY_HEADER_LEN + primary_header.packet_data_length + 1, 10);
+    HAL_UART_Receive_DMA(&huart4, Space_Packet_Data_Buffer, 256);
 }
 
 
 void SPP_send_HK_test_packet() {
+	HK_test_packet[3]++;
     HAL_UART_Transmit_DMA(&huart4, HK_test_packet, HK_TEST_LEN);
 }
 
@@ -74,9 +80,9 @@ SPP_error SPP_validate_checksum(uint8_t* packet, uint16_t packet_length) {
     received_CRC |= (packet[packet_length - 2] << 8) | packet[packet_length - 1];
     uint16_t calculated_CRC = SPP_calc_CRC16(packet, packet_length - 2);
     if (received_CRC != calculated_CRC) {
-        return PACKET_CRC_MISMATCH;
+        return SPP_PACKET_CRC_MISMATCH;
     } else {
-        return OK;
+        return SPP_OK;
     }
 }
 
@@ -94,7 +100,7 @@ SPP_error SPP_decode_primary_header(uint8_t* raw_header, SPP_primary_header_t* p
 	primary_header->sequence_flags			= (raw_header[2] & 0xC0) >> 6;
 	primary_header->packet_sequence_count	=((raw_header[2] & 0x3F) << 8) | (raw_header[3]);
 	primary_header->packet_data_length		= (raw_header[4] << 8) 		   | (raw_header[5]);
-    return OK;
+    return SPP_OK;
 }
 
 
@@ -117,17 +123,17 @@ SPP_error SPP_encode_primary_header(SPP_primary_header_t* primary_header, uint8_
     result_buffer[3] |=  primary_header->packet_sequence_count  & 0x00FF;
     result_buffer[4] |= (primary_header->packet_data_length     & 0xFF00) >> 8;
     result_buffer[5] |=  primary_header->packet_data_length     & 0x00FF;
-    return OK;
+    return SPP_OK;
 }
 
-
+/*
 // Returns the length of the packet data, and writes a heap pointer to "data".
 SPP_error SPP_extract_packet_data(uint8_t* packet, uint8_t* data, uint16_t* ret_data_len, SPP_primary_header_t* decoded_out_header) {
     uint8_t raw_header[6] = {0, 0, 0, 0, 0, 0};
 	memcpy(&raw_header, packet, SPP_PRIMARY_HEADER_LEN);
 
     SPP_error decode_err = SPP_decode_primary_header(raw_header, decoded_out_header);
-    if (decode_err != OK) {return decode_err;}
+    if (decode_err != SPP_OK) {return decode_err;}
 
 	uint16_t data_length = decoded_out_header->packet_data_length + 1; // The docs say that the packet_data_length is the number of bytes - 1, so no idea if thus should be +1 or is there just a sentinal value.
 
@@ -136,21 +142,23 @@ SPP_error SPP_extract_packet_data(uint8_t* packet, uint8_t* data, uint16_t* ret_
     memcpy(data, packet, data_length);
     *ret_data_len = data_length;
      
-    return OK;
+    return SPP_OK;
 }
+*/
 
-SPP_error SPP_decode_secondary_header_PUS(uint8_t* raw_header, SPP_secondary_header_PUS_t* secondary_header) {
+SPP_error SPP_decode_PUS_TC_header(uint8_t* raw_header, SPP_PUS_TC_header_t* secondary_header) {
     secondary_header->PUS_version_number = (raw_header[0] & 0xF0) >> 4;
     secondary_header->ACK_flags          = (raw_header[0] & 0x0F);
     secondary_header->service_type_id    =  raw_header[1];
     secondary_header->message_subtype_id =  raw_header[2];
     secondary_header->source_id          = (raw_header[3] << 8) | raw_header[4];
     secondary_header->spare              = 0; // Based on PUS message type I guess? (Optional)
-    return OK;
+    return SPP_OK;
 }
 
-SPP_error SPP_encode_secondary_header_PUS(SPP_secondary_header_PUS_t* secondary_header, uint8_t* result_buffer) {
-    for(int i = 0; i < SPP_SECONDARY_HEADER_LEN_WO_SPARE; i++) {
+// Technically this is not needed since, Langmuir Probe Payload will not send TCs.
+SPP_error SPP_encode_PUS_TC_header(SPP_PUS_TC_header_t* secondary_header, uint8_t* result_buffer) {
+    for(int i = 0; i < SPP_PUS_TC_HEADER_LEN_WO_SPARE; i++) {
         result_buffer[i] ^= result_buffer[i];    // Clear result buffer.
     }
 
@@ -161,52 +169,143 @@ SPP_error SPP_encode_secondary_header_PUS(SPP_secondary_header_PUS_t* secondary_
     result_buffer[3] |= (secondary_header->source_id & 0xFF00) >> 8;
     result_buffer[4] |= (secondary_header->source_id & 0x00FF) >> 8;
 
-    return OK;
+    return SPP_OK;
 };
 
-// Test function to check if decodeing and encoding and data seperation works correctly.
-SPP_error SPP_handle_incoming_packet(uint8_t* space_packet, uint8_t* response) {
-    SPP_primary_header_t primary_header;
-    uint16_t* packet_data_len = 0;
+// Technically this is not needed since, Langmuir Probe Payload will only send TMs.
+SPP_error SPP_decode_PUS_TM_header(uint8_t* raw_header, SPP_PUS_TM_header_t* secondary_header) {
+    secondary_header->PUS_version_number    = (raw_header[0] & 0xF0) >> 4;
+    secondary_header->sc_time_ref_status    = (raw_header[0] & 0x0F);
+    secondary_header->service_type_id       =  raw_header[1];
+    secondary_header->message_subtype_id    =  raw_header[2];
+    secondary_header->message_type_counter  = (raw_header[3] << 8) | raw_header[4];
+    secondary_header->destination_id        = (raw_header[5] << 8) | raw_header[6];
+    secondary_header->time                  = (raw_header[7] << 8) | raw_header[8];
+    secondary_header->spare                 = 0; // Based on PUS message type I guess? (Optional)
+    return SPP_OK;
+}
+
+SPP_error SPP_encode_PUS_TM_header(SPP_PUS_TM_header_t* secondary_header, uint8_t* result_buffer) {
+    for(int i = 0; i < SPP_PUS_TM_HEADER_LEN_WO_SPARE; i++) {
+        result_buffer[i] ^= result_buffer[i];    // Clear result buffer.
+    }
+
+    result_buffer[0] |=  secondary_header->PUS_version_number << 4;
+    result_buffer[0] |=  secondary_header->sc_time_ref_status;
+    result_buffer[1] |=  secondary_header->service_type_id;
+    result_buffer[2] |=  secondary_header->message_subtype_id;
+    result_buffer[3] |= (secondary_header->message_type_counter & 0xFF00) >> 8;
+    result_buffer[4] |= (secondary_header->message_type_counter & 0x00FF) >> 8;
+    result_buffer[5] |= (secondary_header->destination_id & 0xFF00) >> 8;
+    result_buffer[6] |= (secondary_header->destination_id & 0x00FF) >> 8;
+    result_buffer[7] |= (secondary_header->time & 0xFF00) >> 8;
+    result_buffer[8] |= (secondary_header->time & 0x00FF) >> 8;
     
-    SPP_error data_extract_error = SPP_extract_packet_data(space_packet, Space_Packet_Data_Buffer, packet_data_len, &primary_header);
-    if (data_extract_error) {
-        return data_extract_error;
+    return SPP_OK;
+};
+
+
+SPP_PUS_TM_header_t SPP_make_new_PUS_TM_header(uint8_t PUS_version_number, uint8_t sc_time_ref_status, uint8_t service_type_id,
+                                uint8_t message_subtype_id, uint16_t message_type_counter, uint16_t destination_id, uint16_t time) {
+    SPP_PUS_TM_header_t PUS_TM_header;
+    PUS_TM_header.PUS_version_number      =  PUS_version_number;
+    PUS_TM_header.sc_time_ref_status      =  sc_time_ref_status;
+    PUS_TM_header.service_type_id         =  service_type_id;
+    PUS_TM_header.message_subtype_id      =  message_subtype_id;
+    PUS_TM_header.message_type_counter    =  message_type_counter;
+    PUS_TM_header.destination_id          =  destination_id;
+    PUS_TM_header.time                    =  time;
+    return PUS_TM_header;
+}
+
+// Flags denoting if an ACK TM message is requested for
+// Success of request acceptence, start , progress and completion of execution
+static inline uint8_t succ_acceptence_req(SPP_PUS_TC_header_t* secondary_header) {
+     return secondary_header->ACK_flags & 0x08;
+}
+static inline uint8_t succ_start_req     (SPP_PUS_TC_header_t* secondary_header) {
+     return secondary_header->ACK_flags & 0x04;
+}
+static inline uint8_t succ_progress_req  (SPP_PUS_TC_header_t* secondary_header) {
+     return secondary_header->ACK_flags & 0x02;
+}
+static inline uint8_t succ_completion_req(SPP_PUS_TC_header_t* secondary_header) {
+     return secondary_header->ACK_flags & 0x01;
+}
+
+
+// HK - Housekeeping PUS service 3
+SPP_error SPP_handle_HK_TC(SPP_PUS_TC_header_t* secondary_header) {
+    if (secondary_header == NULL) {
+        return UNDEFINED_ERROR;
     }
 
+
+    if (secondary_header->message_subtype_id == 128) {
+        
+    }
+
+    return SPP_OK;
+}
+
+
+SPP_error SPP_handle_TEST_TC(SPP_PUS_TC_header_t* secondary_header) {
+    if (secondary_header == NULL) {
+        return UNDEFINED_ERROR;
+    }
+
+    if (secondary_header->message_subtype_id == R_U_ALIVE_TEST_ID) {
+        // Create response TM header with 17,2
+        SPP_PUS_TM_header_t PUS_TM_header = SPP_make_new_PUS_TM_header(PUS_VERSION, 0, TEST_SERVICE_ID, R_U_ALIVE_TEST_REPORT_ID, 0, secondary_header->source_id, 0);
+        
+        uint8_t PUS_TM_header_buffer[SPP_PUS_TM_HEADER_LEN_WO_SPARE];
+        SPP_encode_PUS_TM_header(&PUS_TM_header, PUS_TM_header_buffer);
+        
+        uint16_t calculated_CRC = SPP_calc_CRC16(PUS_TM_header_buffer, SPP_PRIMARY_HEADER_LEN + SPP_PUS_TC_HEADER_LEN_WO_SPARE);
+
+        uint8_t PUS_TM_final[SPP_PUS_TM_MIN_LEN];
+
+        memcpy(PUS_TM_final, PUS_TM_header_buffer, SPP_PRIMARY_HEADER_LEN + SPP_PUS_TC_HEADER_LEN_WO_SPARE);
+        memcpy(PUS_TM_final, calculated_CRC + SPP_PRIMARY_HEADER_LEN + SPP_PUS_TC_HEADER_LEN_WO_SPARE, CRC_BYTE_LEN);
+
+        HAL_UART_Transmit_DMA(&huart4, PUS_TM_final, SPP_PUS_TM_MIN_LEN);
+        //SPP_send_HK_test_packet();
+    }
+}
+
+
+// Test function to check if decodeing and encoding and data seperation works correctly.
+SPP_error SPP_handle_incoming_TC() {
+
+    COBS_decode(OBCRxBuffer, COBS_FRAME_LEN, Space_Packet_Data_Buffer);
+
+    SPP_primary_header_t primary_header;
+    SPP_decode_primary_header(Space_Packet_Data_Buffer, &primary_header);
+    uint16_t space_packet_length = primary_header.packet_data_length + SPP_PRIMARY_HEADER_LEN + 1;
+
+    SPP_error CRC_er = SPP_validate_checksum(Space_Packet_Data_Buffer, space_packet_length);
+    
+    if (CRC_er != SPP_OK) {
+        return SPP_PACKET_CRC_MISMATCH;
+    }
+    
     if (primary_header.secondary_header_flag) {
-        uint8_t secondary_header_buffer[SPP_SECONDARY_HEADER_LEN_WO_SPARE];
-        memcpy(secondary_header_buffer, Space_Packet_Data_Buffer, SPP_SECONDARY_HEADER_LEN_WO_SPARE);
-        SPP_secondary_header_PUS_t secondary_header_PUS;
-        SPP_error secondary_decode_err = SPP_decode_secondary_header_PUS(secondary_header_buffer, &secondary_header_PUS);
-        if (secondary_decode_err) {
-            return secondary_decode_err;
-        }
+        uint8_t secondary_header_buffer[SPP_PUS_TC_HEADER_LEN_WO_SPARE];
+        memcpy(secondary_header_buffer, Space_Packet_Data_Buffer + SPP_PRIMARY_HEADER_LEN, SPP_PUS_TC_HEADER_LEN_WO_SPARE);
 
-        if (secondary_header_PUS.service_type_id    == HOUSEKEEPING_SERVICE_ID &&
-            secondary_header_PUS.message_subtype_id == 25) {
-
-           	uint8_t response_packet[172] = { // Hard coded test response
-	        	0x09, 0x41, 0xC0, 0x1B, 0x00, 0xA5, 0x10, 0x03, 0x19, 0x00, 0x00, 0x00, 0x00, 0x2D, 0x0D, 0x59,
-		        0xAA, 0x00, 0x00, 0x64, 0x80, 0x60, 0x01, 0x00, 0x00, 0x12, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-		        0x12, 0x23, 0x34, 0x45, 0x56, 0x78, 0x67, 0x89, 0x9A, 0xBC, 0xAB, 0x03, 0x00, 0x00, 0x00, 0x00,
-		        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		        0x19, 0x41, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x2B, 0x00, 0xF4, 0xA6, 0x00, 0x00, 0x01, 0x00, 0x1B,
-		        0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x22, 0x00, 0x00, 0x00, 0x05, 0x0D, 0xC5, 0x10, 0x00,
-		        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0B, 0x00, 0x0B, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-		        0x18, 0x0C, 0x00, 0x02, 0x00, 0x00, 0x01, 0x70, 0x00, 0x00, 0x0F, 0xAF, 0x00, 0x00, 0x2E, 0xED,
-		        0x53, 0xC2, 0x61, 0x40, 0x00, 0x01, 0x00, 0x20, 0x00, 0x20, 0xFF, 0xFF, 0x60, 0x14, 0xD4, 0xC0,
-		        0x00, 0x00, 0x00, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC9, 0x55}; 
-
-            for(int i = 0; i < 172; i++) {
-                char temp[2];
-                sprintf(temp, "%02X", response_packet[i]);
-                memcpy(response + 2*i, temp, 2);
-            }
+        SPP_PUS_TC_header_t PUS_TC_header;
+        SPP_decode_PUS_TC_header(secondary_header_buffer, &PUS_TC_header);
+        
+        if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID) {
+            SPP_handle_HK_TC(&PUS_TC_header);
+            HAL_UART_Receive_DMA(&huart4, Space_Packet_Data_Buffer, 256);
+        } 
+        else if (PUS_TC_header.service_type_id == TEST_SERVICE_ID) {
+            SPP_handle_TEST_TC(&PUS_TC_header);
+            HAL_UART_Receive_DMA(&huart4, Space_Packet_Data_Buffer, 256);
         }
     }
-    return OK;
+    return SPP_OK;
 }
 
 

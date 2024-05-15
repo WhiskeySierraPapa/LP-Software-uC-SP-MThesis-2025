@@ -1,5 +1,4 @@
 #include <FPGA_UART.h>
-#include "Space_Packet_Protocol.h"
 
 uint8_t FPGARxBuffer[FPGA_RX_BUFFER_SIZE];
 uint8_t FPGATxBuffer[FPGA_TX_BUFFER_SIZE];
