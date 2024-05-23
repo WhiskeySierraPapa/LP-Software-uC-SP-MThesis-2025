@@ -19,8 +19,32 @@
 extern UART_HandleTypeDef huart4;
 extern uint8_t Space_Packet_Data_Buffer[1024];
 extern uint8_t OBCRxBuffer[COBS_FRAME_LEN];
+extern uint8_t OBCTxBuffer[COBS_FRAME_LEN];
 
 extern uint8_t SPP_message_received;
+
+// Primary header is 6 bytes. From SPP standard.
+#define SPP_PRIMARY_HEADER_LEN            6
+#define SPP_PUS_TC_HEADER_LEN_WO_SPARE    5
+#define SPP_PUS_TM_HEADER_LEN_WO_SPARE    9
+#define CRC_BYTE_LEN                      2
+#define SPP_PUS_TC_MIN_LEN  SPP_PRIMARY_HEADER_LEN + SPP_PUS_TC_HEADER_LEN_WO_SPARE + CRC_BYTE_LEN
+#define SPP_PUS_TM_MIN_LEN  SPP_PRIMARY_HEADER_LEN + SPP_PUS_TM_HEADER_LEN_WO_SPARE + CRC_BYTE_LEN
+#define PUS_VERSION                       2 // Implementation is based on PUS-C
+
+#define SPP_VERSION                       0
+
+#define SPP_MAX_PACKET_LEN              256
+
+#define SPP_PACKET_TYPE_TM                0
+#define SPP_PACKET_TYPE_TC                1
+
+#define SPP_SEQUENCE_SEG_CONT             0
+#define SPP_SEQUENCE_SEG_FIRST            1
+#define SPP_SEQUENCE_SEG_LAST             2
+#define SPP_SEQUENCE_SEG_UNSEG            3
+
+#define SPP_DEBUG_UART                  huart4
 
 typedef enum {
     SPP_OK                                  = 0,
@@ -58,14 +82,6 @@ typedef enum {
     ON_BOARD_CONN_TEST_REPORT_ID       = 4, // TM
 } PUS_T_Subtype_ID;
 
-// Primary header is 6 bytes. From SPP standard.
-#define SPP_PRIMARY_HEADER_LEN            6
-#define SPP_PUS_TC_HEADER_LEN_WO_SPARE    5
-#define SPP_PUS_TM_HEADER_LEN_WO_SPARE    9
-#define CRC_BYTE_LEN                      2
-#define SPP_PUS_TC_MIN_LEN  SPP_PRIMARY_HEADER_LEN + SPP_PUS_TC_HEADER_LEN_WO_SPARE + CRC_BYTE_LEN
-#define SPP_PUS_TM_MIN_LEN  SPP_PRIMARY_HEADER_LEN + SPP_PUS_TM_HEADER_LEN_WO_SPARE + CRC_BYTE_LEN
-#define PUS_VERSION                       2 // Implementation is based on PUS-C
 
 // Actual bit widths added as comments
 typedef struct {

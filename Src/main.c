@@ -685,7 +685,7 @@ void HAL_SRAM_DMA_XferCpltCallback(DMA_HandleTypeDef *hdma) {
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart5) {
 		FPGA_RX_CpltCallback();
-	} else if (huart == &huart4) {
+	} else if (huart == &SPP_DEBUG_UART) {
     SPP_message_received = 1;
 	}
 
@@ -737,7 +737,7 @@ void StartDefaultTask(void const * argument)
 
   // Start listening on UART5 (FPGA)
   HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 4);
-  HAL_UART_Receive_DMA(&huart4, OBCRxBuffer, COBS_FRAME_LEN);
+  HAL_UART_Receive_DMA(&SPP_DEBUG_UART, OBCRxBuffer, COBS_FRAME_LEN);
 
   { // Update boot count in FRAM
 	  uint16_t boot_cnt = 0;
