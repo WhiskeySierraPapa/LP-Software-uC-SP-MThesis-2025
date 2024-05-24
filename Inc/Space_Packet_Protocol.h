@@ -22,6 +22,8 @@ extern uint8_t OBCRxBuffer[COBS_FRAME_LEN];
 extern uint8_t OBCTxBuffer[COBS_FRAME_LEN];
 
 extern uint8_t SPP_message_received;
+extern uint8_t SPP_recv_char;
+extern uint32_t SPP_recv_count;
 
 // Primary header is 6 bytes. From SPP standard.
 #define SPP_PRIMARY_HEADER_LEN            6

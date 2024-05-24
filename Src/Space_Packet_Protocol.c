@@ -11,6 +11,8 @@
 uint8_t Space_Packet_Data_Buffer[1024];
 uint8_t OBCRxBuffer[COBS_FRAME_LEN];
 uint8_t OBCTxBuffer[COBS_FRAME_LEN];
+uint32_t SPP_recv_count = 0;
+uint8_t SPP_recv_char = 0xff;
 
 #define HK_TEST_LEN 172
 uint8_t HK_test_packet[HK_TEST_LEN] = { // Hard coded test response
@@ -252,6 +254,13 @@ static inline uint16_t byte_swap16(uint16_t value) {
 }
 
 
+SPP_error SPP_add_CRC_to_msg(uint8_t* packet, uint16_t length, uint8_t* output) {
+    uint16_t calculated_CRC = SPP_calc_CRC16(packet, length);
+    uint16_t bs_CRC = byte_swap16(calculated_CRC); // (byteswapped CRC) - memcpy copies starting from LSB thus we swap.
+    memcpy(output, &bs_CRC, CRC_BYTE_LEN);
+    return SPP_OK;
+}
+
 // HK - Housekeeping PUS service 3
 SPP_error SPP_handle_HK_TC(SPP_PUS_TC_header_t* secondary_header) {
     if (secondary_header == NULL) {
@@ -279,6 +288,7 @@ static SPP_error SPP_handle_TEST_TC(SPP_primary_header_t* primary_header, SPP_PU
         response_TM_packet_COBS[i] = 0x00;
     }
     uint8_t* current_pointer = response_TM_packet;
+    uint32_t packet_total_len = current_pointer - response_TM_packet;
 
     if (secondary_header->message_subtype_id == R_U_ALIVE_TEST_ID) {
 
@@ -304,19 +314,20 @@ static SPP_error SPP_handle_TEST_TC(SPP_primary_header_t* primary_header, SPP_PU
         
         SPP_encode_primary_header(&response_primary_header, current_pointer);
         current_pointer += SPP_PRIMARY_HEADER_LEN;
+        packet_total_len = current_pointer - response_TM_packet;
 
         SPP_encode_PUS_TM_header(&PUS_TM_header, current_pointer);
         current_pointer += SPP_PUS_TM_HEADER_LEN_WO_SPARE;
+        packet_total_len = current_pointer - response_TM_packet;
         
-        uint16_t calculated_CRC = SPP_calc_CRC16(response_TM_packet, current_pointer - response_TM_packet);
-        uint16_t bs_CRC = byte_swap16(calculated_CRC); // (byteswapped CRC) - memcpy copies starting from LSB thus we swap.
-
-        memcpy(current_pointer, &bs_CRC, CRC_BYTE_LEN);
+        SPP_add_CRC_to_msg(response_TM_packet, packet_total_len, current_pointer);
         current_pointer += CRC_BYTE_LEN;
+        packet_total_len = current_pointer - response_TM_packet;
 
-        COBS_encode(response_TM_packet, SPP_MAX_PACKET_LEN - 2, response_TM_packet_COBS);
-        memcpy(OBCTxBuffer, response_TM_packet_COBS, COBS_FRAME_LEN);
-        HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, OBCTxBuffer, SPP_MAX_PACKET_LEN);
+        uint32_t cobs_packet_total_len = COBS_encode(response_TM_packet, packet_total_len, response_TM_packet_COBS);
+ 
+        memcpy(OBCTxBuffer, response_TM_packet_COBS, cobs_packet_total_len);
+        HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, OBCTxBuffer, cobs_packet_total_len);
         //SPP_send_HK_test_packet();
         return SPP_OK;
     }
