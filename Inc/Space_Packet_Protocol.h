@@ -64,7 +64,7 @@ typedef enum {
     TEST_SERVICE_ID                      = 17,
 } PUS_Service_ID;
 
-// Request Verification service subtype IDs
+// Request Verification service [1] subtype IDs
 typedef enum { // ALL TM
     SUCC_ACCEPTENCE_VERIFICATION_ID     = 1,
     FAIL_ACCEPTENCE_VERIFICATION_ID     = 2,
@@ -76,7 +76,7 @@ typedef enum { // ALL TM
     FAIL_COMPL_OF_EXEC_VERIFICATION_ID  = 8,
 } PUS_RV_Subtype_ID;
 
-// Test service subtype IDS
+// Test service [17] subtype IDS
 typedef enum {
     R_U_ALIVE_TEST_ID                  = 1, // TC
     R_U_ALIVE_TEST_REPORT_ID           = 2, // TM

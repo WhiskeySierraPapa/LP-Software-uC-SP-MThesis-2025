@@ -275,63 +275,95 @@ SPP_error SPP_handle_HK_TC(SPP_PUS_TC_header_t* secondary_header) {
     return SPP_OK;
 }
 
-
-static SPP_error SPP_handle_TEST_TC(SPP_primary_header_t* primary_header, SPP_PUS_TC_header_t* secondary_header) {
-    if (primary_header == NULL || secondary_header == NULL) {
-        return UNDEFINED_ERROR;
-    }
-
+static SPP_error SPP_send_TM(SPP_primary_header_t* response_primary_header, SPP_PUS_TM_header_t* response_secondary_header) {
     uint8_t response_TM_packet[SPP_MAX_PACKET_LEN];
     uint8_t response_TM_packet_COBS[SPP_MAX_PACKET_LEN];
     for(int i = 0; i < SPP_MAX_PACKET_LEN; i++) {
         response_TM_packet[i] = 0x00;
         response_TM_packet_COBS[i] = 0x00;
     }
+
     uint8_t* current_pointer = response_TM_packet;
-    uint32_t packet_total_len = current_pointer - response_TM_packet;
+    uint16_t packet_total_len = current_pointer - response_TM_packet;
 
-    if (secondary_header->message_subtype_id == R_U_ALIVE_TEST_ID) {
+    SPP_encode_primary_header(response_primary_header, current_pointer);
+    current_pointer += SPP_PRIMARY_HEADER_LEN;
+    packet_total_len = current_pointer - response_TM_packet;
 
-        SPP_primary_header_t response_primary_header = SPP_make_new_primary_header(
-            SPP_VERSION,
-            SPP_PACKET_TYPE_TM,
-            primary_header->secondary_header_flag,
-            primary_header->application_process_id,
-            SPP_SEQUENCE_SEG_UNSEG,
-            primary_header->packet_sequence_count,
+    SPP_encode_PUS_TM_header(response_secondary_header, current_pointer);
+    current_pointer += SPP_PUS_TM_HEADER_LEN_WO_SPARE;
+    packet_total_len = current_pointer - response_TM_packet;
+        
+    SPP_add_CRC_to_msg(response_TM_packet, packet_total_len, current_pointer);
+    current_pointer += CRC_BYTE_LEN;
+    packet_total_len = current_pointer - response_TM_packet;
+
+    uint16_t cobs_packet_total_len = COBS_encode(response_TM_packet, packet_total_len, response_TM_packet_COBS);
+ 
+    memcpy(OBCTxBuffer, response_TM_packet_COBS, cobs_packet_total_len);
+    HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, OBCTxBuffer, cobs_packet_total_len);
+    return SPP_OK;
+}
+
+
+
+static SPP_error SPP_send_request_verification(SPP_primary_header_t* request_primary_header, SPP_PUS_TC_header_t* request_secondary_header, PUS_RV_Subtype_ID requested_ACK) {
+
+    SPP_primary_header_t response_primary_header;
+    SPP_PUS_TM_header_t response_PUS_TM_header;
+    // Apperently the data field for subservice 1 successfull packets is the SPP primary header.
+    // So the whole packet is SPP|PUS|SPP|CRC. WTF???
+    response_primary_header = SPP_make_new_primary_header(SPP_VERSION, SPP_PACKET_TYPE_TM, request_primary_header->secondary_header_flag,
+        request_primary_header->application_process_id, SPP_SEQUENCE_SEG_UNSEG, request_primary_header->packet_sequence_count,
+        SPP_PUS_TM_HEADER_LEN_WO_SPARE + CRC_BYTE_LEN - 1
+    );
+    // Create response PUS TM header with 1,requested_ACK
+    response_PUS_TM_header = SPP_make_new_PUS_TM_header(PUS_VERSION, 0, REQUEST_VERIFICATION_SERVICE_ID, requested_ACK,
+        0, request_secondary_header->source_id, 0
+    );
+    SPP_send_TM(&response_primary_header, &response_PUS_TM_header);
+    return SPP_OK;
+}
+
+
+static SPP_error SPP_handle_TEST_TC(SPP_primary_header_t* request_primary_header, SPP_PUS_TC_header_t* request_secondary_header) {
+    if (request_primary_header == NULL || request_secondary_header == NULL) {
+        return UNDEFINED_ERROR;
+    }
+
+    SPP_primary_header_t response_primary_header;
+    SPP_PUS_TM_header_t response_PUS_TM_header;
+
+    if (request_secondary_header->message_subtype_id == R_U_ALIVE_TEST_ID) {
+        if (succ_acceptence_req(request_secondary_header)) {
+            SPP_send_request_verification(request_primary_header, request_secondary_header, SUCC_ACCEPTENCE_VERIFICATION_ID);
+        }
+        if (succ_start_req(request_secondary_header)) {
+            SPP_send_request_verification(request_primary_header, request_secondary_header, SUCC_START_OF_EXEC_VERIFICATION_ID);
+        }
+
+        response_primary_header = SPP_make_new_primary_header(SPP_VERSION, SPP_PACKET_TYPE_TM, request_primary_header->secondary_header_flag,
+            request_primary_header->application_process_id, SPP_SEQUENCE_SEG_UNSEG, request_primary_header->packet_sequence_count,
             SPP_PUS_TM_HEADER_LEN_WO_SPARE + CRC_BYTE_LEN - 1
         );
+
+        if (succ_progress_req(request_secondary_header)) {
+            SPP_send_request_verification(request_primary_header, request_secondary_header, SUCC_PROG_OF_EXEC_VERIFICATION_ID);
+        }
+
         // Create response PUS TM header with 17,2
-        SPP_PUS_TM_header_t PUS_TM_header = SPP_make_new_PUS_TM_header(
-            PUS_VERSION,
-            0,
-            TEST_SERVICE_ID,
-            R_U_ALIVE_TEST_REPORT_ID,
-            0,
-            secondary_header->source_id,
-            0
+        response_PUS_TM_header = SPP_make_new_PUS_TM_header(PUS_VERSION, 0, TEST_SERVICE_ID, R_U_ALIVE_TEST_REPORT_ID,
+            0, request_secondary_header->source_id, 0
         );
-        
-        SPP_encode_primary_header(&response_primary_header, current_pointer);
-        current_pointer += SPP_PRIMARY_HEADER_LEN;
-        packet_total_len = current_pointer - response_TM_packet;
-
-        SPP_encode_PUS_TM_header(&PUS_TM_header, current_pointer);
-        current_pointer += SPP_PUS_TM_HEADER_LEN_WO_SPARE;
-        packet_total_len = current_pointer - response_TM_packet;
-        
-        SPP_add_CRC_to_msg(response_TM_packet, packet_total_len, current_pointer);
-        current_pointer += CRC_BYTE_LEN;
-        packet_total_len = current_pointer - response_TM_packet;
-
-        uint32_t cobs_packet_total_len = COBS_encode(response_TM_packet, packet_total_len, response_TM_packet_COBS);
- 
-        memcpy(OBCTxBuffer, response_TM_packet_COBS, cobs_packet_total_len);
-        HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, OBCTxBuffer, cobs_packet_total_len);
-        //SPP_send_HK_test_packet();
-        return SPP_OK;
     }
-    return UNDEFINED_ERROR;
+
+    SPP_send_TM(&response_primary_header, &response_PUS_TM_header);
+
+    if (succ_completion_req(request_secondary_header)) {
+        SPP_send_request_verification(request_primary_header, request_secondary_header, SUCC_COMPL_OF_EXEC_VERIFICATION_ID);
+    }
+
+    return SPP_OK;
 }
 
 
