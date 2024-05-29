@@ -44,6 +44,11 @@ void SPP_Callback() {
 }
 
 
+SPP_error SPP_UART_transmit_DMA(uint8_t* data, uint16_t data_len) {
+    HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, data, data_len);
+    return SPP_OK;
+}
+
 void SPP_send_HK_test_packet() {
 	HK_test_packet[3]++;
     HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, HK_test_packet, HK_TEST_LEN);
@@ -254,12 +259,18 @@ static inline uint16_t byte_swap16(uint16_t value) {
 }
 
 
-SPP_error SPP_add_CRC_to_msg(uint8_t* packet, uint16_t length, uint8_t* output) {
+static SPP_error SPP_add_CRC_to_msg(uint8_t* packet, uint16_t length, uint8_t* output) {
     uint16_t calculated_CRC = SPP_calc_CRC16(packet, length);
     uint16_t bs_CRC = byte_swap16(calculated_CRC); // (byteswapped CRC) - memcpy copies starting from LSB thus we swap.
     memcpy(output, &bs_CRC, CRC_BYTE_LEN);
     return SPP_OK;
 }
+
+static SPP_error SPP_add_data_to_packet(uint8_t* data, uint16_t data_len, uint8_t* packet) {
+    memcpy(packet, data, data_len);
+    return SPP_OK;
+}
+
 
 // HK - Housekeeping PUS service 3
 SPP_error SPP_handle_HK_TC(SPP_PUS_TC_header_t* secondary_header) {
@@ -275,7 +286,7 @@ SPP_error SPP_handle_HK_TC(SPP_PUS_TC_header_t* secondary_header) {
     return SPP_OK;
 }
 
-static SPP_error SPP_send_TM(SPP_primary_header_t* response_primary_header, SPP_PUS_TM_header_t* response_secondary_header) {
+static SPP_error SPP_send_TM(SPP_primary_header_t* response_primary_header, SPP_PUS_TM_header_t* response_secondary_header, uint8_t* data, uint16_t data_len) {
     uint8_t response_TM_packet[SPP_MAX_PACKET_LEN];
     uint8_t response_TM_packet_COBS[SPP_MAX_PACKET_LEN];
     for(int i = 0; i < SPP_MAX_PACKET_LEN; i++) {
@@ -290,10 +301,17 @@ static SPP_error SPP_send_TM(SPP_primary_header_t* response_primary_header, SPP_
     current_pointer += SPP_PRIMARY_HEADER_LEN;
     packet_total_len = current_pointer - response_TM_packet;
 
+
     SPP_encode_PUS_TM_header(response_secondary_header, current_pointer);
     current_pointer += SPP_PUS_TM_HEADER_LEN_WO_SPARE;
     packet_total_len = current_pointer - response_TM_packet;
-        
+/* TODO: FIX This does not work and acts in a very weird way: Some times added data multiple times and incorrectly. Also causes to CRC check to fail
+    if (data != NULL) {
+        SPP_add_data_to_packet(data, data_len, current_pointer);
+        current_pointer += data_len;
+        packet_total_len = current_pointer - response_TM_packet;
+    }
+ */       
     SPP_add_CRC_to_msg(response_TM_packet, packet_total_len, current_pointer);
     current_pointer += CRC_BYTE_LEN;
     packet_total_len = current_pointer - response_TM_packet;
@@ -301,7 +319,7 @@ static SPP_error SPP_send_TM(SPP_primary_header_t* response_primary_header, SPP_
     uint16_t cobs_packet_total_len = COBS_encode(response_TM_packet, packet_total_len, response_TM_packet_COBS);
  
     memcpy(OBCTxBuffer, response_TM_packet_COBS, cobs_packet_total_len);
-    HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, OBCTxBuffer, cobs_packet_total_len);
+    SPP_UART_transmit_DMA(OBCTxBuffer, cobs_packet_total_len);
     return SPP_OK;
 }
 
@@ -311,6 +329,8 @@ static SPP_error SPP_send_request_verification(SPP_primary_header_t* request_pri
 
     SPP_primary_header_t response_primary_header;
     SPP_PUS_TM_header_t response_PUS_TM_header;
+    uint8_t data[SPP_PRIMARY_HEADER_LEN];
+
     // Apperently the data field for subservice 1 successfull packets is the SPP primary header.
     // So the whole packet is SPP|PUS|SPP|CRC. WTF???
     response_primary_header = SPP_make_new_primary_header(SPP_VERSION, SPP_PACKET_TYPE_TM, request_primary_header->secondary_header_flag,
@@ -321,7 +341,12 @@ static SPP_error SPP_send_request_verification(SPP_primary_header_t* request_pri
     response_PUS_TM_header = SPP_make_new_PUS_TM_header(PUS_VERSION, 0, REQUEST_VERIFICATION_SERVICE_ID, requested_ACK,
         0, request_secondary_header->source_id, 0
     );
-    SPP_send_TM(&response_primary_header, &response_PUS_TM_header);
+
+    // Data sent in request verification is the request primary header itself.
+    // Thus we need to copy it into the data field of the response.
+    SPP_encode_primary_header(request_primary_header, data);
+
+    SPP_send_TM(&response_primary_header, &response_PUS_TM_header, data, SPP_PRIMARY_HEADER_LEN);
     return SPP_OK;
 }
 
@@ -336,7 +361,7 @@ static SPP_error SPP_handle_TEST_TC(SPP_primary_header_t* request_primary_header
 
     if (request_secondary_header->message_subtype_id == R_U_ALIVE_TEST_ID) {
         if (succ_acceptence_req(request_secondary_header)) {
-            SPP_send_request_verification(request_primary_header, request_secondary_header, SUCC_ACCEPTENCE_VERIFICATION_ID);
+            SPP_send_request_verification(request_primary_header, request_secondary_header, SUCC_ACCEPTANCE_VERIFICATION_ID);
         }
         if (succ_start_req(request_secondary_header)) {
             SPP_send_request_verification(request_primary_header, request_secondary_header, SUCC_START_OF_EXEC_VERIFICATION_ID);
@@ -357,7 +382,7 @@ static SPP_error SPP_handle_TEST_TC(SPP_primary_header_t* request_primary_header
         );
     }
 
-    SPP_send_TM(&response_primary_header, &response_PUS_TM_header);
+    SPP_send_TM(&response_primary_header, &response_PUS_TM_header, NULL, 0);
 
     if (succ_completion_req(request_secondary_header)) {
         SPP_send_request_verification(request_primary_header, request_secondary_header, SUCC_COMPL_OF_EXEC_VERIFICATION_ID);
