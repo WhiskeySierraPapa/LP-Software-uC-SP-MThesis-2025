@@ -335,7 +335,7 @@ static SPP_error SPP_send_request_verification(SPP_primary_header_t* request_pri
     // So the whole packet is SPP|PUS|SPP|CRC. WTF???
     response_primary_header = SPP_make_new_primary_header(SPP_VERSION, SPP_PACKET_TYPE_TM, request_primary_header->secondary_header_flag,
         request_primary_header->application_process_id, SPP_SEQUENCE_SEG_UNSEG, request_primary_header->packet_sequence_count,
-        SPP_PUS_TM_HEADER_LEN_WO_SPARE + CRC_BYTE_LEN - 1
+        SPP_PUS_TM_HEADER_LEN_WO_SPARE + SPP_PRIMARY_HEADER_LEN + CRC_BYTE_LEN - 1
     );
     // Create response PUS TM header with 1,requested_ACK
     response_PUS_TM_header = SPP_make_new_PUS_TM_header(PUS_VERSION, 0, REQUEST_VERIFICATION_SERVICE_ID, requested_ACK,
