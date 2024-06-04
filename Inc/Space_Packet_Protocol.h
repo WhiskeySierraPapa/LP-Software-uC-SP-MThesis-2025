@@ -17,6 +17,7 @@
 #include "main.h"
 
 extern UART_HandleTypeDef huart4;
+extern UART_HandleTypeDef huart2;
 extern uint8_t Space_Packet_Data_Buffer[1024];
 extern uint8_t OBCRxBuffer[COBS_FRAME_LEN];
 extern uint8_t OBCTxBuffer[COBS_FRAME_LEN];
@@ -47,6 +48,7 @@ extern uint32_t SPP_recv_count;
 #define SPP_SEQUENCE_SEG_UNSEG            3
 
 #define SPP_DEBUG_UART                  huart4
+#define SPP_OBC_UART					huart2
 
 typedef enum {
     SPP_OK                                  = 0,

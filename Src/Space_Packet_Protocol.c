@@ -46,6 +46,7 @@ void SPP_Callback() {
 
 SPP_error SPP_UART_transmit_DMA(uint8_t* data, uint16_t data_len) {
     HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, data, data_len);
+    HAL_UART_Transmit_DMA(&SPP_OBC_UART, data, data_len);
     return SPP_OK;
 }
 
