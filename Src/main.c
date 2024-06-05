@@ -798,8 +798,8 @@ void StartDefaultTask(void const * argument)
 
     // Start listening on UART5 (FPGA)
     HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 4);
-    HAL_UART_Receive_DMA(&SPP_DEBUG_UART, &SPP_recv_char, 1);
-    HAL_UART_Receive_DMA(&SPP_OBC_UART, &SPP_recv_char, 1);
+    HAL_UART_Receive_DMA(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
+    HAL_UART_Receive_DMA(&SPP_OBC_UART, &SPP_OBC_recv_char, 1);
 
     { // Update boot count in FRAM
 	    uint16_t boot_cnt = 0;
@@ -883,11 +883,11 @@ void StartDefaultTask(void const * argument)
 	    current_ticks = xTaskGetTickCount();
 
         if (SPP_DEBUG_message_received) {
-            SPP_handle_incoming_TC();
+            SPP_handle_incoming_TC(DEBUG_TC);
             SPP_DEBUG_message_received = 0;
         }
         if (SPP_OBC_message_received) {
-            SPP_handle_incoming_TC();
+            SPP_handle_incoming_TC(OBC_TC);
             SPP_OBC_message_received = 0;
         }
         

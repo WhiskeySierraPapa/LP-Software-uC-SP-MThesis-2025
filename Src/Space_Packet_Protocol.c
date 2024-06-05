@@ -397,24 +397,26 @@ static SPP_error SPP_handle_TEST_TC(SPP_primary_header_t* request_primary_header
 
 // Test function to check if decodeing and encoding and data seperation works correctly.
 SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
-    uint8_t* recv_buffer;
-    uint8_t* packet_buffer; 
-    if (source == OBC_TC) {
-        recv_buffer = OBCRxBuffer;
-        packet_buffer = OBC_Space_Packet_Data_Buffer;
-    } else if (source == DEBUG_TC) {
-        recv_buffer = DEBUGRxBuffer;
-        packet_buffer = DEBUG_Space_Packet_Data_Buffer;
-    }
 	HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
 
-    COBS_decode(OBCRxBuffer, COBS_FRAME_LEN, Space_Packet_Data_Buffer);
+    uint8_t* recv_buffer;
+    uint8_t* packet_buffer; 
+
+    if (source == OBC_TC) {
+        recv_buffer   = OBCRxBuffer;
+        packet_buffer = OBC_Space_Packet_Data_Buffer;
+    } else if (source == DEBUG_TC) {
+        recv_buffer   = DEBUGRxBuffer;
+        packet_buffer = DEBUG_Space_Packet_Data_Buffer;
+    }
+
+    COBS_decode(recv_buffer, COBS_FRAME_LEN, packet_buffer);
 
     SPP_primary_header_t primary_header;
-    SPP_decode_primary_header(Space_Packet_Data_Buffer, &primary_header);
+    SPP_decode_primary_header(packet_buffer, &primary_header);
     uint16_t space_packet_length = primary_header.packet_data_length + SPP_PRIMARY_HEADER_LEN + 1;
 
-    SPP_error CRC_er = SPP_validate_checksum(Space_Packet_Data_Buffer, space_packet_length);
+    SPP_error CRC_er = SPP_validate_checksum(packet_buffer, space_packet_length);
     
     if (CRC_er != SPP_OK) {
         return SPP_PACKET_CRC_MISMATCH;
@@ -422,7 +424,7 @@ SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
     
     if (primary_header.secondary_header_flag) {
         uint8_t secondary_header_buffer[SPP_PUS_TC_HEADER_LEN_WO_SPARE];
-        memcpy(secondary_header_buffer, Space_Packet_Data_Buffer + SPP_PRIMARY_HEADER_LEN, SPP_PUS_TC_HEADER_LEN_WO_SPARE);
+        memcpy(secondary_header_buffer, packet_buffer + SPP_PRIMARY_HEADER_LEN, SPP_PUS_TC_HEADER_LEN_WO_SPARE);
 
         SPP_PUS_TC_header_t PUS_TC_header;
         SPP_decode_PUS_TC_header(secondary_header_buffer, &PUS_TC_header);

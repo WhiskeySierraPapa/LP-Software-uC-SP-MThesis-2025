@@ -24,13 +24,13 @@ extern uint8_t OBC_Space_Packet_Data_Buffer[1024];
 
 extern uint8_t DEBUGRxBuffer[COBS_FRAME_LEN];
 extern uint8_t DEBUGTxBuffer[COBS_FRAME_LEN];
-extern uint16_t SPP_DEBUG_recv_count = 0;
-extern uint8_t SPP_DEBUG_recv_char = 0xff;
+extern uint16_t SPP_DEBUG_recv_count;
+extern uint8_t SPP_DEBUG_recv_char;
 
 extern uint8_t OBCRxBuffer[COBS_FRAME_LEN];
 extern uint8_t OBCTxBuffer[COBS_FRAME_LEN];
-extern uint16_t SPP_OBC_recv_count = 0;
-extern uint8_t SPP_OBC_recv_char = 0xff;
+extern uint16_t SPP_OBC_recv_count;
+extern uint8_t SPP_OBC_recv_char;
 
 // Primary header is 6 bytes. From SPP standard.
 #define SPP_PRIMARY_HEADER_LEN            6
@@ -57,8 +57,8 @@ extern uint8_t SPP_OBC_recv_char = 0xff;
 #define SPP_OBC_UART					huart2
 
 typedef enum {
-    OBC_TC                              0,
-    DEBUG_TC                            1,
+    OBC_TC                            = 0,
+    DEBUG_TC                          = 1,
 } SPP_TC_source;
 
 
@@ -139,7 +139,7 @@ SPP_error SPP_encode_PUS_TC_header(SPP_PUS_TC_header_t* secondary_header, uint8_
 
 SPP_error SPP_validate_checksum(uint8_t* packet, uint16_t packet_length);
 
-SPP_error SPP_handle_incoming_TC();
+SPP_error SPP_handle_incoming_TC(SPP_TC_source);
 void SPP_Callback();
 void SPP_send_HK_test_packet();
 #endif /* SPACE_PACKET_PROTOCOL_H_ */
