@@ -8,11 +8,19 @@
 #include "Space_Packet_Protocol.h"
 #include <stdio.h>
 
-uint8_t Space_Packet_Data_Buffer[1024];
+uint8_t DEBUG_Space_Packet_Data_Buffer[256];
+uint8_t OBC_Space_Packet_Data_Buffer[1024];
+
+uint8_t DEBUGRxBuffer[COBS_FRAME_LEN];
+uint8_t DEBUGTxBuffer[COBS_FRAME_LEN];
+uint16_t SPP_DEBUG_recv_count = 0;
+uint8_t SPP_DEBUG_recv_char = 0xff;
+
 uint8_t OBCRxBuffer[COBS_FRAME_LEN];
 uint8_t OBCTxBuffer[COBS_FRAME_LEN];
-uint32_t SPP_recv_count = 0;
-uint8_t SPP_recv_char = 0xff;
+uint16_t SPP_OBC_recv_count = 0;
+uint8_t SPP_OBC_recv_char = 0xff;
+
 
 #define HK_TEST_LEN 172
 uint8_t HK_test_packet[HK_TEST_LEN] = { // Hard coded test response
@@ -29,28 +37,20 @@ uint8_t HK_test_packet[HK_TEST_LEN] = { // Hard coded test response
 		        0x00, 0x00, 0x00, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC9, 0x55}; 
 
 
-
-void SPP_Callback() {
-	HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
-
-    COBS_decode(OBCRxBuffer, COBS_FRAME_LEN, Space_Packet_Data_Buffer);
-    
-
-    SPP_primary_header_t primary_header;
-    SPP_decode_primary_header(Space_Packet_Data_Buffer, &primary_header);
-
-    HAL_UART_Transmit(&SPP_DEBUG_UART, Space_Packet_Data_Buffer, SPP_PRIMARY_HEADER_LEN + primary_header.packet_data_length + 1, 10);
-    HAL_UART_Receive_DMA(&SPP_DEBUG_UART, Space_Packet_Data_Buffer, 256);
-}
-
-
-SPP_error SPP_UART_transmit_DMA(uint8_t* data, uint16_t data_len) {
+static SPP_error SPP_UART_transmit_DMA(uint8_t* data, uint16_t data_len) {
 	*(data + data_len) = 0x00; // Adding sentinel value.
 	data_len++;
     HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, data, data_len);
     HAL_UART_Transmit(&SPP_OBC_UART, data, data_len, 100);
     return SPP_OK;
 }
+
+static SPP_error SPP_reset_UART_recv_DMA() {
+    HAL_UART_Receive_DMA(&SPP_DEBUG_UART, DEBUG_Space_Packet_Data_Buffer, 1);
+    HAL_UART_Receive_DMA(&SPP_OBC_UART, OBC_Space_Packet_Data_Buffer, 1);
+    return SPP_OK;
+};
+
 
 void SPP_send_HK_test_packet() {
 	HK_test_packet[3]++;
@@ -285,7 +285,7 @@ SPP_error SPP_handle_HK_TC(SPP_PUS_TC_header_t* secondary_header) {
     if (secondary_header->message_subtype_id == 128) {
         
     }
-
+    SPP_reset_UART_recv_DMA();
     return SPP_OK;
 }
 
@@ -389,12 +389,23 @@ static SPP_error SPP_handle_TEST_TC(SPP_primary_header_t* request_primary_header
         SPP_send_request_verification(request_primary_header, request_secondary_header, SUCC_COMPL_OF_EXEC_VERIFICATION_ID);
     }
 
+
+    SPP_reset_UART_recv_DMA();
     return SPP_OK;
 }
 
 
 // Test function to check if decodeing and encoding and data seperation works correctly.
-SPP_error SPP_handle_incoming_TC() {
+SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
+    uint8_t* recv_buffer;
+    uint8_t* packet_buffer; 
+    if (source == OBC_TC) {
+        recv_buffer = OBCRxBuffer;
+        packet_buffer = OBC_Space_Packet_Data_Buffer;
+    } else if (source == DEBUG_TC) {
+        recv_buffer = DEBUGRxBuffer;
+        packet_buffer = DEBUG_Space_Packet_Data_Buffer;
+    }
 	HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
 
     COBS_decode(OBCRxBuffer, COBS_FRAME_LEN, Space_Packet_Data_Buffer);
@@ -418,11 +429,9 @@ SPP_error SPP_handle_incoming_TC() {
         
         if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID) {
             SPP_handle_HK_TC(&PUS_TC_header);
-            HAL_UART_Receive_DMA(&SPP_DEBUG_UART, Space_Packet_Data_Buffer, 256);
         } 
         else if (PUS_TC_header.service_type_id == TEST_SERVICE_ID) {
             SPP_handle_TEST_TC(&primary_header, &PUS_TC_header);
-            HAL_UART_Receive_DMA(&SPP_DEBUG_UART, Space_Packet_Data_Buffer, 256);
         }
     }
     return SPP_OK;

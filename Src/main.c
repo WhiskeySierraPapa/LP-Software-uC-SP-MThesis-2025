@@ -89,7 +89,8 @@ FIL stateFile;
 uint8_t unitID = 0;
 uint8_t ffuID = 0;
 
-uint8_t SPP_message_received = 0;
+uint8_t SPP_OBC_message_received = 0;
+uint8_t SPP_DEBUG_message_received = 0;
 
 uint16_t ADCBuffer[11];		// Buffer for ADC values
 uint16_t ADCValues[11];		// Current ADC values
@@ -729,23 +730,24 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart5) {
 		FPGA_RX_CpltCallback();
 	} else if (huart == &SPP_DEBUG_UART) {
-        *(OBCRxBuffer + SPP_recv_count) = SPP_recv_char;
-        if (SPP_recv_char == 0x00) {
-            SPP_message_received = 1;
-            SPP_recv_count = 0;
+        *(DEBUGRxBuffer + SPP_DEBUG_recv_count) = SPP_DEBUG_recv_char;
+        if (SPP_DEBUG_recv_char == 0x00) {
+            SPP_DEBUG_message_received = 1;
+            SPP_DEBUG_recv_count = 0;
         } else {
-            SPP_recv_count++;
+            SPP_DEBUG_recv_count++;
         }
-        HAL_UART_Receive_DMA(&SPP_DEBUG_UART, &SPP_recv_char, 1);
+        HAL_UART_Receive_DMA(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
+
 	} else if (huart == &SPP_OBC_UART) {
-        *(OBCRxBuffer + SPP_recv_count) = SPP_recv_char;
-        if (SPP_recv_char == 0x00) {
-            SPP_message_received = 1;
-            SPP_recv_count = 0;
+        *(OBCRxBuffer + SPP_OBC_recv_count) = SPP_OBC_recv_char;
+        if (SPP_OBC_recv_char == 0x00) {
+            SPP_OBC_message_received = 1;
+            SPP_OBC_recv_count = 0;
         } else {
-            SPP_recv_count++;
+            SPP_OBC_recv_count++;
         }
-        HAL_UART_Receive_DMA(&SPP_OBC_UART, &SPP_recv_char, 1);
+        HAL_UART_Receive_DMA(&SPP_OBC_UART, &SPP_OBC_recv_char, 1);
 	}
 
 }
@@ -880,9 +882,13 @@ void StartDefaultTask(void const * argument)
     for(;;) {
 	    current_ticks = xTaskGetTickCount();
 
-        if (SPP_message_received) {
+        if (SPP_DEBUG_message_received) {
             SPP_handle_incoming_TC();
-            SPP_message_received = 0;
+            SPP_DEBUG_message_received = 0;
+        }
+        if (SPP_OBC_message_received) {
+            SPP_handle_incoming_TC();
+            SPP_OBC_message_received = 0;
         }
         
         if (current_ticks - SPP_test_ticks > 5000) {
