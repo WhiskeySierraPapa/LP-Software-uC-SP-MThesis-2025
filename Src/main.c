@@ -69,7 +69,7 @@ DMA_HandleTypeDef hdma_uart4_rx;
 DMA_HandleTypeDef hdma_uart4_tx;
 DMA_HandleTypeDef hdma_uart5_rx;
 DMA_HandleTypeDef hdma_uart5_tx;
-DMA_HandleTypeDef hdma_usart2_tx;
+DMA_HandleTypeDef hdma_usart2_rx;
 
 DMA_HandleTypeDef hdma_memtomem_dma2_stream1;
 SRAM_HandleTypeDef hsram1;
@@ -737,6 +737,15 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
             SPP_recv_count++;
         }
         HAL_UART_Receive_DMA(&SPP_DEBUG_UART, &SPP_recv_char, 1);
+	} else if (huart == &SPP_OBC_UART) {
+        *(OBCRxBuffer + SPP_recv_count) = SPP_recv_char;
+        if (SPP_recv_char == 0x00) {
+            SPP_message_received = 1;
+            SPP_recv_count = 0;
+        } else {
+            SPP_recv_count++;
+        }
+        HAL_UART_Receive_DMA(&SPP_OBC_UART, &SPP_recv_char, 1);
 	}
 
 }
@@ -788,6 +797,7 @@ void StartDefaultTask(void const * argument)
     // Start listening on UART5 (FPGA)
     HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 4);
     HAL_UART_Receive_DMA(&SPP_DEBUG_UART, &SPP_recv_char, 1);
+    HAL_UART_Receive_DMA(&SPP_OBC_UART, &SPP_recv_char, 1);
 
     { // Update boot count in FRAM
 	    uint16_t boot_cnt = 0;

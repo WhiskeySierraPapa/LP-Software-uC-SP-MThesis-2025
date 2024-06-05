@@ -45,8 +45,10 @@ void SPP_Callback() {
 
 
 SPP_error SPP_UART_transmit_DMA(uint8_t* data, uint16_t data_len) {
+	*(data + data_len) = 0x00; // Adding sentinel value.
+	data_len++;
     HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, data, data_len);
-    HAL_UART_Transmit_DMA(&SPP_OBC_UART, data, data_len);
+    HAL_UART_Transmit(&SPP_OBC_UART, data, data_len, 100);
     return SPP_OK;
 }
 
@@ -306,13 +308,13 @@ static SPP_error SPP_send_TM(SPP_primary_header_t* response_primary_header, SPP_
     SPP_encode_PUS_TM_header(response_secondary_header, current_pointer);
     current_pointer += SPP_PUS_TM_HEADER_LEN_WO_SPARE;
     packet_total_len = current_pointer - response_TM_packet;
-/* TODO: FIX This does not work and acts in a very weird way: Some times added data multiple times and incorrectly. Also causes to CRC check to fail
+
     if (data != NULL) {
         SPP_add_data_to_packet(data, data_len, current_pointer);
         current_pointer += data_len;
         packet_total_len = current_pointer - response_TM_packet;
     }
- */       
+
     SPP_add_CRC_to_msg(response_TM_packet, packet_total_len, current_pointer);
     current_pointer += CRC_BYTE_LEN;
     packet_total_len = current_pointer - response_TM_packet;
@@ -332,8 +334,6 @@ static SPP_error SPP_send_request_verification(SPP_primary_header_t* request_pri
     SPP_PUS_TM_header_t response_PUS_TM_header;
     uint8_t data[SPP_PRIMARY_HEADER_LEN];
 
-    // Apperently the data field for subservice 1 successfull packets is the SPP primary header.
-    // So the whole packet is SPP|PUS|SPP|CRC. WTF???
     response_primary_header = SPP_make_new_primary_header(SPP_VERSION, SPP_PACKET_TYPE_TM, request_primary_header->secondary_header_flag,
         request_primary_header->application_process_id, SPP_SEQUENCE_SEG_UNSEG, request_primary_header->packet_sequence_count,
         SPP_PUS_TM_HEADER_LEN_WO_SPARE + SPP_PRIMARY_HEADER_LEN + CRC_BYTE_LEN - 1
