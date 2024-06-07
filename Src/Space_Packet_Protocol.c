@@ -137,25 +137,6 @@ SPP_error SPP_encode_primary_header(SPP_primary_header_t* primary_header, uint8_
     return SPP_OK;
 }
 
-/*
-// Returns the length of the packet data, and writes a heap pointer to "data".
-SPP_error SPP_extract_packet_data(uint8_t* packet, uint8_t* data, uint16_t* ret_data_len, SPP_primary_header_t* decoded_out_header) {
-    uint8_t raw_header[6] = {0, 0, 0, 0, 0, 0};
-	memcpy(&raw_header, packet, SPP_PRIMARY_HEADER_LEN);
-
-    SPP_error decode_err = SPP_decode_primary_header(raw_header, decoded_out_header);
-    if (decode_err != SPP_OK) {return decode_err;}
-
-	uint16_t data_length = decoded_out_header->packet_data_length + 1; // The docs say that the packet_data_length is the number of bytes - 1, so no idea if thus should be +1 or is there just a sentinal value.
-
-    packet = packet + SPP_PRIMARY_HEADER_LEN;
-    
-    memcpy(data, packet, data_length);
-    *ret_data_len = data_length;
-     
-    return SPP_OK;
-}
-*/
 
 SPP_error SPP_decode_PUS_TC_header(uint8_t* raw_header, SPP_PUS_TC_header_t* secondary_header) {
     secondary_header->PUS_version_number = (raw_header[0] & 0xF0) >> 4;
@@ -360,12 +341,12 @@ static SPP_error SPP_handle_TEST_TC(SPP_primary_header_t* request_primary_header
     SPP_primary_header_t response_primary_header;
     SPP_PUS_TM_header_t response_PUS_TM_header;
 
-    if (request_secondary_header->message_subtype_id == R_U_ALIVE_TEST_ID) {
+    if (request_secondary_header->message_subtype_id == T_ARE_YOU_ALIVE_TEST_ID) {
         if (succ_acceptence_req(request_secondary_header)) {
-            SPP_send_request_verification(request_primary_header, request_secondary_header, SUCC_ACCEPTANCE_VERIFICATION_ID);
+            SPP_send_request_verification(request_primary_header, request_secondary_header, RV_SUCC_ACCEPTANCE_VERIFICATION_ID);
         }
         if (succ_start_req(request_secondary_header)) {
-            SPP_send_request_verification(request_primary_header, request_secondary_header, SUCC_START_OF_EXEC_VERIFICATION_ID);
+            SPP_send_request_verification(request_primary_header, request_secondary_header, RV_SUCC_START_OF_EXEC_VERIFICATION_ID);
         }
 
         response_primary_header = SPP_make_new_primary_header(SPP_VERSION, SPP_PACKET_TYPE_TM, request_primary_header->secondary_header_flag,
@@ -374,11 +355,11 @@ static SPP_error SPP_handle_TEST_TC(SPP_primary_header_t* request_primary_header
         );
 
         if (succ_progress_req(request_secondary_header)) {
-            SPP_send_request_verification(request_primary_header, request_secondary_header, SUCC_PROG_OF_EXEC_VERIFICATION_ID);
+            SPP_send_request_verification(request_primary_header, request_secondary_header, RV_SUCC_PROG_OF_EXEC_VERIFICATION_ID);
         }
 
         // Create response PUS TM header with 17,2
-        response_PUS_TM_header = SPP_make_new_PUS_TM_header(PUS_VERSION, 0, TEST_SERVICE_ID, R_U_ALIVE_TEST_REPORT_ID,
+        response_PUS_TM_header = SPP_make_new_PUS_TM_header(PUS_VERSION, 0, TEST_SERVICE_ID, T_ARE_YOU_ALIVE_TEST_REPORT_ID,
             0, request_secondary_header->source_id, 0
         );
     }
@@ -386,7 +367,7 @@ static SPP_error SPP_handle_TEST_TC(SPP_primary_header_t* request_primary_header
     SPP_send_TM(&response_primary_header, &response_PUS_TM_header, NULL, 0);
 
     if (succ_completion_req(request_secondary_header)) {
-        SPP_send_request_verification(request_primary_header, request_secondary_header, SUCC_COMPL_OF_EXEC_VERIFICATION_ID);
+        SPP_send_request_verification(request_primary_header, request_secondary_header, RV_SUCC_COMPL_OF_EXEC_VERIFICATION_ID);
     }
 
 

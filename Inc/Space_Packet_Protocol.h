@@ -80,22 +80,30 @@ typedef enum {
 
 // Request Verification service [1] subtype IDs
 typedef enum { // ALL TM
-    SUCC_ACCEPTANCE_VERIFICATION_ID     = 1,
-    FAIL_ACCEPTANCE_VERIFICATION_ID     = 2,
-    SUCC_START_OF_EXEC_VERIFICATION_ID  = 3,
-    FAIL_START_OF_EXEC_VERIFICATION_ID  = 4,
-    SUCC_PROG_OF_EXEC_VERIFICATION_ID   = 5,
-    FAIL_PROG_OF_EXEC_VERIFICATION_ID   = 6,
-    SUCC_COMPL_OF_EXEC_VERIFICATION_ID  = 7,
-    FAIL_COMPL_OF_EXEC_VERIFICATION_ID  = 8,
+    RV_SUCC_ACCEPTANCE_VERIFICATION_ID     = 1,
+    RV_FAIL_ACCEPTANCE_VERIFICATION_ID     = 2,
+    RV_SUCC_START_OF_EXEC_VERIFICATION_ID  = 3,
+    RV_FAIL_START_OF_EXEC_VERIFICATION_ID  = 4,
+    RV_SUCC_PROG_OF_EXEC_VERIFICATION_ID   = 5,
+    RV_FAIL_PROG_OF_EXEC_VERIFICATION_ID   = 6,
+    RV_SUCC_COMPL_OF_EXEC_VERIFICATION_ID  = 7,
+    RV_FAIL_COMPL_OF_EXEC_VERIFICATION_ID  = 8,
 } PUS_RV_Subtype_ID;
+
+typedef enum {
+    HK_EN_PERIODIC_REPORTS                 = 5,  // TC
+    HK_DIS_PERIODIC_REPORTS                = 6,  // TC
+    HK_PARAMETER_REPORT                    = 25, // TM
+    HK_ONE_SHOT                            = 27, // TC
+} PUS_HK_Subtype_ID;
+
 
 // Test service [17] subtype IDS
 typedef enum {
-    R_U_ALIVE_TEST_ID                  = 1, // TC
-    R_U_ALIVE_TEST_REPORT_ID           = 2, // TM
-    ON_BOARD_CONN_TEST_ID              = 3, // TC
-    ON_BOARD_CONN_TEST_REPORT_ID       = 4, // TM
+    T_ARE_YOU_ALIVE_TEST_ID              = 1, // TC
+    T_ARE_YOU_ALIVE_TEST_REPORT_ID       = 2, // TM
+    T_ON_BOARD_CONN_TEST_ID              = 3, // TC
+    T_ON_BOARD_CONN_TEST_REPORT_ID       = 4, // TM
 } PUS_T_Subtype_ID;
 
 
