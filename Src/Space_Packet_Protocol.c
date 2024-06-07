@@ -397,8 +397,6 @@ static SPP_error SPP_handle_TEST_TC(SPP_primary_header_t* request_primary_header
 
 // Test function to check if decodeing and encoding and data seperation works correctly.
 SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
-	HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
-
     uint8_t* recv_buffer;
     uint8_t* packet_buffer; 
 
@@ -408,7 +406,11 @@ SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
     } else if (source == DEBUG_TC) {
         recv_buffer   = DEBUGRxBuffer;
         packet_buffer = DEBUG_Space_Packet_Data_Buffer;
+    } else {
+    	return UNDEFINED_ERROR;
     }
+
+    HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
 
     COBS_decode(recv_buffer, COBS_FRAME_LEN, packet_buffer);
 
