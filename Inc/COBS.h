@@ -2,7 +2,7 @@
  * COBS.h
  *
  *  Created on: 2024. gada 23. apr.
- *      Author: Rūdolfs
+ *      Author: Rūdolfs Arvīds Kalniņš <rakal@kth.se>
  */
 
 #ifndef COBS_H_

@@ -2,7 +2,7 @@
  * Space_Packet_Protocol.h
  *
  *  Created on: 2024. gada 23. apr.
- *      Author: Rūdolfs
+ *      Author: Rūdolfs Arvīds Kalniņš <rakal@kth.se>
  */
 
 #ifndef SPACE_PACKET_PROTOCOL_H_
@@ -138,16 +138,45 @@ typedef struct {
     uint32_t spare;
 } SPP_PUS_TM_header_t;
 
+/* SPP */
 SPP_error SPP_extract_packet_data(uint8_t* packet, uint8_t* data, uint16_t* ret_data_len, SPP_primary_header_t* decoded_out_header);
 SPP_error SPP_encode_primary_header(SPP_primary_header_t* primary_header, uint8_t* result_buffer);
 SPP_error SPP_decode_primary_header(uint8_t* raw_header, SPP_primary_header_t* primary_header);
-
-SPP_error SPP_decode_PUS_TC_header(uint8_t* raw_header, SPP_PUS_TC_header_t* secondary_header);
-SPP_error SPP_encode_PUS_TC_header(SPP_PUS_TC_header_t* secondary_header, uint8_t* result_buffer);
 
 SPP_error SPP_validate_checksum(uint8_t* packet, uint16_t packet_length);
 
 SPP_error SPP_handle_incoming_TC(SPP_TC_source);
 void SPP_Callback();
 void SPP_send_HK_test_packet();
+
+SPP_primary_header_t SPP_make_new_primary_header(uint8_t packet_version_number, uint8_t packet_type, uint8_t secondary_header_flag, uint16_t application_process_id, uint8_t sequence_flags, uint16_t packet_sequence_count, uint16_t packet_data_length);
+
+SPP_error SPP_send_TM(SPP_primary_header_t* response_primary_header, SPP_PUS_TM_header_t* response_secondary_header, uint8_t* data, uint16_t data_len);
+
+
+/* PUS */
+SPP_PUS_TM_header_t SPP_make_new_PUS_TM_header(uint8_t PUS_version_number, uint8_t sc_time_ref_status, uint8_t service_type_id,
+                                uint8_t message_subtype_id, uint16_t message_type_counter, uint16_t destination_id, uint16_t time);
+
+SPP_error SPP_decode_PUS_TC_header(uint8_t* raw_header, SPP_PUS_TC_header_t* secondary_header);
+SPP_error SPP_encode_PUS_TC_header(SPP_PUS_TC_header_t* secondary_header, uint8_t* result_buffer);
+SPP_error SPP_decode_PUS_TM_header(uint8_t* raw_header, SPP_PUS_TM_header_t* secondary_header);
+SPP_error SPP_encode_PUS_TM_header(SPP_PUS_TM_header_t* secondary_header, uint8_t* result_buffer);
+
+
+/* PUS_1_service */
+uint8_t succ_acceptence_req(SPP_PUS_TC_header_t* secondary_header);
+uint8_t succ_start_req     (SPP_PUS_TC_header_t* secondary_header);
+uint8_t succ_progress_req  (SPP_PUS_TC_header_t* secondary_header);
+uint8_t succ_completion_req(SPP_PUS_TC_header_t* secondary_header);
+SPP_error SPP_send_request_verification(SPP_primary_header_t* request_primary_header, SPP_PUS_TC_header_t* request_secondary_header, PUS_RV_Subtype_ID requested_ACK);
+
+
+/* PUS_3_service */
+SPP_error SPP_handle_HK_TC(SPP_PUS_TC_header_t* secondary_header);
+
+
+/* PUS_17_service */
+SPP_error SPP_handle_TEST_TC(SPP_primary_header_t* request_primary_header, SPP_PUS_TC_header_t* request_secondary_header);
+
 #endif /* SPACE_PACKET_PROTOCOL_H_ */

@@ -2,7 +2,7 @@
  * Space_Packet_Protocol.c
  *
  *  Created on: 2024. gada 23. apr.
- *      Author: Rūdolfs
+ *      Author: Rūdolfs Arvīds Kalniņš <rakal@kth.se>
  */
 
 #include "Space_Packet_Protocol.h"
@@ -60,15 +60,13 @@ void SPP_send_HK_test_packet() {
 // CRC16-CCITT
 static uint16_t SPP_CRC16_byte(uint16_t crcValue, uint8_t newByte) {
 	uint8_t i;
-
+    
 	for (i = 0; i < 8; i++) {
-
 		if (((crcValue & 0x8000) >> 8) ^ (newByte & 0x80)){
 			crcValue = (crcValue << 1)  ^ 0x1021;
 		}else{
 			crcValue = (crcValue << 1);
 		}
-
 		newByte <<= 1;
 	}
   
@@ -138,66 +136,8 @@ SPP_error SPP_encode_primary_header(SPP_primary_header_t* primary_header, uint8_
 }
 
 
-SPP_error SPP_decode_PUS_TC_header(uint8_t* raw_header, SPP_PUS_TC_header_t* secondary_header) {
-    secondary_header->PUS_version_number = (raw_header[0] & 0xF0) >> 4;
-    secondary_header->ACK_flags          = (raw_header[0] & 0x0F);
-    secondary_header->service_type_id    =  raw_header[1];
-    secondary_header->message_subtype_id =  raw_header[2];
-    secondary_header->source_id          = (raw_header[3] << 8) | raw_header[4];
-    secondary_header->spare              = 0; // Based on PUS message type I guess? (Optional)
-    return SPP_OK;
-}
 
-// Technically this is not needed since, Langmuir Probe Payload will not send TCs.
-SPP_error SPP_encode_PUS_TC_header(SPP_PUS_TC_header_t* secondary_header, uint8_t* result_buffer) {
-    for(int i = 0; i < SPP_PUS_TC_HEADER_LEN_WO_SPARE; i++) {
-        result_buffer[i] ^= result_buffer[i];    // Clear result buffer.
-    }
-
-    result_buffer[0] |=  secondary_header->PUS_version_number << 4;
-    result_buffer[0] |=  secondary_header->ACK_flags;
-    result_buffer[1] |=  secondary_header->service_type_id;
-    result_buffer[2] |=  secondary_header->message_subtype_id;
-    result_buffer[3] |= (secondary_header->source_id & 0xFF00) >> 8;
-    result_buffer[4] |= (secondary_header->source_id & 0x00FF) >> 8;
-
-    return SPP_OK;
-};
-
-// Technically this is not needed since, Langmuir Probe Payload will only send TMs.
-SPP_error SPP_decode_PUS_TM_header(uint8_t* raw_header, SPP_PUS_TM_header_t* secondary_header) {
-    secondary_header->PUS_version_number    = (raw_header[0] & 0xF0) >> 4;
-    secondary_header->sc_time_ref_status    = (raw_header[0] & 0x0F);
-    secondary_header->service_type_id       =  raw_header[1];
-    secondary_header->message_subtype_id    =  raw_header[2];
-    secondary_header->message_type_counter  = (raw_header[3] << 8) | raw_header[4];
-    secondary_header->destination_id        = (raw_header[5] << 8) | raw_header[6];
-    secondary_header->time                  = (raw_header[7] << 8) | raw_header[8];
-    secondary_header->spare                 = 0; // Based on PUS message type I guess? (Optional)
-    return SPP_OK;
-}
-
-SPP_error SPP_encode_PUS_TM_header(SPP_PUS_TM_header_t* secondary_header, uint8_t* result_buffer) {
-    for(int i = 0; i < SPP_PUS_TM_HEADER_LEN_WO_SPARE; i++) {
-        result_buffer[i] ^= result_buffer[i];    // Clear result buffer.
-    }
-
-    result_buffer[0] |=  secondary_header->PUS_version_number << 4;
-    result_buffer[0] |=  secondary_header->sc_time_ref_status;
-    result_buffer[1] |=  secondary_header->service_type_id;
-    result_buffer[2] |=  secondary_header->message_subtype_id;
-    result_buffer[3] |= (secondary_header->message_type_counter & 0xFF00) >> 8;
-    result_buffer[4] |= (secondary_header->message_type_counter & 0x00FF) >> 8;
-    result_buffer[5] |= (secondary_header->destination_id & 0xFF00) >> 8;
-    result_buffer[6] |= (secondary_header->destination_id & 0x00FF) >> 8;
-    result_buffer[7] |= (secondary_header->time & 0xFF00) >> 8;
-    result_buffer[8] |= (secondary_header->time & 0x00FF) >> 8;
-    
-    return SPP_OK;
-};
-
-
-static SPP_primary_header_t SPP_make_new_primary_header(uint8_t packet_version_number, uint8_t packet_type, uint8_t secondary_header_flag, uint16_t application_process_id, uint8_t sequence_flags, uint16_t packet_sequence_count, uint16_t packet_data_length) {
+SPP_primary_header_t SPP_make_new_primary_header(uint8_t packet_version_number, uint8_t packet_type, uint8_t secondary_header_flag, uint16_t application_process_id, uint8_t sequence_flags, uint16_t packet_sequence_count, uint16_t packet_data_length) {
     SPP_primary_header_t primary_header;
     primary_header.packet_version_number    = packet_version_number;
     primary_header.packet_type              = packet_type;
@@ -210,33 +150,6 @@ static SPP_primary_header_t SPP_make_new_primary_header(uint8_t packet_version_n
 }
 
 
-static SPP_PUS_TM_header_t SPP_make_new_PUS_TM_header(uint8_t PUS_version_number, uint8_t sc_time_ref_status, uint8_t service_type_id,
-                                uint8_t message_subtype_id, uint16_t message_type_counter, uint16_t destination_id, uint16_t time) {
-    SPP_PUS_TM_header_t PUS_TM_header;
-    PUS_TM_header.PUS_version_number      =  PUS_version_number;
-    PUS_TM_header.sc_time_ref_status      =  sc_time_ref_status;
-    PUS_TM_header.service_type_id         =  service_type_id;
-    PUS_TM_header.message_subtype_id      =  message_subtype_id;
-    PUS_TM_header.message_type_counter    =  message_type_counter;
-    PUS_TM_header.destination_id          =  destination_id;
-    PUS_TM_header.time                    =  time;
-    return PUS_TM_header;
-}
-
-// Flags denoting if an ACK TM message is requested for
-// Success of request acceptence, start , progress and completion of execution
-static inline uint8_t succ_acceptence_req(SPP_PUS_TC_header_t* secondary_header) {
-    return secondary_header->ACK_flags & 0x08;
-}
-static inline uint8_t succ_start_req     (SPP_PUS_TC_header_t* secondary_header) {
-    return secondary_header->ACK_flags & 0x04;
-}
-static inline uint8_t succ_progress_req  (SPP_PUS_TC_header_t* secondary_header) {
-    return secondary_header->ACK_flags & 0x02;
-}
-static inline uint8_t succ_completion_req(SPP_PUS_TC_header_t* secondary_header) {
-    return secondary_header->ACK_flags & 0x01;
-}
 
 static inline uint16_t byte_swap16(uint16_t value) {
     return ((value << 8) | (value >> 8)) & 0xFFFF;
@@ -256,21 +169,8 @@ static SPP_error SPP_add_data_to_packet(uint8_t* data, uint16_t data_len, uint8_
 }
 
 
-// HK - Housekeeping PUS service 3
-SPP_error SPP_handle_HK_TC(SPP_PUS_TC_header_t* secondary_header) {
-    if (secondary_header == NULL) {
-        return UNDEFINED_ERROR;
-    }
 
-
-    if (secondary_header->message_subtype_id == 128) {
-        
-    }
-    SPP_reset_UART_recv_DMA();
-    return SPP_OK;
-}
-
-static SPP_error SPP_send_TM(SPP_primary_header_t* response_primary_header, SPP_PUS_TM_header_t* response_secondary_header, uint8_t* data, uint16_t data_len) {
+SPP_error SPP_send_TM(SPP_primary_header_t* response_primary_header, SPP_PUS_TM_header_t* response_secondary_header, uint8_t* data, uint16_t data_len) {
     uint8_t response_TM_packet[SPP_MAX_PACKET_LEN];
     uint8_t response_TM_packet_COBS[SPP_MAX_PACKET_LEN];
     for(int i = 0; i < SPP_MAX_PACKET_LEN; i++) {
@@ -307,73 +207,6 @@ static SPP_error SPP_send_TM(SPP_primary_header_t* response_primary_header, SPP_
     return SPP_OK;
 }
 
-
-
-static SPP_error SPP_send_request_verification(SPP_primary_header_t* request_primary_header, SPP_PUS_TC_header_t* request_secondary_header, PUS_RV_Subtype_ID requested_ACK) {
-
-    SPP_primary_header_t response_primary_header;
-    SPP_PUS_TM_header_t response_PUS_TM_header;
-    uint8_t data[SPP_PRIMARY_HEADER_LEN];
-
-    response_primary_header = SPP_make_new_primary_header(SPP_VERSION, SPP_PACKET_TYPE_TM, request_primary_header->secondary_header_flag,
-        request_primary_header->application_process_id, SPP_SEQUENCE_SEG_UNSEG, request_primary_header->packet_sequence_count,
-        SPP_PUS_TM_HEADER_LEN_WO_SPARE + SPP_PRIMARY_HEADER_LEN + CRC_BYTE_LEN - 1
-    );
-    // Create response PUS TM header with 1,requested_ACK
-    response_PUS_TM_header = SPP_make_new_PUS_TM_header(PUS_VERSION, 0, REQUEST_VERIFICATION_SERVICE_ID, requested_ACK,
-        0, request_secondary_header->source_id, 0
-    );
-
-    // Data sent in request verification is the request primary header itself.
-    // Thus we need to copy it into the data field of the response.
-    SPP_encode_primary_header(request_primary_header, data);
-
-    SPP_send_TM(&response_primary_header, &response_PUS_TM_header, data, SPP_PRIMARY_HEADER_LEN);
-    return SPP_OK;
-}
-
-
-static SPP_error SPP_handle_TEST_TC(SPP_primary_header_t* request_primary_header, SPP_PUS_TC_header_t* request_secondary_header) {
-    if (request_primary_header == NULL || request_secondary_header == NULL) {
-        return UNDEFINED_ERROR;
-    }
-
-    SPP_primary_header_t response_primary_header;
-    SPP_PUS_TM_header_t response_PUS_TM_header;
-
-    if (request_secondary_header->message_subtype_id == T_ARE_YOU_ALIVE_TEST_ID) {
-        if (succ_acceptence_req(request_secondary_header)) {
-            SPP_send_request_verification(request_primary_header, request_secondary_header, RV_SUCC_ACCEPTANCE_VERIFICATION_ID);
-        }
-        if (succ_start_req(request_secondary_header)) {
-            SPP_send_request_verification(request_primary_header, request_secondary_header, RV_SUCC_START_OF_EXEC_VERIFICATION_ID);
-        }
-
-        response_primary_header = SPP_make_new_primary_header(SPP_VERSION, SPP_PACKET_TYPE_TM, request_primary_header->secondary_header_flag,
-            request_primary_header->application_process_id, SPP_SEQUENCE_SEG_UNSEG, request_primary_header->packet_sequence_count,
-            SPP_PUS_TM_HEADER_LEN_WO_SPARE + CRC_BYTE_LEN - 1
-        );
-
-        if (succ_progress_req(request_secondary_header)) {
-            SPP_send_request_verification(request_primary_header, request_secondary_header, RV_SUCC_PROG_OF_EXEC_VERIFICATION_ID);
-        }
-
-        // Create response PUS TM header with 17,2
-        response_PUS_TM_header = SPP_make_new_PUS_TM_header(PUS_VERSION, 0, TEST_SERVICE_ID, T_ARE_YOU_ALIVE_TEST_REPORT_ID,
-            0, request_secondary_header->source_id, 0
-        );
-    }
-
-    SPP_send_TM(&response_primary_header, &response_PUS_TM_header, NULL, 0);
-
-    if (succ_completion_req(request_secondary_header)) {
-        SPP_send_request_verification(request_primary_header, request_secondary_header, RV_SUCC_COMPL_OF_EXEC_VERIFICATION_ID);
-    }
-
-
-    SPP_reset_UART_recv_DMA();
-    return SPP_OK;
-}
 
 
 // Test function to check if decodeing and encoding and data seperation works correctly.
@@ -419,6 +252,7 @@ SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
             SPP_handle_TEST_TC(&primary_header, &PUS_TC_header);
         }
     }
+    SPP_reset_UART_recv_DMA();
     return SPP_OK;
 }
 
