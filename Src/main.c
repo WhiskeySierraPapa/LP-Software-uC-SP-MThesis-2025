@@ -895,6 +895,7 @@ void StartDefaultTask(void const * argument)
             HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
             //SPP_send_HK_test_packet();
             SPP_test_ticks = current_ticks;
+            SPP_send_periodic_HK_TM();
         }
 
 	    if (FPGAFlightState < 7)

@@ -60,7 +60,7 @@ void SPP_send_HK_test_packet() {
 // CRC16-CCITT
 static uint16_t SPP_CRC16_byte(uint16_t crcValue, uint8_t newByte) {
 	uint8_t i;
-    
+
 	for (i = 0; i < 8; i++) {
 		if (((crcValue & 0x8000) >> 8) ^ (newByte & 0x80)){
 			crcValue = (crcValue << 1)  ^ 0x1021;
@@ -246,7 +246,8 @@ SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
         SPP_decode_PUS_TC_header(secondary_header_buffer, &PUS_TC_header);
         
         if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID) {
-            SPP_handle_HK_TC(&PUS_TC_header);
+            uint8_t* data = packet_buffer + SPP_PRIMARY_HEADER_LEN + SPP_PUS_TC_HEADER_LEN_WO_SPARE;
+            SPP_handle_HK_TC(&primary_header, &PUS_TC_header, data);
         } 
         else if (PUS_TC_header.service_type_id == TEST_SERVICE_ID) {
             SPP_handle_TEST_TC(&primary_header, &PUS_TC_header);

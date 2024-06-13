@@ -90,15 +90,29 @@ typedef enum { // ALL TM
     RV_FAIL_COMPL_OF_EXEC_VERIFICATION_ID  = 8,
 } PUS_RV_Subtype_ID;
 
+
+// House Keeping service [3] subtype IDs
 typedef enum {
+    HK_CREATE_HK_PAR_REPORT_STRUCT         = 1,  // TC
+    HK_DELETE_HK_PAR_REPORT_STRUCT         = 3,  // TC
     HK_EN_PERIODIC_REPORTS                 = 5,  // TC
     HK_DIS_PERIODIC_REPORTS                = 6,  // TC
+    HK_REPORT_HK_PAR_REPORT_STRUCT         = 9,  // TC
+    HK_REPORT_HK_PAR_REPORT_STRUCT_REPORT  = 10, // TM (response to 9)
     HK_PARAMETER_REPORT                    = 25, // TM
     HK_ONE_SHOT                            = 27, // TC
 } PUS_HK_Subtype_ID;
 
+typedef enum {
+    VBAT                                   = 1,
+    AMBIENT_TEMP                           = 2,
+    FPGA_CORE_VOLTAGE                      = 3,
+    FPGA_IO_VOLTAGE                        = 4,
+    UC_VOLTAGE                             = 5,
+} PUS_HK_Par_ID;
 
-// Test service [17] subtype IDS
+
+// Test (Ping) service [17] subtype IDS
 typedef enum {
     T_ARE_YOU_ALIVE_TEST_ID              = 1, // TC
     T_ARE_YOU_ALIVE_TEST_REPORT_ID       = 2, // TM
@@ -173,8 +187,8 @@ SPP_error SPP_send_request_verification(SPP_primary_header_t* request_primary_he
 
 
 /* PUS_3_service */
-SPP_error SPP_handle_HK_TC(SPP_PUS_TC_header_t* secondary_header);
-
+SPP_error SPP_handle_HK_TC(SPP_primary_header_t* primary_header, SPP_PUS_TC_header_t* secondary_header, uint8_t* data);
+void SPP_send_periodic_HK_TM();
 
 /* PUS_17_service */
 SPP_error SPP_handle_TEST_TC(SPP_primary_header_t* request_primary_header, SPP_PUS_TC_header_t* request_secondary_header);
