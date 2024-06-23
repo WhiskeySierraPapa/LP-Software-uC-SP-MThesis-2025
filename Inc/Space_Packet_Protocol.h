@@ -12,6 +12,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include "FPGA_UART.h"
 #include "COBS.h"
 #include "main.h"

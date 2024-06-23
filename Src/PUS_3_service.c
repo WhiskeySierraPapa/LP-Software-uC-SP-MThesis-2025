@@ -9,22 +9,64 @@
 #define MAX_PAR_COUNT       256
 #define MAX_STRUCT_COUNT    16
 #define MAX_TM_DATA_LEN     (MAX_PAR_COUNT * 4) + 2 // Each parameter is potentialy 4 bytes and struct id is 2 bytes.
+#define DEF_COL_INTV        500
+#define DEF_UC_N1           3
+#define DEF_UC_PS           true
+
+#define DEF_FPGA_N1         2
+#define DEF_FPGA_PS         false
 
 typedef struct {
     uint16_t SID;
     uint16_t collection_interval;
     uint16_t N1;
-    uint16_t recv_par_order[MAX_PAR_COUNT];
+    //uint16_t recv_par_order[MAX_PAR_COUNT];
+    float    parameters[MAX_PAR_COUNT];
+    bool     periodic_send;
+    uint32_t seq_count;
 } HK_par_report_structure_t;
 
-HK_par_report_structure_t HKPRS_list[MAX_STRUCT_COUNT];
+typedef enum {
+    UC_SID            = 0xAAAA,
+    FPGA_SID          = 0x5555,
+} HK_SID;
 
-float HK_parameters[MAX_PAR_COUNT];
 
-uint32_t HK_TM_seq_count = 0;
+HK_par_report_structure_t HKPRS_uc = {
+    .SID                    = UC_SID,
+    .collection_interval    = DEF_COL_INTV,
+    .N1                     = DEF_UC_N1,
+    .parameters             = {0},
+    .periodic_send          = DEF_UC_PS,
+    .seq_count              = 0,
+};
 
-uint8_t periodic_report_en[MAX_STRUCT_COUNT];
-uint16_t periodic_report_SIDs[MAX_STRUCT_COUNT];
+HK_par_report_structure_t HKPRS_fpga = {
+    .SID                    = FPGA_SID,
+    .collection_interval    = DEF_COL_INTV,
+    .N1                     = DEF_FPGA_N1,
+    .parameters             = {0},
+    .periodic_send          = DEF_FPGA_PS,
+    .seq_count              = 0,
+};
+
+
+static HK_par_report_structure_t get_HKPRS(uint16_t SID) {
+    HK_par_report_structure_t selected_HKPRS;
+    if (SID == UC_SID) {
+        selected_HKPRS = HKPRS_uc;
+    } else if (SID == FPGA_SID) {
+        selected_HKPRS = HKPRS_fpga;
+    } else {
+        HK_par_report_structure_t err_HKPRS = {
+            .SID = 0, .collection_interval = 0, .N1 = 0,
+        };
+        selected_HKPRS = err_HKPRS;
+    }
+    return selected_HKPRS;
+}
+
+
 
 // Writes data into out_field and returns incremented pointer.
 // NOTE: I know this is a strange way to do this, but without doing double
@@ -37,20 +79,21 @@ static uint8_t* get_next_field(uint8_t* data, uint16_t* out_field) {
     return data;
 }
 
-
+/*
 static void create_report_struct(uint8_t* data) {
     // Assuming all fields in data are 16 bits.
     uint16_t SID = 0;
     data = get_next_field(data, &SID);
-    HK_par_report_structure_t* HKPRS = &(HKPRS_list[SID]);
-    data = get_next_field(data, &(HKPRS->SID));
-    data = get_next_field(data, &(HKPRS->collection_interval));
-    data = get_next_field(data, &(HKPRS->N1));
-    if (HKPRS->N1 > MAX_PAR_COUNT) {
+    //HK_par_report_structure_t* HKPRS = &(HKPRS_list[SID]);
+    HK_par_report_structure_t HKPRS = get_HKPRS(SID);
+    data = get_next_field(data, &(HKPRS.SID));
+    data = get_next_field(data, &(HKPRS.collection_interval));
+    data = get_next_field(data, &(HKPRS.N1));
+    if (HKPRS.N1 > MAX_PAR_COUNT) {
         return; // TODO: Add error code here
     }
-    for(int i = 0; i < HKPRS->N1; i++) {
-        data = get_next_field(data, &(HKPRS->recv_par_order[i]));
+    for(int i = 0; i < HKPRS.N1; i++) {
+        data = get_next_field(data, &(HKPRS.recv_par_order[i]));
     }
 }
 
@@ -69,35 +112,36 @@ static void delete_report_struct(uint8_t* data) {
         }
     }  
 }
-
+*/
 static void fill_report_struct(uint16_t SID) {
+    // TODO redo this. Paramter IDs dont really matter since we have fixed structs for uc and FPGA
     float s_vbat = vbat;
     float s_temp = temperature;
     float s_fpga3v = fpga3v;
     float s_fpga1p5v = fpga1p5v;
     float s_uc3v = uc3v;
 
-    HK_par_report_structure_t* HKPRS = &(HKPRS_list[SID]);
-    for (int i = 0; i < HKPRS->N1; i++) {
+    HK_par_report_structure_t HKPRS = get_HKPRS(SID);
+    for (int i = 0; i < HKPRS.N1; i++) {
         if (i > MAX_PAR_COUNT) {
             return; // TODO: Add error code here
         }
 
-        switch(HKPRS->recv_par_order[i]) {
+        switch(HKPRS.recv_par_order[i]) {
             case VBAT:
-                HK_parameters[i] = s_vbat;
+                HKPRS.parameters[i] = s_vbat;
                 break;
             case AMBIENT_TEMP:
-                HK_parameters[i] = s_temp;
+                HKPRS.parameters[i] = s_temp;
                 break;
             case FPGA_CORE_VOLTAGE:
-                HK_parameters[i] = s_fpga3v;
+                HKPRS.parameters[i] = s_fpga3v;
                 break;
             case FPGA_IO_VOLTAGE:
-                HK_parameters[i] = s_fpga1p5v;
+                HKPRS.parameters[i] = s_fpga1p5v;
                 break;
             case UC_VOLTAGE:
-                HK_parameters[i] = s_uc3v;
+                HKPRS.parameters[i] = s_uc3v;
                 break;
             default:
                 break; 
@@ -112,13 +156,14 @@ static uint16_t encode_HK_struct(HK_par_report_structure_t* HKPRS, uint8_t* out_
     out_buffer += sizeof(HKPRS->SID);
 
     for (int i = 0; i < HKPRS->N1; i++) {
-        memcpy(out_buffer, &(HK_parameters[i]), sizeof(HK_parameters[i]));
-        out_buffer += sizeof(HK_parameters[i]);
+        memcpy(out_buffer, &(HKPRS->parameters[i]), sizeof(HKPRS->parameters[i]));
+        out_buffer += sizeof(HKPRS->parameters[i]);
     }
     return out_buffer - orig_pointer;
 }
 
 static void send_one_shot(SPP_primary_header_t* req_p_header , SPP_PUS_TC_header_t* req_s_header, uint8_t* data){
+    //TODO: redo this for only the uc and fpga struct instead of dynamic.
     uint16_t nof_structs = 0;
     data = get_next_field(data, &nof_structs);
     uint16_t SIDs[MAX_STRUCT_COUNT];
@@ -128,16 +173,16 @@ static void send_one_shot(SPP_primary_header_t* req_p_header , SPP_PUS_TC_header
     for (int i = 0; i < nof_structs; i++) {
         uint16_t SID = SIDs[i];
         fill_report_struct(SID);
-        HK_par_report_structure_t* HKPRS = &(HKPRS_list[SID]);
+        HK_par_report_structure_t HKPRS = get_HKPRS(SID);
         uint8_t TM_data[MAX_TM_DATA_LEN];
-        uint16_t HK_data_len = encode_HK_struct(HKPRS, TM_data);
+        uint16_t HK_data_len = encode_HK_struct(&HKPRS, TM_data);
         SPP_primary_header_t TM_SPP_header = SPP_make_new_primary_header(
             SPP_VERSION,
             SPP_PACKET_TYPE_TM,
             1,
             req_p_header->application_process_id,
             SPP_SEQUENCE_SEG_UNSEG,
-            HK_TM_seq_count++,
+            HKPRS.seq_count,
             SPP_PUS_TM_HEADER_LEN_WO_SPARE + HK_data_len + CRC_BYTE_LEN - 1
         );
         SPP_PUS_TM_header_t TM_PUS_header  = SPP_make_new_PUS_TM_header(
@@ -150,28 +195,28 @@ static void send_one_shot(SPP_primary_header_t* req_p_header , SPP_PUS_TC_header
             0
         );
         SPP_send_TM(&TM_SPP_header, &TM_PUS_header, TM_data, HK_data_len);
+        HKPRS.seq_count++;
     }
 }
 
-static void enable_periodic_report(uint8_t data) {
-    uint16_t nof_structs = 0;
-    data = get_next_field(data, nof_structs);
-    for (int i = 0; i < nof_structs; i++) {
-        data = get_next_field(data, &(periodic_report_SIDs[i]));
-    }
-    for (int i = 0; i < nof_structs; i++) {
-        periodic_report_en[periodic_report_SIDs[i]] = 1;
-    }
-}
-
-
-void SPP_send_periodic_HK_TM() {
-    for (int i = 0; i < MAX_STRUCT_COUNT; i++) {
-        if (periodic_report_en[i]) {
-            
+static void set_periodic_report(uint8_t* data, bool state) {
+    uint16_t nof_SIDs = 0;
+    data = get_next_field(data, &nof_SIDs);
+    for(int i = 0; i < nof_SIDs; i++) {
+        uint16_t SID = 0;
+        data = get_next_field(data, &SID);
+        switch(SID) {
+            case UC_SID:
+                HKPRS_uc.periodic_send = state;
+                break;
+            case FPGA_SID:
+                HKPRS_fpga.periodic_send = state;
+                break;
         }
     }
 }
+
+
 
 // HK - Housekeeping PUS service 3
 SPP_error SPP_handle_HK_TC(SPP_primary_header_t* SPP_header , SPP_PUS_TC_header_t* secondary_header, uint8_t* data) {
@@ -179,12 +224,17 @@ SPP_error SPP_handle_HK_TC(SPP_primary_header_t* SPP_header , SPP_PUS_TC_header_
         return UNDEFINED_ERROR;
     }
 
+/*
     if (secondary_header->message_subtype_id == HK_CREATE_HK_PAR_REPORT_STRUCT) {
         create_report_struct(data);
     } else if (secondary_header->message_subtype_id == HK_DELETE_HK_PAR_REPORT_STRUCT) {
         delete_report_struct(data);
-    } else if (secondary_header->message_subtype_id == HK_EN_PERIODIC_REPORTS) {
-        enable_periodic_report(data);
+    }
+*/
+   if (secondary_header->message_subtype_id == HK_EN_PERIODIC_REPORTS) {
+        set_periodic_report(data, true);
+    } else if (secondary_header->message_subtype_id == HK_DIS_PERIODIC_REPORTS) {
+        set_periodic_report(data, false);
     } else if (secondary_header->message_subtype_id == HK_ONE_SHOT) {
         send_one_shot(SPP_header, secondary_header, data);
     }
