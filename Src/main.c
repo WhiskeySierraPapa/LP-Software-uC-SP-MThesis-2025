@@ -869,7 +869,7 @@ void StartDefaultTask(void const * argument)
 */
     uint32_t current_ticks = 0;
     uint32_t ucFileTicks = 0;
-    uint32_t SPP_test_ticks = 0;
+    uint32_t SPP_ticks = 0;
     uint8_t oldFlightState = 0;
 /*
 	f_open(&stateFile, "/FLIGHT_STATES.log", FA_OPEN_APPEND | FA_WRITE);
@@ -881,6 +881,8 @@ void StartDefaultTask(void const * argument)
     /* Infinite loop */
     for(;;) {
 	    current_ticks = xTaskGetTickCount();
+        
+        SPP_collect_HK_data(current_ticks);
 
         if (SPP_DEBUG_message_received) {
             SPP_handle_incoming_TC(DEBUG_TC);
@@ -891,12 +893,14 @@ void StartDefaultTask(void const * argument)
             SPP_OBC_message_received = 0;
         }
         
-        if (current_ticks - SPP_test_ticks > 5000) {
+        if (current_ticks - SPP_ticks > 5000) {
             HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
             //SPP_send_HK_test_packet();
-            SPP_test_ticks = current_ticks;
-            SPP_send_periodic_HK_TM();
+            SPP_periodic_HK_send();
+            SPP_ticks = current_ticks;
         }
+
+
 
 	    if (FPGAFlightState < 7)
 		    HandleFPGAStream();

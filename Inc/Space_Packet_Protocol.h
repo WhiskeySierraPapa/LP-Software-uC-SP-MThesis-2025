@@ -189,7 +189,8 @@ SPP_error SPP_send_request_verification(SPP_primary_header_t* request_primary_he
 
 /* PUS_3_service */
 SPP_error SPP_handle_HK_TC(SPP_primary_header_t* primary_header, SPP_PUS_TC_header_t* secondary_header, uint8_t* data);
-void SPP_send_periodic_HK_TM();
+void SPP_collect_HK_data(uint32_t current_ticks);
+void SPP_periodic_HK_send();
 
 /* PUS_17_service */
 SPP_error SPP_handle_TEST_TC(SPP_primary_header_t* request_primary_header, SPP_PUS_TC_header_t* request_secondary_header);
