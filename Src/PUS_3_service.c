@@ -6,7 +6,7 @@
  */
 #include "Space_Packet_Protocol.h"
 
-#define MAX_PAR_COUNT       256
+#define MAX_PAR_COUNT       16
 #define MAX_STRUCT_COUNT    16
 #define MAX_TM_DATA_LEN     (MAX_PAR_COUNT * 4) + 2 // Each parameter is potentialy 4 bytes and struct id is 2 bytes.
 #define DEF_COL_INTV        500
@@ -15,6 +15,9 @@
 
 #define DEF_FPGA_N1         2
 #define DEF_FPGA_PS         false
+
+#define DEF_SPP_APP_ID        61  // Just some random numbers.
+#define DEF_PUS_SOURCE_ID     14
 
 typedef struct {
     uint16_t SID;
@@ -228,10 +231,54 @@ void SPP_collect_HK_data(uint32_t current_ticks) {
 
 void SPP_periodic_HK_send() {
     if (HKPRS_uc.periodic_send) {
-
+        HK_par_report_structure_t HKPRS = get_HKPRS(UC_SID);
+        uint8_t TM_data[MAX_TM_DATA_LEN];
+        uint16_t HK_data_len = encode_HK_struct(&HKPRS, TM_data);
+        SPP_primary_header_t TM_SPP_header = SPP_make_new_primary_header(
+            SPP_VERSION,
+            SPP_PACKET_TYPE_TM,
+            1,
+            DEF_SPP_APP_ID,
+            SPP_SEQUENCE_SEG_UNSEG,
+            HKPRS.seq_count,
+            SPP_PUS_TM_HEADER_LEN_WO_SPARE + HK_data_len + CRC_BYTE_LEN - 1
+        );
+        SPP_PUS_TM_header_t TM_PUS_header  = SPP_make_new_PUS_TM_header(
+            PUS_VERSION,
+            0,
+            HOUSEKEEPING_SERVICE_ID,
+            HK_PARAMETER_REPORT,
+            0,
+            DEF_PUS_SOURCE_ID,
+            0
+        );
+        SPP_send_TM(&TM_SPP_header, &TM_PUS_header, TM_data, HK_data_len);
+        HKPRS.seq_count++;
     }
     if (HKPRS_fpga.periodic_send) {
-
+        HK_par_report_structure_t HKPRS = get_HKPRS(UC_SID);
+        uint8_t TM_data[MAX_TM_DATA_LEN];
+        uint16_t HK_data_len = encode_HK_struct(&HKPRS, TM_data);
+        SPP_primary_header_t TM_SPP_header = SPP_make_new_primary_header(
+            SPP_VERSION,
+            SPP_PACKET_TYPE_TM,
+            1,
+            DEF_SPP_APP_ID,
+            SPP_SEQUENCE_SEG_UNSEG,
+            HKPRS.seq_count,
+            SPP_PUS_TM_HEADER_LEN_WO_SPARE + HK_data_len + CRC_BYTE_LEN - 1
+        );
+        SPP_PUS_TM_header_t TM_PUS_header  = SPP_make_new_PUS_TM_header(
+            PUS_VERSION,
+            0,
+            HOUSEKEEPING_SERVICE_ID,
+            HK_PARAMETER_REPORT,
+            0,
+            DEF_PUS_SOURCE_ID,
+            0
+        );
+        SPP_send_TM(&TM_SPP_header, &TM_PUS_header, TM_data, HK_data_len);
+        HKPRS.seq_count++;
     }
 }
 
