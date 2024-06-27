@@ -27,7 +27,7 @@ SPP_error SPP_encode_PUS_TC_header(SPP_PUS_TC_header_t* secondary_header, uint8_
     result_buffer[1] |=  secondary_header->service_type_id;
     result_buffer[2] |=  secondary_header->message_subtype_id;
     result_buffer[3] |= (secondary_header->source_id & 0xFF00) >> 8;
-    result_buffer[4] |= (secondary_header->source_id & 0x00FF) >> 8;
+    result_buffer[4] |= (secondary_header->source_id & 0x00FF);
 
     return SPP_OK;
 };
@@ -55,11 +55,11 @@ SPP_error SPP_encode_PUS_TM_header(SPP_PUS_TM_header_t* secondary_header, uint8_
     result_buffer[1] |=  secondary_header->service_type_id;
     result_buffer[2] |=  secondary_header->message_subtype_id;
     result_buffer[3] |= (secondary_header->message_type_counter & 0xFF00) >> 8;
-    result_buffer[4] |= (secondary_header->message_type_counter & 0x00FF) >> 8;
+    result_buffer[4] |= (secondary_header->message_type_counter & 0x00FF);
     result_buffer[5] |= (secondary_header->destination_id & 0xFF00) >> 8;
-    result_buffer[6] |= (secondary_header->destination_id & 0x00FF) >> 8;
+    result_buffer[6] |= (secondary_header->destination_id & 0x00FF);
     result_buffer[7] |= (secondary_header->time & 0xFF00) >> 8;
-    result_buffer[8] |= (secondary_header->time & 0x00FF) >> 8;
+    result_buffer[8] |= (secondary_header->time & 0x00FF);
     
     return SPP_OK;
 };
