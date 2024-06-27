@@ -56,18 +56,24 @@ HK_par_report_structure_t HKPRS_fpga = {
     .seq_count              = 0,
 };
 
+HK_par_report_structure_t HKPRS_err = {
+    .SID                    = 0,
+    .collection_interval    = 0,
+    .N1                     = 0,
+    .parameters             = {0},
+    .periodic_send          = 0,
+    .last_collect_tick      = 0,
+    .seq_count              = 0,
+};
 
-static HK_par_report_structure_t get_HKPRS(uint16_t SID) {
-    HK_par_report_structure_t selected_HKPRS;
+static HK_par_report_structure_t* get_HKPRS(uint16_t SID) {
+    HK_par_report_structure_t* selected_HKPRS;
     if (SID == UC_SID) {
-        selected_HKPRS = HKPRS_uc;
+        selected_HKPRS = &HKPRS_uc;
     } else if (SID == FPGA_SID) {
-        selected_HKPRS = HKPRS_fpga;
+        selected_HKPRS = &HKPRS_fpga;
     } else {
-        HK_par_report_structure_t err_HKPRS = {
-            .SID = 0, .collection_interval = 0, .N1 = 0,
-        };
-        selected_HKPRS = err_HKPRS;
+        selected_HKPRS = &HKPRS_err; // This is kind of bad, probably should return an error code.
     }
     return selected_HKPRS;
 }
@@ -130,16 +136,16 @@ static void fill_report_struct(uint16_t SID) {
     float uc_pars[DEF_UC_N1] = {s_vbat, s_temp, s_uc3v};
     float fpga_pars[DEF_FPGA_N1] = {s_fpga1p5v, s_fpga3v};
 
-    HK_par_report_structure_t HKPRS = get_HKPRS(SID);
+    HK_par_report_structure_t* HKPRS = get_HKPRS(SID);
     switch(SID) {
         case UC_SID:
-            for(int i = 0; i < HKPRS.N1; i++) {
-                HKPRS.parameters[i] = uc_pars[i];
+            for(int i = 0; i < HKPRS->N1; i++) {
+                HKPRS->parameters[i] = uc_pars[i];
             }
             break;
         case FPGA_SID:
-            for(int i = 0; i < HKPRS.N1; i++) {
-                HKPRS.parameters[i] = fpga_pars[i];
+            for(int i = 0; i < HKPRS->N1; i++) {
+                HKPRS->parameters[i] = fpga_pars[i];
             }
             break;
     }  
@@ -161,7 +167,7 @@ static uint16_t encode_HK_struct(HK_par_report_structure_t* HKPRS, uint8_t* out_
 
 
 static void send_HK_struct(SPP_primary_header_t* req_p_header , SPP_PUS_TC_header_t* req_s_header, uint8_t* data, uint16_t SID) {
-    HK_par_report_structure_t HKPRS = get_HKPRS(SID);
+    HK_par_report_structure_t* HKPRS = get_HKPRS(SID);
     uint8_t TM_data[MAX_TM_DATA_LEN];
     uint16_t HK_data_len = encode_HK_struct(&HKPRS, TM_data);
     SPP_primary_header_t TM_SPP_header = SPP_make_new_primary_header(
@@ -170,7 +176,7 @@ static void send_HK_struct(SPP_primary_header_t* req_p_header , SPP_PUS_TC_heade
         1,
         req_p_header->application_process_id,
         SPP_SEQUENCE_SEG_UNSEG,
-        HKPRS.seq_count,
+        HKPRS->seq_count,
         SPP_PUS_TM_HEADER_LEN_WO_SPARE + HK_data_len + CRC_BYTE_LEN - 1
     );
     SPP_PUS_TM_header_t TM_PUS_header  = SPP_make_new_PUS_TM_header(
@@ -183,7 +189,7 @@ static void send_HK_struct(SPP_primary_header_t* req_p_header , SPP_PUS_TC_heade
         0
     );
     SPP_send_TM(&TM_SPP_header, &TM_PUS_header, TM_data, HK_data_len);
-    HKPRS.seq_count++;
+    HKPRS->seq_count++;
 }
 
 static void send_one_shot(SPP_primary_header_t* req_p_header , SPP_PUS_TC_header_t* req_s_header, uint8_t* data) {
@@ -231,7 +237,7 @@ void SPP_collect_HK_data(uint32_t current_ticks) {
 
 void SPP_periodic_HK_send() {
     if (HKPRS_uc.periodic_send) {
-        HK_par_report_structure_t HKPRS = get_HKPRS(UC_SID);
+        HK_par_report_structure_t* HKPRS = get_HKPRS(UC_SID);
         uint8_t TM_data[MAX_TM_DATA_LEN];
         uint16_t HK_data_len = encode_HK_struct(&HKPRS, TM_data);
         SPP_primary_header_t TM_SPP_header = SPP_make_new_primary_header(
@@ -240,7 +246,7 @@ void SPP_periodic_HK_send() {
             1,
             DEF_SPP_APP_ID,
             SPP_SEQUENCE_SEG_UNSEG,
-            HKPRS.seq_count,
+            HKPRS->seq_count,
             SPP_PUS_TM_HEADER_LEN_WO_SPARE + HK_data_len + CRC_BYTE_LEN - 1
         );
         SPP_PUS_TM_header_t TM_PUS_header  = SPP_make_new_PUS_TM_header(
@@ -253,10 +259,10 @@ void SPP_periodic_HK_send() {
             0
         );
         SPP_send_TM(&TM_SPP_header, &TM_PUS_header, TM_data, HK_data_len);
-        HKPRS.seq_count++;
+        HKPRS->seq_count++;
     }
     if (HKPRS_fpga.periodic_send) {
-        HK_par_report_structure_t HKPRS = get_HKPRS(UC_SID);
+        HK_par_report_structure_t* HKPRS = get_HKPRS(UC_SID);
         uint8_t TM_data[MAX_TM_DATA_LEN];
         uint16_t HK_data_len = encode_HK_struct(&HKPRS, TM_data);
         SPP_primary_header_t TM_SPP_header = SPP_make_new_primary_header(
@@ -265,7 +271,7 @@ void SPP_periodic_HK_send() {
             1,
             DEF_SPP_APP_ID,
             SPP_SEQUENCE_SEG_UNSEG,
-            HKPRS.seq_count,
+            HKPRS->seq_count,
             SPP_PUS_TM_HEADER_LEN_WO_SPARE + HK_data_len + CRC_BYTE_LEN - 1
         );
         SPP_PUS_TM_header_t TM_PUS_header  = SPP_make_new_PUS_TM_header(
@@ -278,7 +284,7 @@ void SPP_periodic_HK_send() {
             0
         );
         SPP_send_TM(&TM_SPP_header, &TM_PUS_header, TM_data, HK_data_len);
-        HKPRS.seq_count++;
+        HKPRS->seq_count++;
     }
 }
 
