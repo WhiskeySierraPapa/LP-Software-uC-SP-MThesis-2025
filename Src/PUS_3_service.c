@@ -169,7 +169,7 @@ static uint16_t encode_HK_struct(HK_par_report_structure_t* HKPRS, uint8_t* out_
 static void send_HK_struct(SPP_primary_header_t* req_p_header , SPP_PUS_TC_header_t* req_s_header, uint8_t* data, uint16_t SID) {
     HK_par_report_structure_t* HKPRS = get_HKPRS(SID);
     uint8_t TM_data[MAX_TM_DATA_LEN];
-    uint16_t HK_data_len = encode_HK_struct(&HKPRS, TM_data);
+    uint16_t HK_data_len = encode_HK_struct(HKPRS, TM_data);
     SPP_primary_header_t TM_SPP_header = SPP_make_new_primary_header(
         SPP_VERSION,
         SPP_PACKET_TYPE_TM,
@@ -239,7 +239,7 @@ void SPP_periodic_HK_send() {
     if (HKPRS_uc.periodic_send) {
         HK_par_report_structure_t* HKPRS = get_HKPRS(UC_SID);
         uint8_t TM_data[MAX_TM_DATA_LEN];
-        uint16_t HK_data_len = encode_HK_struct(&HKPRS, TM_data);
+        uint16_t HK_data_len = encode_HK_struct(HKPRS, TM_data);
         SPP_primary_header_t TM_SPP_header = SPP_make_new_primary_header(
             SPP_VERSION,
             SPP_PACKET_TYPE_TM,
@@ -264,7 +264,7 @@ void SPP_periodic_HK_send() {
     if (HKPRS_fpga.periodic_send) {
         HK_par_report_structure_t* HKPRS = get_HKPRS(UC_SID);
         uint8_t TM_data[MAX_TM_DATA_LEN];
-        uint16_t HK_data_len = encode_HK_struct(&HKPRS, TM_data);
+        uint16_t HK_data_len = encode_HK_struct(HKPRS, TM_data);
         SPP_primary_header_t TM_SPP_header = SPP_make_new_primary_header(
             SPP_VERSION,
             SPP_PACKET_TYPE_TM,
@@ -285,6 +285,7 @@ void SPP_periodic_HK_send() {
         );
         SPP_send_TM(&TM_SPP_header, &TM_PUS_header, TM_data, HK_data_len);
         HKPRS->seq_count++;
+
     }
 }
 
