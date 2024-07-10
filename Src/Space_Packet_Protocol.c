@@ -97,11 +97,11 @@ SPP_error SPP_validate_checksum(uint8_t* packet, uint16_t packet_length) {
 
 
 // Takes pointer to SPP_PRIMARY_HEADER_LEN length buffer.
-// Takes pointer to SPP_primary_header_t struct.
+// Takes pointer to SPP_header_t struct.
 // Fills primary_header with corresponding data from raw_buffer
 // Return negative error code if failed, or 0 if correct. (SPP_error)
 // CHECK SIZE OF raw_header BEFORE PASSING TO THIS FUNCTION
-SPP_error SPP_decode_primary_header(uint8_t* raw_header, SPP_primary_header_t* primary_header) {
+SPP_error SPP_decode_header(uint8_t* raw_header, SPP_header_t* primary_header) {
 	primary_header->packet_version_number	= (raw_header[0] & 0xE0) >> 5;
 	primary_header->packet_type 			= (raw_header[0] & 0x10) >> 4;
 	primary_header->secondary_header_flag	= (raw_header[0] & 0x08) >> 3;
@@ -117,7 +117,7 @@ SPP_error SPP_decode_primary_header(uint8_t* raw_header, SPP_primary_header_t* p
 // and copies results do given buffer pointer
 // Return negative error code if failed, or 0 if correct. (SPP_error)
 // CHECK SIZE OF result_buffer BEFORE PASSING TO THIS FUNCTION
-SPP_error SPP_encode_primary_header(SPP_primary_header_t* primary_header, uint8_t* result_buffer) {
+SPP_error SPP_encode_header(SPP_header_t* primary_header, uint8_t* result_buffer) {
     for(int i = 0; i < SPP_PRIMARY_HEADER_LEN; i++) {
         result_buffer[i] ^= result_buffer[i];    // Clear result buffer.
     }
@@ -137,8 +137,8 @@ SPP_error SPP_encode_primary_header(SPP_primary_header_t* primary_header, uint8_
 
 
 
-SPP_primary_header_t SPP_make_new_primary_header(uint8_t packet_version_number, uint8_t packet_type, uint8_t secondary_header_flag, uint16_t application_process_id, uint8_t sequence_flags, uint16_t packet_sequence_count, uint16_t packet_data_length) {
-    SPP_primary_header_t primary_header;
+SPP_header_t SPP_make_header(uint8_t packet_version_number, uint8_t packet_type, uint8_t secondary_header_flag, uint16_t application_process_id, uint8_t sequence_flags, uint16_t packet_sequence_count, uint16_t packet_data_length) {
+    SPP_header_t primary_header;
     primary_header.packet_version_number    = packet_version_number;
     primary_header.packet_type              = packet_type;
     primary_header.secondary_header_flag    = secondary_header_flag;
@@ -170,7 +170,7 @@ static SPP_error SPP_add_data_to_packet(uint8_t* data, uint16_t data_len, uint8_
 
 
 
-SPP_error SPP_send_TM(SPP_primary_header_t* response_primary_header, SPP_PUS_TM_header_t* response_secondary_header, uint8_t* data, uint16_t data_len) {
+SPP_error SPP_send_TM(SPP_header_t* resp_SPP_header, PUS_TM_header_t* response_secondary_header, uint8_t* data, uint16_t data_len) {
     uint8_t response_TM_packet[SPP_MAX_PACKET_LEN];
     uint8_t response_TM_packet_COBS[SPP_MAX_PACKET_LEN];
     for(int i = 0; i < SPP_MAX_PACKET_LEN; i++) {
@@ -181,12 +181,12 @@ SPP_error SPP_send_TM(SPP_primary_header_t* response_primary_header, SPP_PUS_TM_
     uint8_t* current_pointer = response_TM_packet;
     uint16_t packet_total_len = current_pointer - response_TM_packet;
 
-    SPP_encode_primary_header(response_primary_header, current_pointer);
+    SPP_encode_header(resp_SPP_header, current_pointer);
     current_pointer += SPP_PRIMARY_HEADER_LEN;
     packet_total_len = current_pointer - response_TM_packet;
 
 
-    SPP_encode_PUS_TM_header(response_secondary_header, current_pointer);
+    PUS_encode_TM_header(response_secondary_header, current_pointer);
     current_pointer += SPP_PUS_TM_HEADER_LEN_WO_SPARE;
     packet_total_len = current_pointer - response_TM_packet;
 
@@ -228,8 +228,8 @@ SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
 
     COBS_decode(recv_buffer, COBS_FRAME_LEN, packet_buffer);
 
-    SPP_primary_header_t primary_header;
-    SPP_decode_primary_header(packet_buffer, &primary_header);
+    SPP_header_t primary_header;
+    SPP_decode_header(packet_buffer, &primary_header);
     uint16_t space_packet_length = primary_header.packet_data_length + SPP_PRIMARY_HEADER_LEN + 1;
 
     SPP_error CRC_er = SPP_validate_checksum(packet_buffer, space_packet_length);
@@ -242,8 +242,8 @@ SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
         uint8_t secondary_header_buffer[SPP_PUS_TC_HEADER_LEN_WO_SPARE];
         memcpy(secondary_header_buffer, packet_buffer + SPP_PRIMARY_HEADER_LEN, SPP_PUS_TC_HEADER_LEN_WO_SPARE);
 
-        SPP_PUS_TC_header_t PUS_TC_header;
-        SPP_decode_PUS_TC_header(secondary_header_buffer, &PUS_TC_header);
+        PUS_TC_header_t PUS_TC_header;
+        PUS_decode_TC_header(secondary_header_buffer, &PUS_TC_header);
         
         if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID) {
             uint8_t* data = packet_buffer + SPP_PRIMARY_HEADER_LEN + SPP_PUS_TC_HEADER_LEN_WO_SPARE;

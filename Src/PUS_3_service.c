@@ -166,11 +166,11 @@ static uint16_t encode_HK_struct(HK_par_report_structure_t* HKPRS, uint8_t* out_
 
 
 
-static void send_HK_struct(SPP_primary_header_t* req_p_header , SPP_PUS_TC_header_t* req_s_header, uint8_t* data, uint16_t SID) {
+static void send_HK_struct(SPP_header_t* req_p_header , PUS_TC_header_t* req_s_header, uint8_t* data, uint16_t SID) {
     HK_par_report_structure_t* HKPRS = get_HKPRS(SID);
     uint8_t TM_data[MAX_TM_DATA_LEN];
     uint16_t HK_data_len = encode_HK_struct(HKPRS, TM_data);
-    SPP_primary_header_t TM_SPP_header = SPP_make_new_primary_header(
+    SPP_header_t TM_SPP_header = SPP_make_header(
         SPP_VERSION,
         SPP_PACKET_TYPE_TM,
         1,
@@ -179,7 +179,7 @@ static void send_HK_struct(SPP_primary_header_t* req_p_header , SPP_PUS_TC_heade
         HKPRS->seq_count,
         SPP_PUS_TM_HEADER_LEN_WO_SPARE + HK_data_len + CRC_BYTE_LEN - 1
     );
-    SPP_PUS_TM_header_t TM_PUS_header  = SPP_make_new_PUS_TM_header(
+    PUS_TM_header_t TM_PUS_header  = PUS_make_TM_header(
         PUS_VERSION,
         0,
         HOUSEKEEPING_SERVICE_ID,
@@ -192,7 +192,7 @@ static void send_HK_struct(SPP_primary_header_t* req_p_header , SPP_PUS_TC_heade
     HKPRS->seq_count++;
 }
 
-static void send_one_shot(SPP_primary_header_t* req_p_header , SPP_PUS_TC_header_t* req_s_header, uint8_t* data) {
+static void send_one_shot(SPP_header_t* req_p_header , PUS_TC_header_t* req_s_header, uint8_t* data) {
     uint16_t nof_structs = 0;
     data = get_next_field(data, &nof_structs);
     uint16_t SIDs[MAX_STRUCT_COUNT];
@@ -240,7 +240,7 @@ void SPP_periodic_HK_send() {
         HK_par_report_structure_t* HKPRS = get_HKPRS(UC_SID);
         uint8_t TM_data[MAX_TM_DATA_LEN];
         uint16_t HK_data_len = encode_HK_struct(HKPRS, TM_data);
-        SPP_primary_header_t TM_SPP_header = SPP_make_new_primary_header(
+        SPP_header_t TM_SPP_header = SPP_make_header(
             SPP_VERSION,
             SPP_PACKET_TYPE_TM,
             1,
@@ -249,7 +249,7 @@ void SPP_periodic_HK_send() {
             HKPRS->seq_count,
             SPP_PUS_TM_HEADER_LEN_WO_SPARE + HK_data_len + CRC_BYTE_LEN - 1
         );
-        SPP_PUS_TM_header_t TM_PUS_header  = SPP_make_new_PUS_TM_header(
+        PUS_TM_header_t TM_PUS_header  = PUS_make_TM_header(
             PUS_VERSION,
             0,
             HOUSEKEEPING_SERVICE_ID,
@@ -265,7 +265,7 @@ void SPP_periodic_HK_send() {
         HK_par_report_structure_t* HKPRS = get_HKPRS(UC_SID);
         uint8_t TM_data[MAX_TM_DATA_LEN];
         uint16_t HK_data_len = encode_HK_struct(HKPRS, TM_data);
-        SPP_primary_header_t TM_SPP_header = SPP_make_new_primary_header(
+        SPP_header_t TM_SPP_header = SPP_make_header(
             SPP_VERSION,
             SPP_PACKET_TYPE_TM,
             1,
@@ -274,7 +274,7 @@ void SPP_periodic_HK_send() {
             HKPRS->seq_count,
             SPP_PUS_TM_HEADER_LEN_WO_SPARE + HK_data_len + CRC_BYTE_LEN - 1
         );
-        SPP_PUS_TM_header_t TM_PUS_header  = SPP_make_new_PUS_TM_header(
+        PUS_TM_header_t TM_PUS_header  = PUS_make_TM_header(
             PUS_VERSION,
             0,
             HOUSEKEEPING_SERVICE_ID,
@@ -290,7 +290,7 @@ void SPP_periodic_HK_send() {
 }
 
 // HK - Housekeeping PUS service 3
-SPP_error SPP_handle_HK_TC(SPP_primary_header_t* SPP_header , SPP_PUS_TC_header_t* secondary_header, uint8_t* data) {
+SPP_error SPP_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* secondary_header, uint8_t* data) {
     if (secondary_header == NULL) {
         return UNDEFINED_ERROR;
     }

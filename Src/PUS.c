@@ -6,7 +6,7 @@
  */
 #include "Space_Packet_Protocol.h"
 
-SPP_error SPP_decode_PUS_TC_header(uint8_t* raw_header, SPP_PUS_TC_header_t* secondary_header) {
+SPP_error PUS_decode_TC_header(uint8_t* raw_header, PUS_TC_header_t* secondary_header) {
     secondary_header->PUS_version_number = (raw_header[0] & 0xF0) >> 4;
     secondary_header->ACK_flags          = (raw_header[0] & 0x0F);
     secondary_header->service_type_id    =  raw_header[1];
@@ -17,7 +17,7 @@ SPP_error SPP_decode_PUS_TC_header(uint8_t* raw_header, SPP_PUS_TC_header_t* sec
 }
 
 // Technically this is not needed since, Langmuir Probe Payload will not send TCs.
-SPP_error SPP_encode_PUS_TC_header(SPP_PUS_TC_header_t* secondary_header, uint8_t* result_buffer) {
+SPP_error PUS_encode_TC_header(PUS_TC_header_t* secondary_header, uint8_t* result_buffer) {
     for(int i = 0; i < SPP_PUS_TC_HEADER_LEN_WO_SPARE; i++) {
         result_buffer[i] ^= result_buffer[i];    // Clear result buffer.
     }
@@ -33,7 +33,7 @@ SPP_error SPP_encode_PUS_TC_header(SPP_PUS_TC_header_t* secondary_header, uint8_
 };
 
 // Technically this is not needed since, Langmuir Probe Payload will only send TMs.
-SPP_error SPP_decode_PUS_TM_header(uint8_t* raw_header, SPP_PUS_TM_header_t* secondary_header) {
+SPP_error PUS_decode_TM_header(uint8_t* raw_header, PUS_TM_header_t* secondary_header) {
     secondary_header->PUS_version_number    = (raw_header[0] & 0xF0) >> 4;
     secondary_header->sc_time_ref_status    = (raw_header[0] & 0x0F);
     secondary_header->service_type_id       =  raw_header[1];
@@ -45,7 +45,7 @@ SPP_error SPP_decode_PUS_TM_header(uint8_t* raw_header, SPP_PUS_TM_header_t* sec
     return SPP_OK;
 }
 
-SPP_error SPP_encode_PUS_TM_header(SPP_PUS_TM_header_t* secondary_header, uint8_t* result_buffer) {
+SPP_error PUS_encode_TM_header(PUS_TM_header_t* secondary_header, uint8_t* result_buffer) {
     for(int i = 0; i < SPP_PUS_TM_HEADER_LEN_WO_SPARE; i++) {
         result_buffer[i] ^= result_buffer[i];    // Clear result buffer.
     }
@@ -67,9 +67,9 @@ SPP_error SPP_encode_PUS_TM_header(SPP_PUS_TM_header_t* secondary_header, uint8_
 
 
 
-SPP_PUS_TM_header_t SPP_make_new_PUS_TM_header(uint8_t PUS_version_number, uint8_t sc_time_ref_status, uint8_t service_type_id,
+PUS_TM_header_t PUS_make_TM_header(uint8_t PUS_version_number, uint8_t sc_time_ref_status, uint8_t service_type_id,
                                 uint8_t message_subtype_id, uint16_t message_type_counter, uint16_t destination_id, uint16_t time) {
-    SPP_PUS_TM_header_t PUS_TM_header;
+    PUS_TM_header_t PUS_TM_header;
     PUS_TM_header.PUS_version_number      =  PUS_version_number;
     PUS_TM_header.sc_time_ref_status      =  sc_time_ref_status;
     PUS_TM_header.service_type_id         =  service_type_id;
