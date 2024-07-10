@@ -262,7 +262,7 @@ void SPP_periodic_HK_send() {
         HKPRS->seq_count++;
     }
     if (HKPRS_fpga.periodic_send) {
-        HK_par_report_structure_t* HKPRS = get_HKPRS(UC_SID);
+        HK_par_report_structure_t* HKPRS = get_HKPRS(FPGA_SID);
         uint8_t TM_data[MAX_TM_DATA_LEN];
         uint16_t HK_data_len = encode_HK_struct(HKPRS, TM_data);
         SPP_header_t TM_SPP_header = SPP_make_header(
