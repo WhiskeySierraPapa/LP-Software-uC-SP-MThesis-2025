@@ -91,40 +91,7 @@ static uint8_t* get_next_field(uint8_t* data, uint16_t* out_field) {
     return data;
 }
 
-/*
-static void create_report_struct(uint8_t* data) {
-    // Assuming all fields in data are 16 bits.
-    uint16_t SID = 0;
-    data = get_next_field(data, &SID);
-    //HK_par_report_structure_t* HKPRS = &(HKPRS_list[SID]);
-    HK_par_report_structure_t HKPRS = get_HKPRS(SID);
-    data = get_next_field(data, &(HKPRS.SID));
-    data = get_next_field(data, &(HKPRS.collection_interval));
-    data = get_next_field(data, &(HKPRS.N1));
-    if (HKPRS.N1 > MAX_PAR_COUNT) {
-        return; // TODO: Add error code here
-    }
-    for(int i = 0; i < HKPRS.N1; i++) {
-        data = get_next_field(data, &(HKPRS.recv_par_order[i]));
-    }
-}
 
-static void delete_report_struct(uint8_t* data) {
-    uint16_t nof_structs = 0;
-    data = get_next_field(data, &nof_structs);
-    for (int i = 0; i < nof_structs; i++) {
-        uint16_t SID = 0;
-        data = get_next_field(data, &SID);
-        HK_par_report_structure_t* HKPRS = &(HKPRS_list[SID]);
-        HKPRS->SID = 0;
-        HKPRS->collection_interval = 0;
-        HKPRS->N1 = 0;
-        for(int i = 0; i < MAX_PAR_COUNT; i++) {
-            HKPRS->recv_par_order[i] = 0;
-        }
-    }  
-}
-*/
 static void fill_report_struct(uint16_t SID) {
     // TODO redo this. Paramter IDs dont really matter since we have fixed structs for uc and FPGA
     float s_vbat = vbat;
