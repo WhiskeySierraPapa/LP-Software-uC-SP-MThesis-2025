@@ -33,6 +33,7 @@
 #include "uC_Data_Saving.h"
 #include "COBS.h"
 #include "Space_Packet_Protocol.h"
+#include "device_state.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -880,8 +881,8 @@ void StartDefaultTask(void const * argument)
 */
     /* Infinite loop */
     for(;;) {
-	    current_ticks = xTaskGetTickCount();
-        
+        current_ticks = xTaskGetTickCount();
+
         SPP_collect_HK_data(current_ticks);
 
         if (SPP_DEBUG_message_received) {
@@ -895,7 +896,6 @@ void StartDefaultTask(void const * argument)
         
         if (current_ticks - SPP_ticks > 5000) {
             HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
-            //SPP_send_HK_test_packet();
             SPP_periodic_HK_send();
             SPP_ticks = current_ticks;
         }

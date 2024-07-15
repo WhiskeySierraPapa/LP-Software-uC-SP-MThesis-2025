@@ -93,7 +93,6 @@ static uint8_t* get_next_field(uint8_t* data, uint16_t* out_field) {
 
 
 static void fill_report_struct(uint16_t SID) {
-    // TODO redo this. Paramter IDs dont really matter since we have fixed structs for uc and FPGA
     float s_vbat = vbat;
     float s_temp = temperature;
     float s_fpga3v = fpga3v;
@@ -258,17 +257,13 @@ void SPP_periodic_HK_send() {
 
 // HK - Housekeeping PUS service 3
 SPP_error SPP_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* secondary_header, uint8_t* data) {
+    if (Current_Global_Device_State != NORMAL_MODE) {
+        return UNDEFINED_ERROR;
+    }
     if (secondary_header == NULL) {
         return UNDEFINED_ERROR;
     }
 
-/*
-    if (secondary_header->message_subtype_id == HK_CREATE_HK_PAR_REPORT_STRUCT) {
-        create_report_struct(data);
-    } else if (secondary_header->message_subtype_id == HK_DELETE_HK_PAR_REPORT_STRUCT) {
-        delete_report_struct(data);
-    }
-*/
    if (secondary_header->message_subtype_id == HK_EN_PERIODIC_REPORTS) {
         set_periodic_report(data, true);
     } else if (secondary_header->message_subtype_id == HK_DIS_PERIODIC_REPORTS) {

@@ -8,21 +8,21 @@
 
 // Flags denoting if an ACK TM message is requested for
 // Success of request acceptence, start , progress and completion of execution
-uint8_t succ_acceptence_req(PUS_TC_header_t* secondary_header) {
+static inline uint8_t succ_acceptence_req(PUS_TC_header_t* secondary_header) {
     return secondary_header->ACK_flags & 0x08;
 }
-uint8_t succ_start_req     (PUS_TC_header_t* secondary_header) {
+static inline uint8_t succ_start_req     (PUS_TC_header_t* secondary_header) {
     return secondary_header->ACK_flags & 0x04;
 }
-uint8_t succ_progress_req  (PUS_TC_header_t* secondary_header) {
+static inline uint8_t succ_progress_req  (PUS_TC_header_t* secondary_header) {
     return secondary_header->ACK_flags & 0x02;
 }
-uint8_t succ_completion_req(PUS_TC_header_t* secondary_header) {
+static inline uint8_t succ_completion_req(PUS_TC_header_t* secondary_header) {
     return secondary_header->ACK_flags & 0x01;
 }
 
 
-SPP_error SPP_send_req_ver(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_PUS_header, PUS_RV_Subtype_ID requested_ACK) {
+static SPP_error SPP_send_req_ver(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_PUS_header, PUS_RV_Subtype_ID requested_ACK) {
 
     SPP_header_t resp_SPP_header;
     PUS_TM_header_t resp_PUS_TM_header;
@@ -54,4 +54,49 @@ SPP_error SPP_send_req_ver(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_PU
 
     SPP_send_TM(&resp_SPP_header, &resp_PUS_TM_header, data, SPP_PRIMARY_HEADER_LEN);
     return SPP_OK;
+}
+
+
+void send_succ_acc(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
+    if (succ_acceptence_req(PUS_h)) {
+        SPP_send_req_ver(SPP_h, PUS_h, RV_SUCC_ACCEPTANCE_VERIFICATION_ID);
+    }
+}
+void send_fail_acc(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
+    if (succ_acceptence_req(PUS_h)) {
+        SPP_send_req_ver(SPP_h, PUS_h, RV_FAIL_ACCEPTANCE_VERIFICATION_ID);
+    }
+}
+
+void send_succ_start(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
+    if (succ_start_req(PUS_h)) {
+        SPP_send_req_ver(SPP_h, PUS_h, RV_SUCC_START_OF_EXEC_VERIFICATION_ID);
+    }
+}
+void send_fail_start(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
+    if (succ_start_req(PUS_h)) {
+        SPP_send_req_ver(SPP_h, PUS_h, RV_FAIL_START_OF_EXEC_VERIFICATION_ID);
+    }
+}
+
+void send_succ_prog(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
+    if (succ_progress_req(PUS_h)) {
+        SPP_send_req_ver(SPP_h, PUS_h, RV_SUCC_PROG_OF_EXEC_VERIFICATION_ID);
+    }
+}
+void send_fail_prog(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
+    if (succ_progress_req(PUS_h)) {
+        SPP_send_req_ver(SPP_h, PUS_h, RV_FAIL_PROG_OF_EXEC_VERIFICATION_ID);
+    }
+}
+
+void send_succ_comp(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
+    if (succ_completion_req(PUS_h)) {
+        SPP_send_req_ver(SPP_h, PUS_h, RV_SUCC_COMPL_OF_EXEC_VERIFICATION_ID);
+    }
+}
+void send_fail_comp(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
+    if (succ_completion_req(PUS_h)) {
+        SPP_send_req_ver(SPP_h, PUS_h, RV_FAIL_COMPL_OF_EXEC_VERIFICATION_ID);
+    }
 }

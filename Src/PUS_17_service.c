@@ -9,6 +9,9 @@
 
 
 SPP_error SPP_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_PUS_header) {
+    if (Current_Global_Device_State != NORMAL_MODE) {
+        return UNDEFINED_ERROR;
+    }
     if (req_SPP_header == NULL || req_PUS_header == NULL) {
         return UNDEFINED_ERROR;
     }
@@ -17,12 +20,9 @@ SPP_error SPP_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_
     PUS_TM_header_t resp_PUS_TM_header;
 
     if (req_PUS_header->message_subtype_id == T_ARE_YOU_ALIVE_TEST_ID) {
-        if (succ_acceptence_req(req_PUS_header)) {
-            SPP_send_req_ver(req_SPP_header, req_PUS_header, RV_SUCC_ACCEPTANCE_VERIFICATION_ID);
-        }
-        if (succ_start_req(req_PUS_header)) {
-            SPP_send_req_ver(req_SPP_header, req_PUS_header, RV_SUCC_START_OF_EXEC_VERIFICATION_ID);
-        }
+        send_succ_acc(req_SPP_header, req_PUS_header);
+        
+        send_succ_start(req_SPP_header, req_PUS_header);
 
         resp_SPP_header = SPP_make_header(
             SPP_VERSION,
@@ -34,9 +34,7 @@ SPP_error SPP_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_
             SPP_PUS_TM_HEADER_LEN_WO_SPARE + CRC_BYTE_LEN - 1
         );
 
-        if (succ_progress_req(req_PUS_header)) {
-            SPP_send_req_ver(req_SPP_header, req_PUS_header, RV_SUCC_PROG_OF_EXEC_VERIFICATION_ID);
-        }
+        send_succ_prog(req_SPP_header, req_PUS_header);
 
         // Create response PUS TM header with 17,2
         resp_PUS_TM_header = PUS_make_TM_header(
@@ -52,9 +50,7 @@ SPP_error SPP_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_
 
     SPP_send_TM(&resp_SPP_header, &resp_PUS_TM_header, NULL, 0);
 
-    if (succ_completion_req(req_PUS_header)) {
-        SPP_send_req_ver(req_SPP_header, req_PUS_header, RV_SUCC_COMPL_OF_EXEC_VERIFICATION_ID);
-    }
+    send_succ_comp(req_SPP_header, req_PUS_header);
 
     return SPP_OK;
 }

@@ -16,6 +16,7 @@
 #include "FPGA_UART.h"
 #include "COBS.h"
 #include "main.h"
+#include "device_state.h"
 
 extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart2;
@@ -32,6 +33,7 @@ extern uint8_t OBCRxBuffer[COBS_FRAME_LEN];
 extern uint8_t OBCTxBuffer[COBS_FRAME_LEN];
 extern uint16_t SPP_OBC_recv_count;
 extern uint8_t SPP_OBC_recv_char;
+
 
 // Primary header is 6 bytes. From SPP standard.
 #define SPP_PRIMARY_HEADER_LEN            6
@@ -76,6 +78,7 @@ typedef enum {
 typedef enum {
     REQUEST_VERIFICATION_SERVICE_ID      = 1,
     HOUSEKEEPING_SERVICE_ID              = 3,
+    FUNCTION_MANAGEMNET_ID               = 8,
     TEST_SERVICE_ID                      = 17,
 } PUS_Service_ID;
 
@@ -92,6 +95,7 @@ typedef enum { // ALL TM
 } PUS_RV_Subtype_ID;
 
 
+
 // House Keeping service [3] subtype IDs
 typedef enum {
     HK_CREATE_HK_PAR_REPORT_STRUCT         = 1,  // TC
@@ -104,13 +108,11 @@ typedef enum {
     HK_ONE_SHOT                            = 27, // TC
 } PUS_HK_Subtype_ID;
 
+
+// Function Management [8] subtype IDs
 typedef enum {
-    VBAT                                   = 1,
-    AMBIENT_TEMP                           = 2,
-    FPGA_CORE_VOLTAGE                      = 3,
-    FPGA_IO_VOLTAGE                        = 4,
-    UC_VOLTAGE                             = 5,
-} PUS_HK_Par_ID;
+    FM_PERFORM_FUNCTION                    = 1,  // TC
+} PUS_FM_Subtype_ID;
 
 
 // Test (Ping) service [17] subtype IDS
@@ -162,7 +164,6 @@ SPP_error SPP_validate_checksum(uint8_t* packet, uint16_t packet_length);
 
 SPP_error SPP_handle_incoming_TC(SPP_TC_source);
 void SPP_Callback();
-void SPP_send_HK_test_packet();
 
 SPP_header_t SPP_make_header(uint8_t packet_version_number, uint8_t packet_type, uint8_t secondary_header_flag, uint16_t application_process_id, uint8_t sequence_flags, uint16_t packet_sequence_count, uint16_t packet_data_length);
 
@@ -180,17 +181,24 @@ SPP_error PUS_encode_TM_header(PUS_TM_header_t* secondary_header, uint8_t* resul
 
 
 /* PUS_1_service */
-uint8_t succ_acceptence_req(PUS_TC_header_t* secondary_header);
-uint8_t succ_start_req     (PUS_TC_header_t* secondary_header);
-uint8_t succ_progress_req  (PUS_TC_header_t* secondary_header);
-uint8_t succ_completion_req(PUS_TC_header_t* secondary_header);
-SPP_error SPP_send_req_ver(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_PUS_header, PUS_RV_Subtype_ID requested_ACK);
+void send_succ_acc  (SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
+void send_fail_acc  (SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
+void send_succ_start(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
+void send_fail_start(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
+void send_succ_prog (SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
+void send_fail_prog (SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
+void send_succ_comp (SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
+void send_fail_comp (SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
+
 
 
 /* PUS_3_service */
 SPP_error SPP_handle_HK_TC(SPP_header_t* primary_header, PUS_TC_header_t* secondary_header, uint8_t* data);
 void SPP_collect_HK_data(uint32_t current_ticks);
 void SPP_periodic_HK_send();
+
+/* PUS_8_service */
+SPP_error SPP_handle_FM_TC(SPP_header_t* SPP_header , PUS_TC_header_t* secondary_header, uint8_t* data);
 
 /* PUS_17_service */
 SPP_error SPP_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_PUS_header);
