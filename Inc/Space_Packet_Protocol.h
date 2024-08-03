@@ -71,7 +71,11 @@ typedef enum {
     SPP_ENCODE_RESULT_BUFFER_INCORRECT_LEN  = -2,
     SPP_DECODE_INPUT_BUFFER_INCORRECT_LEN   = -3,
     SPP_PACKET_CRC_MISMATCH                 = -4,
-    SPP_INCORRECT_ID                        = -5,
+    SPP_UNHANDLED_PUS_ID                    = -5,
+    SPP_PUS3_ERROR                          = -6,
+    SPP_PUS8_ERROR                          = -7,
+    SPP_PUS17_ERROR                         = -8,
+    SPP_MISSING_PUS_HEADER                  = -9,
     UNDEFINED_ERROR                         = -127,
 } SPP_error;
 
@@ -203,4 +207,8 @@ SPP_error SPP_handle_FM_TC(SPP_header_t* SPP_header , PUS_TC_header_t* secondary
 /* PUS_17_service */
 SPP_error SPP_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_PUS_header);
 
+
+
+
+SPP_error SPP_UART_transmit_DMA(uint8_t* data, uint16_t data_len);
 #endif /* SPACE_PACKET_PROTOCOL_H_ */

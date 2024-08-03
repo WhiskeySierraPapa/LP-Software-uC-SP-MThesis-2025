@@ -2,7 +2,7 @@
  * device_state.h
  *
  *  Created on: 2024. gada 13. jūl.
- *      Author: Rūdolfs
+ *      Author: Rūdolfs Arvīds Kalniņš <rakal@kth.se>
  */
 
 #ifndef DEVICE_STATE_H_

@@ -22,8 +22,8 @@ uint16_t SPP_OBC_recv_count = 0;
 uint8_t SPP_OBC_recv_char = 0xff;
 
 
-
-static SPP_error SPP_UART_transmit_DMA(uint8_t* data, uint16_t data_len) {
+// NONSTATIC FOR TESTING PURPOSES
+/* static */ SPP_error SPP_UART_transmit_DMA(uint8_t* data, uint16_t data_len) {
 	*(data + data_len) = 0x00; // Adding sentinel value.
 	data_len++;
     HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, data, data_len);
@@ -77,11 +77,7 @@ SPP_error SPP_validate_checksum(uint8_t* packet, uint16_t packet_length) {
 }
 
 
-// Takes pointer to SPP_PRIMARY_HEADER_LEN length buffer.
-// Takes pointer to SPP_header_t struct.
-// Fills primary_header with corresponding data from raw_buffer
-// Return negative error code if failed, or 0 if correct. (SPP_error)
-// CHECK SIZE OF raw_header BEFORE PASSING TO THIS FUNCTION
+
 SPP_error SPP_decode_header(uint8_t* raw_header, SPP_header_t* primary_header) {
 	primary_header->packet_version_number	= (raw_header[0] & 0xE0) >> 5;
 	primary_header->packet_type 			= (raw_header[0] & 0x10) >> 4;
@@ -94,10 +90,7 @@ SPP_error SPP_decode_header(uint8_t* raw_header, SPP_header_t* primary_header) {
 }
 
 
-// Takes filled SPP primary header struct, encodes into SPP_PRIMARY_HEADER_LEN length buffer
-// and copies results do given buffer pointer
-// Return negative error code if failed, or 0 if correct. (SPP_error)
-// CHECK SIZE OF result_buffer BEFORE PASSING TO THIS FUNCTION
+
 SPP_error SPP_encode_header(SPP_header_t* primary_header, uint8_t* result_buffer) {
     for(int i = 0; i < SPP_PRIMARY_HEADER_LEN; i++) {
         result_buffer[i] ^= result_buffer[i];    // Clear result buffer.
@@ -192,6 +185,9 @@ SPP_error SPP_send_TM(SPP_header_t* resp_SPP_header, PUS_TM_header_t* response_s
 
 // Test function to check if decodeing and encoding and data seperation works correctly.
 SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
+    SPP_error result_code = SPP_OK;
+    bool CRC_correct = true;
+
     uint8_t* recv_buffer;
     uint8_t* packet_buffer; 
 
@@ -202,6 +198,7 @@ SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
         recv_buffer   = DEBUGRxBuffer;
         packet_buffer = DEBUG_Space_Packet_Data_Buffer;
     } else {
+        // This should never happen.
     	return UNDEFINED_ERROR;
     }
 
@@ -216,29 +213,55 @@ SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
     SPP_error CRC_er = SPP_validate_checksum(packet_buffer, space_packet_length);
     
     if (CRC_er != SPP_OK) {
-        return SPP_PACKET_CRC_MISMATCH;
+        CRC_correct = false;
     }
     
     if (primary_header.secondary_header_flag) {
+        // PUS HEADER IS PRESENT
         uint8_t secondary_header_buffer[SPP_PUS_TC_HEADER_LEN_WO_SPARE];
         memcpy(secondary_header_buffer, packet_buffer + SPP_PRIMARY_HEADER_LEN, SPP_PUS_TC_HEADER_LEN_WO_SPARE);
 
         PUS_TC_header_t PUS_TC_header;
         PUS_decode_TC_header(secondary_header_buffer, &PUS_TC_header);
-        uint8_t* data = packet_buffer + SPP_PRIMARY_HEADER_LEN + SPP_PUS_TC_HEADER_LEN_WO_SPARE;
+        
+        if (!CRC_correct) {
+            send_fail_acc(&primary_header, &PUS_TC_header);
+            result_code = SPP_PACKET_CRC_MISMATCH;
 
-        if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID) {
-            SPP_handle_HK_TC(&primary_header, &PUS_TC_header, data);
+        } else {
+            uint8_t* data = packet_buffer + SPP_PRIMARY_HEADER_LEN + SPP_PUS_TC_HEADER_LEN_WO_SPARE;
+
+            if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID) {
+                SPP_handle_HK_TC(&primary_header, &PUS_TC_header, data);
+            }
+            else if (PUS_TC_header.service_type_id == FUNCTION_MANAGEMNET_ID) {
+                SPP_handle_FM_TC(&primary_header, &PUS_TC_header, data);
+            }
+            else if (PUS_TC_header.service_type_id == TEST_SERVICE_ID) {
+                SPP_handle_TEST_TC(&primary_header, &PUS_TC_header);
+            } else {
+                result_code = SPP_UNHANDLED_PUS_ID;
+                send_fail_acc(&primary_header, &PUS_TC_header);
+            }
         }
-        else if (PUS_TC_header.service_type_id == FUNCTION_MANAGEMNET_ID) {
-            SPP_handle_FM_TC(&primary_header, &PUS_TC_header, data);
-        }
-        else if (PUS_TC_header.service_type_id == TEST_SERVICE_ID) {
-            SPP_handle_TEST_TC(&primary_header, &PUS_TC_header);
+
+    } else {
+        // SPP WITHOUT PUS HEADER
+        if (!CRC_correct) {
+            /* There are two different checks of CRC_correct due to
+            *  the need for sending a "PUS 1 Service Fail to Accept TM",
+            *  when a PUS header is present. This is not the case,
+            *  when there is only an SPP header.
+            */
+            result_code = SPP_PACKET_CRC_MISMATCH; 
+
+        } else {
+            // Handle Non-PUS SPP here.
+            
         }
     }
     SPP_reset_UART_recv_DMA();
-    return SPP_OK;
+    return result_code;
 }
 
 

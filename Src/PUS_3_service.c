@@ -80,18 +80,6 @@ static HK_par_report_structure_t* get_HKPRS(uint16_t SID) {
 
 
 
-// Writes data into out_field and returns incremented pointer.
-// NOTE: I know this is a strange way to do this, but without doing double
-// pointer stuff, idk how else you would approach this.
-static uint8_t* get_next_field(uint8_t* data, uint16_t* out_field) {
-    uint16_t field = 0;
-    memcpy(&field, data, 2);
-    data += 2;
-    *out_field = field;
-    return data;
-}
-
-
 static void fill_report_struct(uint16_t SID) {
     float s_vbat = vbat;
     float s_temp = temperature;
@@ -160,10 +148,13 @@ static void send_HK_struct(SPP_header_t* req_p_header , PUS_TC_header_t* req_s_h
 
 static void send_one_shot(SPP_header_t* req_p_header , PUS_TC_header_t* req_s_header, uint8_t* data) {
     uint16_t nof_structs = 0;
-    data = get_next_field(data, &nof_structs);
+    memcpy(&nof_structs, data, sizeof(nof_structs));
+    data += sizeof(nof_structs);
+    
     uint16_t SIDs[MAX_STRUCT_COUNT];
     for (int i = 0; i < nof_structs; i++) {
-        data = get_next_field(data, &(SIDs[i]));
+        memcpy(&(SIDs[i]), data, sizeof(SIDs[i]));
+        data += sizeof(SIDs[i]);
     }
     for (int i = 0; i < nof_structs; i++) {
         uint16_t SID = SIDs[i];
@@ -173,10 +164,14 @@ static void send_one_shot(SPP_header_t* req_p_header , PUS_TC_header_t* req_s_he
 
 static void set_periodic_report(uint8_t* data, bool state) {
     uint16_t nof_SIDs = 0;
-    data = get_next_field(data, &nof_SIDs);
+    memcpy(&nof_SIDs, data, sizeof(nof_SIDs));
+    data += sizeof(nof_SIDs);
+
     for(int i = 0; i < nof_SIDs; i++) {
         uint16_t SID = 0;
-        data = get_next_field(data, &SID);
+        memcpy(&SID, data, sizeof(SID));
+        data += sizeof(SID);
+
         switch(SID) {
             case UC_SID:
                 HKPRS_uc.periodic_send = state;
