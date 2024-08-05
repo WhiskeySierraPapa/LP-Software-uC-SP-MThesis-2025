@@ -883,7 +883,7 @@ void StartDefaultTask(void const * argument)
         0xB5, 0x43, 0xAB, 0x0B,     // B5 43 premable AB sweeptable id 0B = 11 msg len, 0A postamble
         0x01, 0x02, 0x03, 0x04,
         0x05, 0x06, 0x07, 0x08,
-        0x09, 0x0A, 0x0B, 0x0A
+        0x09, 0x09, 0x0B, 0x0A
     };
     /* Infinite loop */
     for(;;) {
@@ -901,8 +901,8 @@ void StartDefaultTask(void const * argument)
         }
         
         if (current_ticks - SPP_ticks > 5000) {
-            FPGA_Transmit_Binary(sweep_table, 16);
-            HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
+            //FPGA_Transmit_Binary(sweep_table, 16);
+            //HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
             SPP_periodic_HK_send();
             SPP_ticks = current_ticks;
         }

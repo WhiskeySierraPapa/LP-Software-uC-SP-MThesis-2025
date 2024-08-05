@@ -48,7 +48,7 @@ SPP_error perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , uint
             uint8_t N = *data++;
             uint8_t arg_id = *data++;
 
-            uint16_t voltage_level = 0;
+            uint8_t voltage_level[2] = {0, 0};
             memcpy(&voltage_level, data, sizeof(voltage_level));
             data += sizeof(voltage_level);
 
@@ -90,7 +90,7 @@ SPP_error perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , uint
             uint8_t arg_id = 0;
             uint8_t probe_id = 0xFF;
             uint8_t step_id  = 0xFF;
-            uint16_t voltage_level = 0x0000;
+            uint8_t voltage_level[2] = {0,0};
 
             for(int i = 0; i < N; i++) {
                 arg_id = *data++;
@@ -99,7 +99,7 @@ SPP_error perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , uint
                 } else if (arg_id == SWEEP_STEPS_ARG_ID) {
                     step_id = *data++;
                 } else if (arg_id == SWEEP_VOL_LVL_ARG_ID) {
-                    voltage_level = *data++;
+                    memcpy(voltage_level, data, sizeof(voltage_level));
                 } else {
                     // Unknown argument id
                     data++;

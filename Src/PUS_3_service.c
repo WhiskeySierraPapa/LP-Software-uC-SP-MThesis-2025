@@ -11,7 +11,7 @@
 #define MAX_TM_DATA_LEN     (MAX_PAR_COUNT * 4) + 2 // Each parameter is potentialy 4 bytes and struct id is 2 bytes.
 #define DEF_COL_INTV        500
 #define DEF_UC_N1           3
-#define DEF_UC_PS           true
+#define DEF_UC_PS           false
 
 #define DEF_FPGA_N1         2
 #define DEF_FPGA_PS         false

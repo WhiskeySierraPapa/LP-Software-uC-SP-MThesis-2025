@@ -42,12 +42,12 @@ typedef enum {
 
 
 void enable_FPGA_CB_mode();
-void send_FPGA_CB_voltage_level(uint8_t voltage_level);
-uint8_t get_FPGA_CB_voltage_level();
+void send_FPGA_CB_voltage_level(uint8_t* voltage_level);
+uint16_t get_FPGA_CB_voltage_level();
 
 void enable_FPGA_SWT_mode();
 void send_FPGA_SWT_steps(uint8_t steps);
 void send_FPGA_SWT_sample_rate(uint8_t sample_rate);
-void send_FPGA_SWT_voltage_level(uint8_t probe_id, uint8_t step_id, uint16_t voltage_level);
+void send_FPGA_SWT_voltage_level(uint8_t probe_id, uint8_t step_id, uint8_t* voltage_level);
 
 #endif /* LANGMUIR_PROBE_BIAS_H_ */
