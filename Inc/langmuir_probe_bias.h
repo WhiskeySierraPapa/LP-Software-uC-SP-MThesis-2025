@@ -44,6 +44,13 @@ typedef enum {
     FPGA_GET_SWT_SMPL_RT     = 0xA2,
 } FPGA_cmd_ID_t;
 
+typedef enum {
+    FRAM_CB_VOL_LVL             = 0x0008,
+    FRAM_SWT_STEPS              = 0x000A,
+    FRAM_SWT_SMPL_RT            = 0x000B,
+    FRAM_SWEEP_TABLE_0_START    = 0x000D,
+    FRAM_SWEEP_TABLE_1_START    = 0x020D,
+} FRAM_addr_t;
 
 #define FPGA_MSG_PREMABLE_0     0xB5
 #define FPGA_MSG_PREMABLE_1     0x43
