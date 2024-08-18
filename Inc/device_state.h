@@ -16,6 +16,14 @@ typedef enum {
     UPDATE_MODE = 4,
 } DeviceState;
 
+typedef enum {
+        SET_DEV_STATE_NORMAL,
+        SET_DEV_STATE_IDLE,
+        SET_DEV_STATE_REBOOT,
+        SET_DEV_STATE_UPDATE,
+        SET_DEV_STATE_SWAP_IMAGE,
+} DevState_Func_ID_t;
+
 extern DeviceState Current_Global_Device_State;
 
 void set_device_state(DeviceState state);

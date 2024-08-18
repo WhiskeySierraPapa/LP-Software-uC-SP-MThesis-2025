@@ -128,7 +128,7 @@ typedef enum {
 } PUS_T_Subtype_ID;
 
 
-// Actual bit widths added as comments
+// Actual bit widths added as comments. Using bitmaps and just memcpy didnt work. Idk why.
 typedef struct {
 	uint8_t  packet_version_number; // 3
 	uint8_t  packet_type;           // 1
