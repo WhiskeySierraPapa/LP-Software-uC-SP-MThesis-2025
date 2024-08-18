@@ -45,7 +45,7 @@ void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpg
             break;
         case FPGA_SET_SWT_STEPS:
             msg[msg_cnt++] = FPGA_SET_SWT_STEPS;
-            msg[msg_cnt++] = fpgama->step_ID;
+            msg[msg_cnt++] = fpgama->N_steps;
             break;
         case FPGA_SET_SWT_SAMPLE_SKIP:
             break;
