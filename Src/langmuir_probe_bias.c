@@ -28,6 +28,7 @@ void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpg
             msg[msg_cnt++] = ((uint8_t*)(&fpgama->voltage_level))[1];
             break;
         case FPGA_GET_CB_MODE:
+            msg[msg_cnt++] = FPGA_GET_CB_MODE;
             break;
         case FPGA_GET_CB_VOL_LVL:
             msg[msg_cnt++] = FPGA_GET_CB_VOL_LVL;
@@ -48,12 +49,22 @@ void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpg
             msg[msg_cnt++] = fpgama->N_steps;
             break;
         case FPGA_SET_SWT_SAMPLE_SKIP:
+            msg[msg_cnt++] = FPGA_SET_SWT_SAMPLE_SKIP;
+            msg[msg_cnt++] = ((uint8_t*)(&fpgama->N_skip))[0];
+            msg[msg_cnt++] = ((uint8_t*)(&fpgama->N_skip))[1];
             break;
         case FPGA_SET_SWT_SAMPLES_PER_POINT:
+            msg[msg_cnt++] = FPGA_SET_SWT_SAMPLES_PER_POINT;
+            msg[msg_cnt++] = ((uint8_t*)(&fpgama->N_f))[0];
+            msg[msg_cnt++] = ((uint8_t*)(&fpgama->N_f))[1];
             break;
         case FPGA_SET_SWT_NPOINTS:
+            msg[msg_cnt++] = FPGA_SET_SWT_NPOINTS;
+            msg[msg_cnt++] = ((uint8_t*)(&fpgama->N_points))[0];
+            msg[msg_cnt++] = ((uint8_t*)(&fpgama->N_points))[1];
             break;
         case FPGA_GET_SWT_MODE:
+            msg[msg_cnt++] = FPGA_GET_SWT_MODE;
             break;
         case FPGA_GET_SWT_VOL_LVL:
             msg[msg_cnt++] = FPGA_GET_SWT_VOL_LVL;
@@ -64,10 +75,13 @@ void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpg
             msg[msg_cnt++] = FPGA_GET_SWT_STEPS;
             break;
         case FPGA_GET_SWT_SAMPLE_SKIP:
+            msg[msg_cnt++] = FPGA_GET_SWT_SAMPLE_SKIP;
             break;
         case FPGA_GET_SWT_SAMPLES_PER_POINT:
+            msg[msg_cnt++] = FPGA_GET_SWT_SAMPLES_PER_POINT;
             break;
         case FPGA_GET_SWT_NPOINTS:
+            msg[msg_cnt++] = FPGA_GET_SWT_NPOINTS;
             break;
     }
 
