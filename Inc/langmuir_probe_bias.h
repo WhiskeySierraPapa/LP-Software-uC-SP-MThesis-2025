@@ -26,34 +26,6 @@ typedef enum {
     N_POINTS_ARG_ID     = 0x07,
 } FPGA_Arg_ID_t;
 
-
-
-
-typedef enum {
-    //TODO: Check if these IDs are not already taken.
-    FPGA_EN_CB_MODE          = 0xCA,
-
-    FPGA_SET_CB_VOL_LVL      = 0xCB,
-
-    FPGA_GET_CB_MODE         = 0xC0,
-    FPGA_GET_CB_VOL_LVL      = 0xCC,
-
-    FPGA_EN_SWT_MODE                = 0xAA,
-    FPGA_SET_SWT_VOL_LVL            = 0xAB,
-    FPGA_SET_SWT_STEPS              = 0xAC,
-    FPGA_SET_SWT_SAMPLE_SKIP        = 0xAD,
-    FPGA_SET_SWT_SAMPLES_PER_POINT  = 0xAE,
-    FPGA_SET_SWT_NPOINTS            = 0xAF,
-
-    FPGA_GET_SWT_MODE               = 0xA0,
-    FPGA_GET_SWT_VOL_LVL            = 0xA1,
-    FPGA_GET_SWT_STEPS              = 0xA2,
-    FPGA_GET_SWT_SAMPLE_SKIP        = 0xA3,
-    FPGA_GET_SWT_SAMPLES_PER_POINT  = 0xA4,
-    FPGA_GET_SWT_NPOINTS            = 0xA5,
-
-} FPGA_Func_ID_t;
-
 typedef enum {
     FRAM_CB_VOL_LVL             = 0x0008,
     FRAM_SWT_STEPS              = 0x000A,
@@ -75,11 +47,7 @@ typedef struct FPGA_msg_arg {
     uint16_t result_len;
 } FPGA_msg_arg_t;
 
-#define FPGA_MSG_PREMABLE_0     0xB5
-#define FPGA_MSG_PREMABLE_1     0x43
-#define FPGA_MSG_POSTAMBLE      0x0A
-
 
 void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpgama);
-
+bool is_FPGA_func(uint8_t func_id);
 #endif /* LANGMUIR_PROBE_BIAS_H_ */

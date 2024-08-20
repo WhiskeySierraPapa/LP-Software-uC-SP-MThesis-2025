@@ -8,6 +8,54 @@
 #include "langmuir_probe_bias.h"
 #include "FPGA_UART.h"
 
+// ADD FPGA Function ID TO BOTH THE ENUM AND ARRAY!
+typedef enum {
+    FPGA_EN_CB_MODE          = 0xCA,
+
+    FPGA_SET_CB_VOL_LVL      = 0xCB,
+
+    FPGA_GET_CB_MODE         = 0xC0,
+    FPGA_GET_CB_VOL_LVL      = 0xCC,
+
+    FPGA_EN_SWT_MODE                = 0xAA,
+    FPGA_SET_SWT_VOL_LVL            = 0xAB,
+    FPGA_SET_SWT_STEPS              = 0xAC,
+    FPGA_SET_SWT_SAMPLE_SKIP        = 0xAD,
+    FPGA_SET_SWT_SAMPLES_PER_POINT  = 0xAE,
+    FPGA_SET_SWT_NPOINTS            = 0xAF,
+
+    FPGA_GET_SWT_MODE               = 0xA0,
+    FPGA_GET_SWT_VOL_LVL            = 0xA1,
+    FPGA_GET_SWT_STEPS              = 0xA2,
+    FPGA_GET_SWT_SAMPLE_SKIP        = 0xA3,
+    FPGA_GET_SWT_SAMPLES_PER_POINT  = 0xA4,
+    FPGA_GET_SWT_NPOINTS            = 0xA5,
+
+} FPGA_Func_ID_t;
+
+const FPGA_Func_ID_t FPGA_supported_msg_IDs[] = {
+    FPGA_EN_CB_MODE ,
+    FPGA_GET_CB_MODE,
+    FPGA_GET_CB_VOL_LVL,
+    FPGA_EN_SWT_MODE,
+    FPGA_SET_SWT_VOL_LVL,
+    FPGA_SET_SWT_STEPS,
+    FPGA_SET_SWT_SAMPLE_SKIP,
+    FPGA_SET_SWT_SAMPLES_PER_POINT,
+    FPGA_SET_SWT_NPOINTS,
+    FPGA_GET_SWT_MODE,
+    FPGA_GET_SWT_VOL_LVL,
+    FPGA_GET_SWT_STEPS,
+    FPGA_GET_SWT_SAMPLE_SKIP,
+    FPGA_GET_SWT_SAMPLES_PER_POINT,
+    FPGA_GET_SWT_NPOINTS,
+};
+
+#define NOF_FPGA_FUNCS sizeof(FPGA_supported_msg_IDs) / sizeof(FPGA_supported_msg_IDs[0])
+#define FPGA_MSG_PREMABLE_0     0xB5
+#define FPGA_MSG_PREMABLE_1     0x43
+#define FPGA_MSG_POSTAMBLE      0x0A
+
 
 void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpgama) {
     // TODO: Fill result and result_len fields in fpgama in GET function.
@@ -91,3 +139,15 @@ void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpg
     SPP_UART_transmit_DMA(msg, msg_cnt);
 
 };
+
+
+bool is_FPGA_func(uint8_t func_id) {
+    bool result = false;
+    for(uint8_t i = 0; i < NOF_FPGA_FUNCS; i++) {
+        if (func_id == FPGA_supported_msg_IDs[i]) {
+            result = true;
+            break;
+        }
+    }
+    return result;
+}

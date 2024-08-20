@@ -19,97 +19,77 @@ SPP_error perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , uint
     uint8_t  func_id = *data++;
     uint8_t  N_args = *data++;
 
-    FPGA_msg_arg_t fpgama =  {
-        .probe_ID       = 0xFF,
-        .step_ID        = 0xFF,
-        .voltage_level  = 0x0000,
-        .N_skip         = 0x0000,
-        .N_steps        = 0x00,
-        .N_f            = 0x0000, // Samples per points
-        .N_points       = 0x0000,
-        .result         = {0},
-        .result_len     = 0,
-    };
+    if (is_FPGA_func(func_id)) {
+        FPGA_msg_arg_t fpgama =  {
+            .probe_ID       = 0xFF,
+            .step_ID        = 0xFF,
+            .voltage_level  = 0x0000,
+            .N_skip         = 0x0000,
+            .N_steps        = 0x00,
+            .N_f            = 0x0000, // Samples per points
+            .N_points       = 0x0000,
+            .result         = {0},
+            .result_len     = 0,
+        };
 
-    for(int i = 0; i < N_args; i++) {
-        uint8_t arg_ID = *data++;
-        switch(arg_ID) {
-            case PROBE_ID_ARG_ID:
-                fpgama.probe_ID = *data++;
+        for(int i = 0; i < N_args; i++) {
+            uint8_t arg_ID = *data++;
+            switch(arg_ID) {
+                case PROBE_ID_ARG_ID:
+                    fpgama.probe_ID = *data++;
+                    break;
+                case STEP_ID_ARG_ID:
+                    fpgama.step_ID = *data++;
+                    break;
+                case VOL_LVL_ARG_ID:
+                    memcpy((uint8_t*)&fpgama.voltage_level, data, sizeof(fpgama.voltage_level));
+                    data += sizeof(fpgama.voltage_level);
+                    break;
+                case N_STEPS_ARG_ID:
+                    fpgama.N_steps = *data++;
+                    break;
+                case N_SKIP_ARG_ID:
+                    memcpy((uint8_t*)&fpgama.N_skip, data, sizeof(fpgama.N_skip));
+                    data += sizeof(fpgama.N_skip);
+                    break;
+                case N_F_ARG_ID:
+                    memcpy((uint8_t*)&fpgama.N_f, data, sizeof(fpgama.N_f));
+                    data += sizeof(fpgama.N_f);
+                    break;
+                case N_POINTS_ARG_ID:
+                    memcpy((uint8_t*)&fpgama.N_points, data, sizeof(fpgama.N_points));
+                    data += sizeof(fpgama.N_points);
+                    break;
+                default:
+                    break;
+            }
+        }
+        send_FPGA_langmuir_msg(func_id, N_args, &fpgama);
+
+    } else {
+        switch (func_id) {
+            case SET_DEV_STATE_NORMAL:
+            	set_device_state(NORMAL_MODE);
                 break;
-            case STEP_ID_ARG_ID:
-                fpgama.step_ID = *data++;
+
+            case SET_DEV_STATE_IDLE:
+            	set_device_state(IDLE_MODE);
                 break;
-            case VOL_LVL_ARG_ID:
-                memcpy((uint8_t*)&fpgama.voltage_level, data, sizeof(fpgama.voltage_level));
-                data += sizeof(fpgama.voltage_level);
+
+            case SET_DEV_STATE_REBOOT:
                 break;
-            case N_STEPS_ARG_ID:
-                fpgama.N_steps = *data++;
+
+            case SET_DEV_STATE_UPDATE:
+            	set_device_state(UPDATE_MODE);
                 break;
-            case N_SKIP_ARG_ID:
-                memcpy((uint8_t*)&fpgama.N_skip, data, sizeof(fpgama.N_skip));
-                data += sizeof(fpgama.N_skip);
+
+            case SET_DEV_STATE_SWAP_IMAGE:
                 break;
-            case N_F_ARG_ID:
-                memcpy((uint8_t*)&fpgama.N_f, data, sizeof(fpgama.N_f));
-                data += sizeof(fpgama.N_f);
-                break;
-            case N_POINTS_ARG_ID:
-                memcpy((uint8_t*)&fpgama.N_points, data, sizeof(fpgama.N_points));
-                data += sizeof(fpgama.N_points);
-                break;
+
             default:
+                err = SPP_PUS8_ERROR;
                 break;
         }
-    }
-
-    switch (func_id) {
-        case FPGA_EN_CB_MODE:
-        case FPGA_SET_CB_VOL_LVL:
-        case FPGA_GET_CB_MODE:
-        case FPGA_GET_CB_VOL_LVL:
-        case FPGA_EN_SWT_MODE:
-        case FPGA_SET_SWT_VOL_LVL:
-        case FPGA_SET_SWT_STEPS:
-        case FPGA_SET_SWT_SAMPLE_SKIP:
-        case FPGA_SET_SWT_SAMPLES_PER_POINT:
-        case FPGA_SET_SWT_NPOINTS:
-        case FPGA_GET_SWT_MODE:
-        case FPGA_GET_SWT_VOL_LVL:
-        case FPGA_GET_SWT_STEPS:
-        case FPGA_GET_SWT_SAMPLE_SKIP:
-        case FPGA_GET_SWT_SAMPLES_PER_POINT:
-        case FPGA_GET_SWT_NPOINTS:
-            // This is done like this, so that adding new FPGA messages is simpler.
-            // Old implementation had functions for each case, but that means
-            // adding a new function for each new messages. You end up with a bunch
-            // of 2-3 line functions in langmuir_probe_bias.c and .h. Thus you need
-            // To edit 3 files in the old method for each addition. With this method
-            // changes SHOULD be contained to only one file.
-            send_FPGA_langmuir_msg(func_id, N_args, &fpgama);
-            break;
-        case SET_DEV_STATE_NORMAL:
-        	set_device_state(NORMAL_MODE);
-            break;
-
-        case SET_DEV_STATE_IDLE:
-        	set_device_state(IDLE_MODE);
-            break;
-
-        case SET_DEV_STATE_REBOOT:
-            break;
-
-        case SET_DEV_STATE_UPDATE:
-        	set_device_state(UPDATE_MODE);
-            break;
-
-        case SET_DEV_STATE_SWAP_IMAGE:
-            break;
-
-        default:
-            err = SPP_PUS8_ERROR;
-            break;
     }
     return err;
 }
