@@ -35,6 +35,7 @@ typedef enum {
 
 const FPGA_Func_ID_t FPGA_supported_msg_IDs[] = {
     FPGA_EN_CB_MODE ,
+    FPGA_SET_CB_VOL_LVL,
     FPGA_GET_CB_MODE,
     FPGA_GET_CB_VOL_LVL,
     FPGA_EN_SWT_MODE,
