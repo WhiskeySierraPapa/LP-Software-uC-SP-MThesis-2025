@@ -24,8 +24,8 @@ SPP_error perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , uint
             .probe_ID       = 0xFF,
             .step_ID        = 0xFF,
             .voltage_level  = 0x0000,
-            .N_skip         = 0x0000,
             .N_steps        = 0x00,
+            .N_skip         = 0x0000,
             .N_f            = 0x0000, // Samples per points
             .N_points       = 0x0000,
             .result         = {0},
