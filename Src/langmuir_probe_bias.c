@@ -33,23 +33,6 @@ typedef enum {
 
 } FPGA_Func_ID_t;
 
-#define FPGA_MSG_PREMABLE_0     0xB5
-#define FPGA_MSG_PREMABLE_1     0x43
-#define FPGA_MSG_POSTAMBLE      0x0A
-
-#define LANGMUIR_READBACK_PREMABLE_0    FPGA_MSG_PREMABLE_0
-#define LANGMUIR_READBACK_PREMABLE_1    FPGA_MSG_PREMABLE_1
-#define LANGMUIR_READBACK_POSTAMBLE     FPGA_MSG_POSTAMBLE
-
-typedef enum {
-    LANG_RB_PRE0,
-    LANG_RB_PRE1,
-    LANG_RB_ID,
-    LANG_RB_DATA,
-    LANG_RB_POST,
-} Langmuir_Readback_State_t;
-
-Langmuir_Readback_State_t LangmuirReadbackState = LANG_RB_PRE0;
 
 const FPGA_Func_ID_t FPGA_supported_msg_IDs[] = {
     FPGA_EN_CB_MODE ,
@@ -72,8 +55,29 @@ const FPGA_Func_ID_t FPGA_supported_msg_IDs[] = {
 
 #define NOF_FPGA_FUNCS sizeof(FPGA_supported_msg_IDs) / sizeof(FPGA_supported_msg_IDs[0])
 
-uint8_t FPGA_byte_recv = 0xFF;
+#define FPGA_MSG_PREMABLE_0     0xB5
+#define FPGA_MSG_PREMABLE_1     0x43
+#define FPGA_MSG_POSTAMBLE      0x0A
 
+#define LANGMUIR_READBACK_PREMABLE_0    FPGA_MSG_PREMABLE_0
+#define LANGMUIR_READBACK_PREMABLE_1    FPGA_MSG_PREMABLE_1
+#define LANGMUIR_READBACK_POSTAMBLE     FPGA_MSG_POSTAMBLE
+
+#define LANGMUIR_READBACK_MAX_SIZE      16
+
+typedef enum {
+    LANG_RB_PRE0,
+    LANG_RB_PRE1,
+    LANG_RB_ID,
+    LANG_RB_DATA,
+    LANG_RB_POST,
+} Langmuir_Readback_State_t;
+
+Langmuir_Readback_State_t LangmuirReadbackState = LANG_RB_PRE0;
+uint8_t FPGA_byte_recv = 0xFF;
+uint8_t FPGA_data_recv[LANGMUIR_READBACK_MAX_SIZE];
+uint16_t rb_seq_cnt = 0;
+uint16_t rb_apid = 0xABBA;
 
 void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpgama) {
     // TODO: Fill result and result_len fields in fpgama in GET function.
@@ -158,6 +162,31 @@ void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpg
 
 };
 
+// Instead of receiving the data length in the readback message
+// from the FPGA, we match against the received ID and find the
+// predetermined size from this function. This is very ugly, probably
+// should figure out a smarter way to do this.
+static uint8_t get_readback_data_size(uint8_t rb_id) {
+    uint8_t rb_size = 0;
+    switch (rb_id) {
+        // Each of these values represent the data length
+        // of the readback value. For example, the mode enable
+        // is represented with a single byte, while the voltage level
+        // is represented with 2 bytes or a uint16_t.
+        case FPGA_GET_CB_MODE:                  rb_size = 1; break;
+        case FPGA_GET_CB_VOL_LVL:               rb_size = 2; break;
+        case FPGA_GET_SWT_MODE:                 rb_size = 1; break;
+        case FPGA_GET_SWT_VOL_LVL:              rb_size = 2; break;
+        case FPGA_GET_SWT_STEPS:                rb_size = 1; break;
+        case FPGA_GET_SWT_SAMPLE_SKIP:          rb_size = 2; break;
+        case FPGA_GET_SWT_SAMPLES_PER_POINT:    rb_size = 2; break;
+        case FPGA_GET_SWT_NPOINTS:              rb_size = 2; break;
+        break;
+    default:
+        break;
+    }
+    return rb_size;
+}
 
 bool is_langmuir_func(uint8_t func_id) {
     bool result = false;
@@ -170,16 +199,28 @@ bool is_langmuir_func(uint8_t func_id) {
     return result;
 }
 
+static void send_readback_ground(uint8_t* data, uint16_t data_len) {
+    SPP_header_t SPP_header = SPP_make_header(
+        SPP_VERSION,
+        SPP_PACKET_TYPE_TM,
+        0,
+        rb_apid,
+        SPP_SEQUENCE_SEG_UNSEG,
+        rb_seq_cnt,
+        SPP_PUS_TM_HEADER_LEN_WO_SPARE + data_len + CRC_BYTE_LEN - 1
+    );
+    rb_seq_cnt++;
+    SPP_send_TM(&SPP_header, NULL, data, data_len);
+};
+
 bool FPGA_rx_langmuir_readback(uint8_t recv_byte) {
-    if (!is_langmuir_func(recv_byte)) {
-        return false;
-    }
+    uint8_t data_len = 0;
     switch (LangmuirReadbackState) {
 		case LANG_RB_PRE0:
 			if (recv_byte == LANGMUIR_READBACK_PREMABLE_0)
 				LangmuirReadbackState = LANG_RB_PRE1;
 
-			HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 1);
+			HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
 			break;
 		case LANG_RB_PRE1:
 			if (recv_byte == LANGMUIR_READBACK_PREMABLE_1)
@@ -187,40 +228,34 @@ bool FPGA_rx_langmuir_readback(uint8_t recv_byte) {
 			else
 				LangmuirReadbackState = LANG_RB_PRE0;
 
-			HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 2);
+			HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
 			break;
 		case LANG_RB_ID:
-			FPGAReceivedMessage = FPGARxBuffer[0];
-			uint8_t L = FPGARxBuffer[1];
-
-			if (L > 0) {
-				HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, L);
-				FPGARxState = RX_STATE_PAYLOAD;
-			}
-			else {
-				HandleFPGAMessage();
-				FPGARxState = RX_STATE_POSTAMBLE;
-				HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 1);
-			}
-
-
+            if (!is_langmuir_func(recv_byte)) {
+                return false;
+            }
+            data_len = get_readback_data_size(recv_byte);
+            if (data_len > 0) {
+				LangmuirReadbackState = LANG_RB_DATA;
+			    HAL_UART_Receive_DMA(&huart5, FPGA_data_recv, data_len);
+            } else {
+				LangmuirReadbackState = LANG_RB_PRE0;
+			    HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
+            }
 			break;
-		case RX_STATE_PAYLOAD:
-			HandleFPGAMessage();
-			FPGARxState = RX_STATE_POSTAMBLE;
-			HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 1);
+		case LANG_RB_DATA:
+            send_readback_ground(FPGA_data_recv, data_len);
+            LangmuirReadbackState = LANG_RB_POST;
+			HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
 			break;
-		case RX_STATE_POSTAMBLE:
-			FPGARxState = RX_STATE_PREAMBLE_1;
-			HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 1);
+		case LANG_RB_POST:
+			LangmuirReadbackState = LANG_RB_PRE0;
+			HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
 			break;
 		default:
-			FPGARxState = RX_STATE_PREAMBLE_1;
-			HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 1);
+			LangmuirReadbackState = LANG_RB_PRE0;
+			HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
     }
     return true;
 }
 
-
-
-}

@@ -912,7 +912,7 @@ void StartDefaultTask(void const * argument)
         }
 
         if (msg_from_FPGA) {
-
+        		FPGA_rx_langmuir_readback(FPGA_byte_recv);
 		        msg_from_FPGA = false;
         }
         

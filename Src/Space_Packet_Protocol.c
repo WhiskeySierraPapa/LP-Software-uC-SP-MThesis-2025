@@ -32,8 +32,10 @@ uint8_t SPP_OBC_recv_char = 0xff;
 }
 
 static SPP_error SPP_reset_UART_recv_DMA() {
-    HAL_UART_Receive_DMA(&SPP_DEBUG_UART, DEBUG_Space_Packet_Data_Buffer, 1);
-    HAL_UART_Receive_DMA(&SPP_OBC_UART, OBC_Space_Packet_Data_Buffer, 1);
+    //HAL_UART_Receive_DMA(&SPP_DEBUG_UART, DEBUG_Space_Packet_Data_Buffer, 1);
+    //HAL_UART_Receive_DMA(&SPP_OBC_UART, OBC_Space_Packet_Data_Buffer, 1);
+    HAL_UART_Receive_DMA(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
+    HAL_UART_Receive_DMA(&SPP_OBC_UART, &SPP_OBC_recv_char, 1);
     return SPP_OK;
 };
 
@@ -160,9 +162,11 @@ SPP_error SPP_send_TM(SPP_header_t* resp_SPP_header, PUS_TM_header_t* response_s
     packet_total_len = current_pointer - response_TM_packet;
 
 
-    PUS_encode_TM_header(response_secondary_header, current_pointer);
-    current_pointer += SPP_PUS_TM_HEADER_LEN_WO_SPARE;
-    packet_total_len = current_pointer - response_TM_packet;
+    if (response_secondary_header != NULL) {
+        PUS_encode_TM_header(response_secondary_header, current_pointer);
+        current_pointer += SPP_PUS_TM_HEADER_LEN_WO_SPARE;
+        packet_total_len = current_pointer - response_TM_packet;
+    }
 
     if (data != NULL) {
         SPP_add_data_to_packet(data, data_len, current_pointer);
