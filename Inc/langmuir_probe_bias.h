@@ -47,7 +47,10 @@ typedef struct FPGA_msg_arg {
     uint16_t result_len;
 } FPGA_msg_arg_t;
 
+extern uint8_t FPGA_byte_recv;
+
 
 void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpgama);
-bool is_FPGA_func(uint8_t func_id);
+bool is_langmuir_func(uint8_t func_id);
+void handle_readback_msg(uint8_t* recv_buf);
 #endif /* LANGMUIR_PROBE_BIAS_H_ */

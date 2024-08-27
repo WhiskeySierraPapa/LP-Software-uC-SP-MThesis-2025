@@ -6,6 +6,7 @@
 #include "FRAM.h"
 #include "GS_Telemetry.h"
 #include "uC_Data_Saving.h"
+#include "langmuir_probe_bias.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
