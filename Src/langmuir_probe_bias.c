@@ -33,6 +33,24 @@ typedef enum {
 
 } FPGA_Func_ID_t;
 
+#define FPGA_MSG_PREMABLE_0     0xB5
+#define FPGA_MSG_PREMABLE_1     0x43
+#define FPGA_MSG_POSTAMBLE      0x0A
+
+#define LANGMUIR_READBACK_PREMABLE_0    FPGA_MSG_PREMABLE_0
+#define LANGMUIR_READBACK_PREMABLE_1    FPGA_MSG_PREMABLE_1
+#define LANGMUIR_READBACK_POSTAMBLE     FPGA_MSG_POSTAMBLE
+
+typedef enum {
+    LANG_RB_PRE0,
+    LANG_RB_PRE1,
+    LANG_RB_ID,
+    LANG_RB_DATA,
+    LANG_RB_POST,
+} Langmuir_Readback_State_t;
+
+Langmuir_Readback_State_t LangmuirReadbackState = LANG_RB_PRE0;
+
 const FPGA_Func_ID_t FPGA_supported_msg_IDs[] = {
     FPGA_EN_CB_MODE ,
     FPGA_SET_CB_VOL_LVL,
@@ -53,9 +71,8 @@ const FPGA_Func_ID_t FPGA_supported_msg_IDs[] = {
 };
 
 #define NOF_FPGA_FUNCS sizeof(FPGA_supported_msg_IDs) / sizeof(FPGA_supported_msg_IDs[0])
-#define FPGA_MSG_PREMABLE_0     0xB5
-#define FPGA_MSG_PREMABLE_1     0x43
-#define FPGA_MSG_POSTAMBLE      0x0A
+
+uint8_t FPGA_byte_recv = 0xFF;
 
 
 void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpgama) {
@@ -136,13 +153,13 @@ void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpg
 
     msg[msg_cnt++] = FPGA_MSG_POSTAMBLE;
 
-    //FPGA_Transmit_Binary(msg, msg_cnt);
-    SPP_UART_transmit_DMA(msg, msg_cnt);
+    FPGA_Transmit_Binary(msg, msg_cnt);
+    //SPP_UART_transmit_DMA(msg, msg_cnt);
 
 };
 
 
-bool is_FPGA_func(uint8_t func_id) {
+bool is_langmuir_func(uint8_t func_id) {
     bool result = false;
     for(uint8_t i = 0; i < NOF_FPGA_FUNCS; i++) {
         if (func_id == FPGA_supported_msg_IDs[i]) {
@@ -151,4 +168,59 @@ bool is_FPGA_func(uint8_t func_id) {
         }
     }
     return result;
+}
+
+bool FPGA_rx_langmuir_readback(uint8_t recv_byte) {
+    if (!is_langmuir_func(recv_byte)) {
+        return false;
+    }
+    switch (LangmuirReadbackState) {
+		case LANG_RB_PRE0:
+			if (recv_byte == LANGMUIR_READBACK_PREMABLE_0)
+				LangmuirReadbackState = LANG_RB_PRE1;
+
+			HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 1);
+			break;
+		case LANG_RB_PRE1:
+			if (recv_byte == LANGMUIR_READBACK_PREMABLE_1)
+				LangmuirReadbackState = LANG_RB_ID;
+			else
+				LangmuirReadbackState = LANG_RB_PRE0;
+
+			HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 2);
+			break;
+		case LANG_RB_ID:
+			FPGAReceivedMessage = FPGARxBuffer[0];
+			uint8_t L = FPGARxBuffer[1];
+
+			if (L > 0) {
+				HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, L);
+				FPGARxState = RX_STATE_PAYLOAD;
+			}
+			else {
+				HandleFPGAMessage();
+				FPGARxState = RX_STATE_POSTAMBLE;
+				HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 1);
+			}
+
+
+			break;
+		case RX_STATE_PAYLOAD:
+			HandleFPGAMessage();
+			FPGARxState = RX_STATE_POSTAMBLE;
+			HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 1);
+			break;
+		case RX_STATE_POSTAMBLE:
+			FPGARxState = RX_STATE_PREAMBLE_1;
+			HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 1);
+			break;
+		default:
+			FPGARxState = RX_STATE_PREAMBLE_1;
+			HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 1);
+    }
+    return true;
+}
+
+
+
 }

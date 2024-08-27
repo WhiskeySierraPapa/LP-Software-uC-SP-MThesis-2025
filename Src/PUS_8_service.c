@@ -19,7 +19,7 @@ SPP_error perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , uint
     uint8_t  func_id = *data++;
     uint8_t  N_args = *data++;
 
-    if (is_FPGA_func(func_id)) {
+    if (is_langmuir_func(func_id)) {
         FPGA_msg_arg_t fpgama =  {
             .probe_ID       = 0xFF,
             .step_ID        = 0xFF,

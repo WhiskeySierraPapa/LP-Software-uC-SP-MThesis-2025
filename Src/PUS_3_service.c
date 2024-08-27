@@ -19,12 +19,17 @@
 #define DEF_SPP_APP_ID        61  // Just some random numbers.
 #define DEF_PUS_SOURCE_ID     14
 
+extern uint16_t temperature_i;
+extern uint16_t uc3v_i;
+extern uint16_t fpga3v_i;
+extern uint16_t fpga1p5v_i;
+extern uint16_t vbat_i;
+
 typedef struct {
     uint16_t SID;
     uint16_t collection_interval;
     uint16_t N1;
-    //uint16_t recv_par_order[MAX_PAR_COUNT];
-    float    parameters[MAX_PAR_COUNT];
+    uint32_t parameters[MAX_PAR_COUNT]; // 32 bit here for future proofing. All params currently are 16-bit.
     bool     periodic_send;
     uint32_t last_collect_tick;
     uint32_t seq_count;
@@ -81,14 +86,14 @@ static HK_par_report_structure_t* get_HKPRS(uint16_t SID) {
 
 
 static void fill_report_struct(uint16_t SID) {
-    float s_vbat = vbat;
-    float s_temp = temperature;
-    float s_fpga3v = fpga3v;
-    float s_fpga1p5v = fpga1p5v;
-    float s_uc3v = uc3v;
+    uint16_t s_vbat = vbat_i;
+    uint16_t s_temp = temperature_i;
+    uint16_t s_fpga3v = fpga3v_i;
+    uint16_t s_fpga1p5v = fpga1p5v_i;
+    uint16_t s_uc3v = uc3v_i;
 
-    float uc_pars[DEF_UC_N1] = {s_vbat, s_temp, s_uc3v};
-    float fpga_pars[DEF_FPGA_N1] = {s_fpga1p5v, s_fpga3v};
+    uint32_t uc_pars[DEF_UC_N1] = {s_vbat, s_temp, s_uc3v};
+    uint32_t fpga_pars[DEF_FPGA_N1] = {s_fpga1p5v, s_fpga3v};
 
     HK_par_report_structure_t* HKPRS = get_HKPRS(SID);
     switch(SID) {

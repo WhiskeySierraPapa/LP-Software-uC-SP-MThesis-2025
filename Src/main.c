@@ -33,6 +33,7 @@
 #include "uC_Data_Saving.h"
 #include "COBS.h"
 #include "Space_Packet_Protocol.h"
+#include "langmuir_probe_bias.h"
 #include "device_state.h"
 /* USER CODE END Includes */
 
@@ -100,6 +101,12 @@ float uc3v = 0;
 float fpga3v = 0;
 float fpga1p5v = 0;
 float vbat = 0;
+
+uint16_t temperature_i = 0;
+uint16_t uc3v_i = 0;
+uint16_t fpga3v_i = 0;
+uint16_t fpga1p5v_i = 0;
+uint16_t vbat_i = 0;
 
 /* USER CODE END PV */
 
@@ -727,9 +734,11 @@ static void MX_GPIO_Init(void)
 void HAL_SRAM_DMA_XferCpltCallback(DMA_HandleTypeDef *hdma) {
 	FPGADMATransferCplt();
 }
+
+bool msg_from_FPGA = false;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart5) {
-		FPGA_RX_CpltCallback();
+        msg_from_FPGA = true;
 	} else if (huart == &SPP_DEBUG_UART) {
         *(DEBUGRxBuffer + SPP_DEBUG_recv_count) = SPP_DEBUG_recv_char;
         if (SPP_DEBUG_recv_char == 0x00) {
@@ -755,6 +764,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
     memcpy(ADCValues, ADCBuffer, 22);
+
+    temperature_i 	= ADCValues[0];
+    vbat_i 			= ADCValues[1];
+    fpga3v_i 		= ADCValues[2];
+    uc3v_i 			= ADCValues[3];
+    fpga1p5v_i 		= ADCValues[4];
 
     temperature = ((float) ADCValues[0]) * 0.000732421875 + 20;
     vbat = ((float) ADCValues[1]) * 0.000732421875 * 2;
@@ -798,7 +813,7 @@ void StartDefaultTask(void const * argument)
     //f_mount(&FatFs, (TCHAR const*) SDPath, 0);
 
     // Start listening on UART5 (FPGA)
-    HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 4);
+    HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
     HAL_UART_Receive_DMA(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
     HAL_UART_Receive_DMA(&SPP_OBC_UART, &SPP_OBC_recv_char, 1);
 
@@ -809,7 +824,7 @@ void StartDefaultTask(void const * argument)
 	    writeFRAM(FRAM_BOOT_CNT, (uint8_t*) &boot_cnt, 2);
 	    printf("Boot count is now %u\n", boot_cnt);
     }
-
+/*
     // Read out uC GS identifier from FRAM
     readFRAM(FRAM_GS_ID_UC, &uC_GS_ID, 1);
 
@@ -828,7 +843,7 @@ void StartDefaultTask(void const * argument)
 	    FPGA_Transmit_Binary(unitID_TX, 5);
 	    FPGA_Transmit_Binary(gsID_TX, 5);
     }
-
+*/
     // Appoint DMA to FMC
     hsram1.hdma = &hdma_memtomem_dma2_stream1;
 
@@ -879,12 +894,8 @@ void StartDefaultTask(void const * argument)
 	f_write(&stateFile, bootstr, strlen(bootstr), 0);
 	f_close(&stateFile);
 */
-    uint8_t sweep_table[16] = {
-        0xB5, 0x43, 0xAB, 0x0B,     // B5 43 premable AB sweeptable id 0B = 11 msg len, 0A postamble
-        0x01, 0x02, 0x03, 0x04,
-        0x05, 0x06, 0x07, 0x08,
-        0x09, 0x09, 0x0B, 0x0A
-    };
+
+
     /* Infinite loop */
     for(;;) {
         current_ticks = xTaskGetTickCount();
@@ -899,18 +910,28 @@ void StartDefaultTask(void const * argument)
             SPP_handle_incoming_TC(OBC_TC);
             SPP_OBC_message_received = 0;
         }
+
+        if (msg_from_FPGA) {
+
+		        msg_from_FPGA = false;
+        }
         
         if (current_ticks - SPP_ticks > 5000) {
             //FPGA_Transmit_Binary(sweep_table, 16);
             //HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
+
+
+    	    //uint8_t readback_test[4] = {0xB5, 0x43, 0xEF, 0x0A};
+    	    //FPGA_Transmit_Binary(readback_test, 4);
+
             SPP_periodic_HK_send();
             SPP_ticks = current_ticks;
         }
 
 
 
-	    if (FPGAFlightState < 7)
-		    HandleFPGAStream();
+	    //if (FPGAFlightState < 7)
+		//    HandleFPGAStream();
 /*
 	    // uC Binary file
 	    if (FPGAFlightState > 2 && FPGAFlightState < 7) {
