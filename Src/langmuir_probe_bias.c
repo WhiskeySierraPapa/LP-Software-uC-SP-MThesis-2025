@@ -207,14 +207,14 @@ static void send_readback_ground(uint8_t* data, uint16_t data_len) {
         rb_apid,
         SPP_SEQUENCE_SEG_UNSEG,
         rb_seq_cnt,
-        SPP_PUS_TM_HEADER_LEN_WO_SPARE + data_len + CRC_BYTE_LEN - 1
+        data_len + CRC_BYTE_LEN - 1
     );
     rb_seq_cnt++;
     SPP_send_TM(&SPP_header, NULL, data, data_len);
 };
 
 bool FPGA_rx_langmuir_readback(uint8_t recv_byte) {
-    uint8_t data_len = 0;
+    static uint8_t data_len = 0;
     switch (LangmuirReadbackState) {
 		case LANG_RB_PRE0:
 			if (recv_byte == LANGMUIR_READBACK_PREMABLE_0)
@@ -250,6 +250,7 @@ bool FPGA_rx_langmuir_readback(uint8_t recv_byte) {
 			break;
 		case LANG_RB_POST:
 			LangmuirReadbackState = LANG_RB_PRE0;
+			data_len = 0;
 			HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
 			break;
 		default:
