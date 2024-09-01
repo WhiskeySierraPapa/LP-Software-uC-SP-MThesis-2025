@@ -812,8 +812,8 @@ void StartDefaultTask(void const * argument)
     //BSP_SD_Init();
     //f_mount(&FatFs, (TCHAR const*) SDPath, 0);
 
-    // Start listening on UART5 (FPGA)
-    HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
+
+    //HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
     HAL_UART_Receive_DMA(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
     HAL_UART_Receive_DMA(&SPP_OBC_UART, &SPP_OBC_recv_char, 1);
 

@@ -145,9 +145,9 @@ void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpg
     uint8_t msg_cnt = 0;
 
     bool is_readback_reqeust = false;
-    uint8_t request_info[16];
+    uint8_t request_info[16] = {0};
     uint8_t request_info_len = 0;
-    uint8_t readback_data[256];
+    uint8_t readback_data[256] = {0};
     uint8_t readback_len = 0;
 
     msg[msg_cnt++] = FPGA_MSG_PREMABLE_0;
