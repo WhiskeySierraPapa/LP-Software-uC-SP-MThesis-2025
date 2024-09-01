@@ -28,8 +28,8 @@ SPP_error perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , uint
             .N_skip         = 0x0000,
             .N_f            = 0x0000, // Samples per points
             .N_points       = 0x0000,
-            .result         = {0},
-            .result_len     = 0,
+            // .result         = {0},
+            // .result_len     = 0,
         };
 
         for(int i = 0; i < N_args; i++) {

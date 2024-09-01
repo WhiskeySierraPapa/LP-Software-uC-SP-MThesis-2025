@@ -735,10 +735,10 @@ void HAL_SRAM_DMA_XferCpltCallback(DMA_HandleTypeDef *hdma) {
 	FPGADMATransferCplt();
 }
 
-bool msg_from_FPGA = false;
+//bool msg_from_FPGA = false;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart5) {
-        msg_from_FPGA = true;
+  //      msg_from_FPGA = true;
 	} else if (huart == &SPP_DEBUG_UART) {
         *(DEBUGRxBuffer + SPP_DEBUG_recv_count) = SPP_DEBUG_recv_char;
         if (SPP_DEBUG_recv_char == 0x00) {
@@ -911,10 +911,11 @@ void StartDefaultTask(void const * argument)
             SPP_OBC_message_received = 0;
         }
 
-        if (msg_from_FPGA) {
-        		FPGA_rx_langmuir_readback(FPGA_byte_recv);
-		        msg_from_FPGA = false;
-        }
+        
+        // if (msg_from_FPGA) {
+        // 		FPGA_rx_langmuir_readback(FPGA_byte_recv);
+		    //     msg_from_FPGA = false;
+        // }
         
         if (current_ticks - SPP_ticks > 5000) {
             //FPGA_Transmit_Binary(sweep_table, 16);

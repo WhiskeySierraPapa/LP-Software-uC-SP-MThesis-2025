@@ -42,9 +42,9 @@ typedef struct FPGA_msg_arg {
     uint8_t  N_steps;
     uint16_t N_f; // Samples per points
     uint16_t N_points;
-    uint8_t result[32];       // A small array here is sufficient for most get function from the FPGA, but If we want to 
-                                    // Get the whole sweep table in a single buffer to send to ground. Then this needs to be 2 * 256 bytes.
-    uint16_t result_len;
+    // uint8_t result[32];       // A small array here is sufficient for most get function from the FPGA, but If we want to 
+    //                                 // Get the whole sweep table in a single buffer to send to ground. Then this needs to be 2 * 256 bytes.
+    // uint16_t result_len;
 } FPGA_msg_arg_t;
 
 extern uint8_t FPGA_byte_recv;
