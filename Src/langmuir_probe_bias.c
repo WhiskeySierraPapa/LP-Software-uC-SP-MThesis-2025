@@ -82,9 +82,9 @@ uint16_t rb_apid = 0xABBA;
 
 static inline bool check_FPGA_msg_format(uint8_t len) {
     bool result = false;
-    if (FPGA_readback_msg[0] == FPGA_MSG_PREMABLE_0) {
-        if (FPGA_readback_msg[1] == FPGA_MSG_PREMABLE_1) {
-            if (FPGA_readback_msg[(len - 1)] == FPGA_MSG_POSTAMBLE) {
+    if (FPGA_readback_msg[0] == LANGMUIR_READBACK_PREMABLE_0) {
+        if (FPGA_readback_msg[1] == LANGMUIR_READBACK_PREMABLE_1) {
+            if (FPGA_readback_msg[(len - 1)] == LANGMUIR_READBACK_POSTAMBLE) {
                 result = true;
             }
         }
@@ -164,11 +164,15 @@ void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpg
             msg[msg_cnt++] = ((uint8_t*)(&fpgama->voltage_level))[1];
             break;
         case FPGA_GET_CB_MODE:
-            msg[msg_cnt++] = FPGA_GET_CB_MODE;
+            request_info[request_info_len++] = msg[msg_cnt++] = FPGA_GET_CB_MODE;
+            is_readback_reqeust = true;
+            readback_len = 1;
             break;
         case FPGA_GET_CB_VOL_LVL:
-            msg[msg_cnt++] = FPGA_GET_CB_VOL_LVL;
-            msg[msg_cnt++] = fpgama->probe_ID;
+            request_info[request_info_len++] = msg[msg_cnt++] = FPGA_GET_CB_VOL_LVL;
+            request_info[request_info_len++] = msg[msg_cnt++] = fpgama->probe_ID;
+            is_readback_reqeust = true;
+            readback_len = sizeof(fpgama->voltage_level);
             break;
         case FPGA_EN_SWT_MODE:
             msg[msg_cnt++] = FPGA_EN_SWT_MODE;
@@ -200,7 +204,9 @@ void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpg
             msg[msg_cnt++] = ((uint8_t*)(&fpgama->N_points))[1];
             break;
         case FPGA_GET_SWT_MODE:
-            msg[msg_cnt++] = FPGA_GET_SWT_MODE;
+            request_info[request_info_len++] = msg[msg_cnt++] = FPGA_GET_SWT_MODE;
+            is_readback_reqeust = true;
+            readback_len = 1;
             break;
         case FPGA_GET_SWT_VOL_LVL:
             request_info[request_info_len++] = msg[msg_cnt++] = FPGA_GET_SWT_VOL_LVL;
@@ -210,16 +216,24 @@ void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpg
             readback_len = sizeof(fpgama->voltage_level);
             break;
         case FPGA_GET_SWT_STEPS:
-            msg[msg_cnt++] = FPGA_GET_SWT_STEPS;
+            request_info[request_info_len++] = msg[msg_cnt++] = FPGA_GET_SWT_STEPS;
+            is_readback_reqeust = true;
+            readback_len = sizeof(fpgama->N_steps);
             break;
         case FPGA_GET_SWT_SAMPLE_SKIP:
-            msg[msg_cnt++] = FPGA_GET_SWT_SAMPLE_SKIP;
+            request_info[request_info_len++] = msg[msg_cnt++] = FPGA_GET_SWT_SAMPLE_SKIP;
+            is_readback_reqeust = true;
+            readback_len = sizeof(fpgama->N_skip);
             break;
         case FPGA_GET_SWT_SAMPLES_PER_POINT:
-            msg[msg_cnt++] = FPGA_GET_SWT_SAMPLES_PER_POINT;
+            request_info[request_info_len++] = msg[msg_cnt++] = FPGA_GET_SWT_SAMPLES_PER_POINT;
+            is_readback_reqeust = true;
+            readback_len = sizeof(fpgama->N_f);
             break;
         case FPGA_GET_SWT_NPOINTS:
-            msg[msg_cnt++] = FPGA_GET_SWT_NPOINTS;
+            request_info[request_info_len++] = msg[msg_cnt++] = FPGA_GET_SWT_NPOINTS;
+            is_readback_reqeust = true;
+            readback_len = sizeof(fpgama->N_points);
             break;
     }
 
@@ -237,33 +251,6 @@ void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpg
     }
 
 };
-/*
-// Instead of receiving the data length in the readback message
-// from the FPGA, we match against the received ID and find the
-// predetermined size from this function. This is very ugly, probably
-// should figure out a smarter way to do this.
-static uint8_t get_readback_data_size(uint8_t rb_id) {
-    uint8_t rb_size = 0;
-    switch (rb_id) {
-        // Each of these values represent the data length
-        // of the readback value. For example, the mode enable
-        // is represented with a single byte, while the voltage level
-        // is represented with 2 bytes or a uint16_t.
-        case FPGA_GET_CB_MODE:                  rb_size = 1; break;
-        case FPGA_GET_CB_VOL_LVL:               rb_size = 2; break;
-        case FPGA_GET_SWT_MODE:                 rb_size = 1; break;
-        case FPGA_GET_SWT_VOL_LVL:              rb_size = 2; break;
-        case FPGA_GET_SWT_STEPS:                rb_size = 1; break;
-        case FPGA_GET_SWT_SAMPLE_SKIP:          rb_size = 2; break;
-        case FPGA_GET_SWT_SAMPLES_PER_POINT:    rb_size = 2; break;
-        case FPGA_GET_SWT_NPOINTS:              rb_size = 2; break;
-        break;
-    default:
-        break;
-    }
-    return rb_size;
-}
-*/
 
 bool is_langmuir_func(uint8_t func_id) {
     bool result = false;
@@ -275,54 +262,3 @@ bool is_langmuir_func(uint8_t func_id) {
     }
     return result;
 }
-
-
-/*
-bool FPGA_rx_langmuir_readback(uint8_t recv_byte) {
-    static uint8_t data_len = 0;
-    switch (LangmuirReadbackState) {
-		case LANG_RB_PRE0:
-			if (recv_byte == LANGMUIR_READBACK_PREMABLE_0)
-				LangmuirReadbackState = LANG_RB_PRE1;
-
-			HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
-			break;
-		case LANG_RB_PRE1:
-			if (recv_byte == LANGMUIR_READBACK_PREMABLE_1)
-				LangmuirReadbackState = LANG_RB_ID;
-			else
-				LangmuirReadbackState = LANG_RB_PRE0;
-
-			HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
-			break;
-		case LANG_RB_ID:
-            if (!is_langmuir_func(recv_byte)) {
-                return false;
-            }
-            data_len = get_readback_data_size(recv_byte);
-            if (data_len > 0) {
-				LangmuirReadbackState = LANG_RB_DATA;
-			    HAL_UART_Receive_DMA(&huart5, FPGA_data_recv, data_len);
-            } else {
-				LangmuirReadbackState = LANG_RB_PRE0;
-			    HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
-            }
-			break;
-		case LANG_RB_DATA:
-            send_readback_ground(FPGA_data_recv, data_len);
-            LangmuirReadbackState = LANG_RB_POST;
-			HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
-			break;
-		case LANG_RB_POST:
-			LangmuirReadbackState = LANG_RB_PRE0;
-			data_len = 0;
-			HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
-			break;
-		default:
-			LangmuirReadbackState = LANG_RB_PRE0;
-			HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
-    }
-    return true;
-}
-
-*/
