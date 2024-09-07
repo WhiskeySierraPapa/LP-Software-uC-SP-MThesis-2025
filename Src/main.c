@@ -822,7 +822,9 @@ void StartDefaultTask(void const * argument)
 	    readFRAM(FRAM_BOOT_CNT, (uint8_t*) &boot_cnt, 2);
 	    boot_cnt = boot_cnt + 1;
 	    writeFRAM(FRAM_BOOT_CNT, (uint8_t*) &boot_cnt, 2);
-	    printf("Boot count is now %u\n", boot_cnt);
+        char bcnt[256] = {0};
+	    sprintf(bcnt,"Boot count is now %u\r\n", boot_cnt);
+        SPP_DLog(bcnt);
     }
 /*
     // Read out uC GS identifier from FRAM
@@ -895,7 +897,7 @@ void StartDefaultTask(void const * argument)
 	f_close(&stateFile);
 */
 
-
+    //debug_FRAM_sweep_table(0);
     /* Infinite loop */
     for(;;) {
         current_ticks = xTaskGetTickCount();

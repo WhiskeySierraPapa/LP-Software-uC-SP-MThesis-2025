@@ -31,6 +31,14 @@ uint8_t SPP_OBC_recv_char = 0xff;
     return SPP_OK;
 }
 
+
+SPP_error SPP_DLog(char* data){
+    HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, (uint8_t*)data, strlen(data));
+	HAL_Delay(5);
+    return SPP_OK;
+}
+
+
 static SPP_error SPP_reset_UART_recv_DMA() {
     //HAL_UART_Receive_DMA(&SPP_DEBUG_UART, DEBUG_Space_Packet_Data_Buffer, 1);
     //HAL_UART_Receive_DMA(&SPP_OBC_UART, OBC_Space_Packet_Data_Buffer, 1);

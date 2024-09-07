@@ -28,6 +28,7 @@ SPP_error perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , uint
             .N_skip         = 0x0000,
             .N_f            = 0x0000, // Samples per points
             .N_points       = 0x0000,
+            .target     = 0xFF,
             // .result         = {0},
             // .result_len     = 0,
         };
@@ -59,6 +60,10 @@ SPP_error perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , uint
                 case N_POINTS_ARG_ID:
                     memcpy((uint8_t*)&fpgama.N_points, data, sizeof(fpgama.N_points));
                     data += sizeof(fpgama.N_points);
+                    break;
+                case GS_TARGET_ARG_ID:
+                    memcpy((uint8_t*)&fpgama.target, data, sizeof(fpgama.target));
+                    data += sizeof(fpgama.target);
                     break;
                 default:
                     break;

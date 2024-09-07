@@ -173,6 +173,7 @@ SPP_header_t SPP_make_header(uint8_t packet_version_number, uint8_t packet_type,
 
 SPP_error SPP_send_TM(SPP_header_t* resp_SPP_header, PUS_TM_header_t* response_secondary_header, uint8_t* data, uint16_t data_len);
 
+SPP_error SPP_DLog(char* data);
 
 /* PUS */
 PUS_TM_header_t PUS_make_TM_header(uint8_t PUS_version_number, uint8_t sc_time_ref_status, uint8_t service_type_id,
