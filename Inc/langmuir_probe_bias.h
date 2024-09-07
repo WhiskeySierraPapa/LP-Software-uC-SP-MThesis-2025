@@ -21,14 +21,15 @@ typedef enum {
 } GS_Target_t;
 
 typedef enum {
-    PROBE_ID_ARG_ID     = 0x01,
-    STEP_ID_ARG_ID      = 0x02,
-    VOL_LVL_ARG_ID      = 0x03,
-    N_STEPS_ARG_ID      = 0x04,
-    N_SKIP_ARG_ID       = 0x05,
-    N_F_ARG_ID          = 0x06,
-    N_POINTS_ARG_ID     = 0x07,
-    GS_TARGET_ARG_ID    = 0x08, // GS Target = Get Set Target
+    PROBE_ID_ARG_ID         = 0x01,
+    STEP_ID_ARG_ID          = 0x02,
+    VOL_LVL_ARG_ID          = 0x03,
+    N_STEPS_ARG_ID          = 0x04,
+    N_SKIP_ARG_ID           = 0x05,
+    N_F_ARG_ID              = 0x06,
+    N_POINTS_ARG_ID         = 0x07,
+    GS_TARGET_ARG_ID        = 0x08, // GS Target = Get Set Target
+    FRAM_TABLE_ID_ARG_ID    = 0x09,
 } FPGA_Arg_ID_t;
 
 typedef struct FPGA_msg_arg {
@@ -48,10 +49,11 @@ typedef struct FPGA_msg_arg {
 extern uint8_t FPGA_byte_recv;
 
 
-void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpgama);
+void send_FPGA_langmuir_msg(uint8_t func_id, FPGA_msg_arg_t* fpgama);
 bool is_langmuir_func(uint8_t func_id);
 bool FPGA_rx_langmuir_readback(uint8_t recv_byte);
 SPP_error save_sweep_table_value_FRAM(uint8_t save_id, uint8_t step_id, uint16_t value);
 uint16_t read_sweep_table_value_FRAM(uint8_t save_id, uint8_t step_id);
 void debug_FRAM_sweep_table(uint8_t save_id);
+void copy_full_sweep_table_FRAM_to_FPGA(uint8_t fram_table_id, uint8_t fpga_table_id);
 #endif /* LANGMUIR_PROBE_BIAS_H_ */

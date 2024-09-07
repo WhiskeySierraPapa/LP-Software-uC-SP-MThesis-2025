@@ -164,12 +164,15 @@ SPP_error save_sweep_table_value_FRAM(uint8_t save_id, uint8_t step_id, uint16_t
 };
 
 
-uint16_t read_sweep_table_value_FRAM(uint8_t save_id, uint8_t step_id) {
+uint16_t read_sweep_table_value_FRAM(uint8_t table_id, uint8_t step_id) {
     uint16_t value = {0};
-    uint16_t sweep_table_address = get_sweep_table_address(save_id);
+    uint16_t sweep_table_address = get_sweep_table_address(table_id);
 
     if (sweep_table_address < FRAM_FINAL_ADDRESS) {
         uint16_t FRAM_address = sweep_table_address + (step_id * 2);
+        // For some reason the HAL_Delay and volatile result makes these reads work.
+        // Also recompiling seems to also make the read work. Maybe there are some hardware issues with the board or
+        // there are some initialzation issues.
         HAL_Delay(10);
         volatile HAL_StatusTypeDef res = readFRAM(FRAM_address, (uint8_t*) &value, 2);
     }
@@ -177,7 +180,9 @@ uint16_t read_sweep_table_value_FRAM(uint8_t save_id, uint8_t step_id) {
 };
 
 
-void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpgama) {
+
+
+void send_FPGA_langmuir_msg(uint8_t func_id, FPGA_msg_arg_t* fpgama) {
     uint8_t msg[256] = {0};
     uint8_t msg_cnt = 0;
 
@@ -310,6 +315,19 @@ void send_FPGA_langmuir_msg(uint8_t func_id, uint8_t N_args, FPGA_msg_arg_t* fpg
     }
 
 };
+
+void copy_full_sweep_table_FRAM_to_FPGA(uint8_t fram_table_id, uint8_t fpga_table_id) {
+    for(uint8_t step_id = 0; step_id < 256; step_id++) {
+        uint16_t value = read_sweep_table_value_FRAM(fram_table_id, step_id);
+
+        FPGA_msg_arg_t fpga_msg_args;
+        fpga_msg_args.probe_ID = fpga_table_id;
+        fpga_msg_args.step_ID = step_id;
+        fpga_msg_args.voltage_level = value;
+        
+        send_FPGA_langmuir_msg(FPGA_SET_SWT_VOL_LVL, &fpga_msg_args);
+    }
+}
 
 bool is_langmuir_func(uint8_t func_id) {
     bool result = false;

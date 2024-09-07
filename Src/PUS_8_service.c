@@ -10,6 +10,9 @@
 #include "device_state.h"
 #include "langmuir_probe_bias.h"
 
+typedef enum {
+    CPY_TABLE_FRAM_TO_FPGA = 0xB0,
+} Aux_Func_ID_t;
 
 
 
@@ -62,17 +65,44 @@ SPP_error perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , uint
                     data += sizeof(fpgama.N_points);
                     break;
                 case GS_TARGET_ARG_ID:
-                    memcpy((uint8_t*)&fpgama.target, data, sizeof(fpgama.target));
-                    data += sizeof(fpgama.target);
+                    // "sizeof" cannot be used here as .target is an enum type whose length cannot specified(at least in <C23).
+                    // If "sizeof" is used, it returns 4, which is incorrect as the target is only a single byte value.
+                    // This bug does not cause problems if the target argument is the last one in the message but would
+                    // mess up the alignment if it is in the beginning or middle of the message.
+                    memcpy((uint8_t*)&fpgama.target, data, 1);
+                    data += 1;
                     break;
                 default:
                     break;
             }
         }
-        send_FPGA_langmuir_msg(func_id, N_args, &fpgama);
+        send_FPGA_langmuir_msg(func_id, &fpgama);
 
     } else {
         switch (func_id) {
+            case CPY_TABLE_FRAM_TO_FPGA:
+            {
+                uint8_t FPGA_table_id = 0xFF;
+                uint8_t FRAM_table_id = 0xFF;
+
+                for(int i = 0; i < N_args; i++) {
+                    uint8_t arg_ID = *data++;
+                
+                    switch(arg_ID) {                
+                        case PROBE_ID_ARG_ID:
+                            FPGA_table_id = *data++;
+                            break;
+                        case FRAM_TABLE_ID_ARG_ID:
+                            FRAM_table_id = *data++;
+                            break;
+                    }
+                }
+
+                if (FRAM_table_id != 0xFF && FPGA_table_id != 0xFF) {
+                    copy_full_sweep_table_FRAM_to_FPGA(FRAM_table_id, FPGA_table_id);
+                }
+               break;
+            }
             case SET_DEV_STATE_NORMAL:
             	set_device_state(NORMAL_MODE);
                 break;
