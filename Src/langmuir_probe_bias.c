@@ -11,20 +11,19 @@
 // ADD FPGA Function ID TO BOTH THE ENUM AND ARRAY!
 typedef enum {
     FPGA_EN_CB_MODE          = 0xCA,
+    FPGA_DIS_CB_MODE         = 0xC0,
 
     FPGA_SET_CB_VOL_LVL      = 0xCB,
-
-    FPGA_GET_CB_MODE         = 0xC0,
     FPGA_GET_CB_VOL_LVL      = 0xCC,
 
-    FPGA_EN_SWT_MODE                = 0xAA,
+    FPGA_SWT_ACTIVATE_SWEEP         = 0xAA,
     FPGA_SET_SWT_VOL_LVL            = 0xAB,
     FPGA_SET_SWT_STEPS              = 0xAC,
     FPGA_SET_SWT_SAMPLE_SKIP        = 0xAD,
     FPGA_SET_SWT_SAMPLES_PER_POINT  = 0xAE,
     FPGA_SET_SWT_NPOINTS            = 0xAF,
 
-    FPGA_GET_SWT_MODE               = 0xA0,
+    FPGA_GET_SWT_SWEEP_CNT          = 0xA0,
     FPGA_GET_SWT_VOL_LVL            = 0xA1,
     FPGA_GET_SWT_STEPS              = 0xA2,
     FPGA_GET_SWT_SAMPLE_SKIP        = 0xA3,
@@ -37,15 +36,15 @@ typedef enum {
 const FPGA_Func_ID_t FPGA_supported_msg_IDs[] = {
     FPGA_EN_CB_MODE ,
     FPGA_SET_CB_VOL_LVL,
-    FPGA_GET_CB_MODE,
+    FPGA_DIS_CB_MODE,
     FPGA_GET_CB_VOL_LVL,
-    FPGA_EN_SWT_MODE,
+    FPGA_SWT_ACTIVATE_SWEEP,
     FPGA_SET_SWT_VOL_LVL,
     FPGA_SET_SWT_STEPS,
     FPGA_SET_SWT_SAMPLE_SKIP,
     FPGA_SET_SWT_SAMPLES_PER_POINT,
     FPGA_SET_SWT_NPOINTS,
-    FPGA_GET_SWT_MODE,
+    FPGA_GET_SWT_SWEEP_CNT,
     FPGA_GET_SWT_VOL_LVL,
     FPGA_GET_SWT_STEPS,
     FPGA_GET_SWT_SAMPLE_SKIP,
@@ -153,29 +152,29 @@ static uint16_t get_sweep_table_address(uint8_t save_id) {
 
 
 SPP_error save_sweep_table_value_FRAM(uint8_t save_id, uint8_t step_id, uint16_t value) {
-    volatile uint16_t sweep_table_address = get_sweep_table_address(save_id);
-    if (sweep_table_address > FRAM_FINAL_ADDRESS) {
-        return UNDEFINED_ERROR;
-    }
+    uint16_t sweep_table_address = get_sweep_table_address(save_id);
+//    if (sweep_table_address > FRAM_FINAL_ADDRESS) {
+//        return UNDEFINED_ERROR;
+//    }
     uint16_t FRAM_address = sweep_table_address + (step_id * 2); // step ID is 0x00 to 0xFF, but each value is 16 bits.
 
-    volatile HAL_StatusTypeDef res = writeFRAM(FRAM_address, (uint8_t*) &value, 2);
+    writeFRAM(FRAM_address, (uint8_t*) &value, 2);
     return SPP_OK;
 };
 
 
 uint16_t read_sweep_table_value_FRAM(uint8_t table_id, uint8_t step_id) {
-    uint16_t value = {0};
+    uint16_t value = {0x0000};
     uint16_t sweep_table_address = get_sweep_table_address(table_id);
 
-    if (sweep_table_address < FRAM_FINAL_ADDRESS) {
+//    if (sweep_table_address < FRAM_FINAL_ADDRESS) {
         uint16_t FRAM_address = sweep_table_address + (step_id * 2);
         // For some reason the HAL_Delay and volatile result makes these reads work.
         // Also recompiling seems to also make the read work. Maybe there are some hardware issues with the board or
         // there are some initialzation issues.
-        HAL_Delay(10);
-        volatile HAL_StatusTypeDef res = readFRAM(FRAM_address, (uint8_t*) &value, 2);
-    }
+        //HAL_Delay(50);
+        readFRAM(FRAM_address, (uint8_t*) &value, 2);
+//    }
     return value;
 };
 
@@ -208,8 +207,8 @@ void send_FPGA_langmuir_msg(uint8_t func_id, FPGA_msg_arg_t* fpgama) {
             msg[msg_cnt++] = ((uint8_t*)(&fpgama->voltage_level))[0];
             msg[msg_cnt++] = ((uint8_t*)(&fpgama->voltage_level))[1];
             break;
-        case FPGA_GET_CB_MODE:
-            request_info[request_info_len++] = msg[msg_cnt++] = FPGA_GET_CB_MODE;
+        case FPGA_DIS_CB_MODE:
+            request_info[request_info_len++] = msg[msg_cnt++] = FPGA_DIS_CB_MODE;
             is_FPGA_readback_reqeust = true;
             readback_len = 1;
             break;
@@ -219,8 +218,8 @@ void send_FPGA_langmuir_msg(uint8_t func_id, FPGA_msg_arg_t* fpgama) {
             is_FPGA_readback_reqeust = true;
             readback_len = sizeof(fpgama->voltage_level);
             break;
-        case FPGA_EN_SWT_MODE:
-            msg[msg_cnt++] = FPGA_EN_SWT_MODE;
+        case FPGA_SWT_ACTIVATE_SWEEP:
+            msg[msg_cnt++] = FPGA_SWT_ACTIVATE_SWEEP;
             break;
         case FPGA_SET_SWT_VOL_LVL:
             if (fpgama->target == GS_FPGA_TARGET) {
@@ -252,10 +251,10 @@ void send_FPGA_langmuir_msg(uint8_t func_id, FPGA_msg_arg_t* fpgama) {
             msg[msg_cnt++] = ((uint8_t*)(&fpgama->N_points))[0];
             msg[msg_cnt++] = ((uint8_t*)(&fpgama->N_points))[1];
             break;
-        case FPGA_GET_SWT_MODE:
-            request_info[request_info_len++] = msg[msg_cnt++] = FPGA_GET_SWT_MODE;
+        case FPGA_GET_SWT_SWEEP_CNT:
+            request_info[request_info_len++] = msg[msg_cnt++] = FPGA_GET_SWT_SWEEP_CNT;
             is_FPGA_readback_reqeust = true;
-            readback_len = 1;
+            readback_len = 2; // Sweep activation counter is 16bits
             break;
         case FPGA_GET_SWT_VOL_LVL:
                 request_info[request_info_len++] = msg[msg_cnt++] = FPGA_GET_SWT_VOL_LVL;
@@ -297,34 +296,38 @@ void send_FPGA_langmuir_msg(uint8_t func_id, FPGA_msg_arg_t* fpgama) {
 
     if (save_to_FRAM) {
         save_sweep_table_value_FRAM(fpgama->probe_ID, fpgama->step_ID, fpgama->voltage_level);
+
     } else if (read_from_FRAM) {
         uint16_t value = read_sweep_table_value_FRAM(fpgama->probe_ID, fpgama->step_ID);
         memcpy(readback_data, request_info, request_info_len);
         memcpy(readback_data + request_info_len, (uint8_t*) &value, sizeof(value));
         send_readback_ground(readback_data, readback_len + request_info_len);
+
     } else {
         FPGA_Transmit_Binary(msg, msg_cnt);
-    }
 
+        if (is_FPGA_readback_reqeust) {
+        	bool success = wait_for_readback(request_info, request_info_len, readback_data, readback_len);
+        	if (success) {
+            	send_readback_ground(readback_data, request_info_len + readback_len);
+        	}
+    	}
 
-    if (is_FPGA_readback_reqeust) {
-        bool success = wait_for_readback(request_info, request_info_len, readback_data, readback_len);
-        if (success) {
-            send_readback_ground(readback_data, request_info_len + readback_len);
-        }
     }
 
 };
 
 void copy_full_sweep_table_FRAM_to_FPGA(uint8_t fram_table_id, uint8_t fpga_table_id) {
-    for(uint8_t step_id = 0; step_id < 256; step_id++) {
+    for(uint8_t step_id = 0; step_id < 255; step_id++) {
+
         uint16_t value = read_sweep_table_value_FRAM(fram_table_id, step_id);
 
         FPGA_msg_arg_t fpga_msg_args;
         fpga_msg_args.probe_ID = fpga_table_id;
         fpga_msg_args.step_ID = step_id;
         fpga_msg_args.voltage_level = value;
-        
+        fpga_msg_args.target = GS_FPGA_TARGET;
+
         send_FPGA_langmuir_msg(FPGA_SET_SWT_VOL_LVL, &fpga_msg_args);
     }
 }

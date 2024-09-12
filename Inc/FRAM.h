@@ -1,4 +1,5 @@
 #define FRAM_I2C_ADDR 0xA0
+#define FRAM_I2C_ADDR_READ 0xA1
 
 #define FRAM_BOOT_CNT 0x0000
 #define FRAM_FFU_ID 0x0002

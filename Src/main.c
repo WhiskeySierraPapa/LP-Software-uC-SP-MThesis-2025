@@ -826,6 +826,7 @@ void StartDefaultTask(void const * argument)
 	    sprintf(bcnt,"Boot count is now %u\r\n", boot_cnt);
         SPP_DLog(bcnt);
     }
+
 /*
     // Read out uC GS identifier from FRAM
     readFRAM(FRAM_GS_ID_UC, &uC_GS_ID, 1);

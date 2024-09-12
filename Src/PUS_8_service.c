@@ -77,6 +77,7 @@ SPP_error perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , uint
             }
         }
         send_FPGA_langmuir_msg(func_id, &fpgama);
+        //send_succ_comp(SPP_h, PUS_TC;);
 
     } else {
         switch (func_id) {
