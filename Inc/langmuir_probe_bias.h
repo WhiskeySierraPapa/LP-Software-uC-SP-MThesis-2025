@@ -30,7 +30,7 @@ typedef enum {
     N_POINTS_ARG_ID             = 0x07,
     GS_TARGET_ARG_ID            = 0x08, // GS Target = Get Set Target
     FRAM_TABLE_ID_ARG_ID        = 0x09,
-    N_SAMPLES_PER_STEP_ARG_ID   = 0xA0,
+    N_SAMPLES_PER_STEP_ARG_ID   = 0x0A,
 } FPGA_Arg_ID_t;
 
 typedef struct FPGA_msg_arg {
