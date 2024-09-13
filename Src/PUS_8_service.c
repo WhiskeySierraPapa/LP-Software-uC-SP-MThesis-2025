@@ -11,7 +11,7 @@
 #include "langmuir_probe_bias.h"
 
 typedef enum {
-    CPY_TABLE_FRAM_TO_FPGA = 0xB0,
+    CPY_TABLE_FRAM_TO_FPGA = 0xE0,
 } Aux_Func_ID_t;
 
 
@@ -32,6 +32,7 @@ SPP_error perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , uint
             .N_f            = 0x0000, // Samples per points
             .N_points       = 0x0000,
             .target     = 0xFF,
+            .N_samples_per_step = 0x0000,
             // .result         = {0},
             // .result_len     = 0,
         };
@@ -71,6 +72,10 @@ SPP_error perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , uint
                     // mess up the alignment if it is in the beginning or middle of the message.
                     memcpy((uint8_t*)&fpgama.target, data, 1);
                     data += 1;
+                    break;
+                case N_SAMPLES_PER_STEP_ARG_ID:
+                    memcpy((uint8_t*)&fpgama.N_samples_per_step, data, sizeof(fpgama.N_samples_per_step));
+                    data += sizeof(fpgama.N_samples_per_step);
                     break;
                 default:
                     break;

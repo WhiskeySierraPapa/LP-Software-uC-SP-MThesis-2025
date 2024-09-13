@@ -19,16 +19,18 @@ typedef enum {
     FPGA_SWT_ACTIVATE_SWEEP         = 0xAA,
     FPGA_SET_SWT_VOL_LVL            = 0xAB,
     FPGA_SET_SWT_STEPS              = 0xAC,
-    FPGA_SET_SWT_SAMPLE_SKIP        = 0xAD,
-    FPGA_SET_SWT_SAMPLES_PER_POINT  = 0xAE,
-    FPGA_SET_SWT_NPOINTS            = 0xAF,
+    FPGA_SET_SWT_SAMPLES_PER_STEP   = 0xAD,
+    FPGA_SET_SWT_SAMPLE_SKIP        = 0xAE,
+    FPGA_SET_SWT_SAMPLES_PER_POINT  = 0xAF,
+    FPGA_SET_SWT_NPOINTS            = 0xB0,
 
     FPGA_GET_SWT_SWEEP_CNT          = 0xA0,
     FPGA_GET_SWT_VOL_LVL            = 0xA1,
     FPGA_GET_SWT_STEPS              = 0xA2,
-    FPGA_GET_SWT_SAMPLE_SKIP        = 0xA3,
-    FPGA_GET_SWT_SAMPLES_PER_POINT  = 0xA4,
-    FPGA_GET_SWT_NPOINTS            = 0xA5,
+    FPGA_GET_SWT_SAMPLES_PER_STEP   = 0xA3,
+    FPGA_GET_SWT_SAMPLE_SKIP        = 0xA4,
+    FPGA_GET_SWT_SAMPLES_PER_POINT  = 0xA5,
+    FPGA_GET_SWT_NPOINTS            = 0xA6,
 
 } FPGA_Func_ID_t;
 
@@ -41,12 +43,14 @@ const FPGA_Func_ID_t FPGA_supported_msg_IDs[] = {
     FPGA_SWT_ACTIVATE_SWEEP,
     FPGA_SET_SWT_VOL_LVL,
     FPGA_SET_SWT_STEPS,
+	FPGA_SET_SWT_SAMPLES_PER_STEP,
     FPGA_SET_SWT_SAMPLE_SKIP,
     FPGA_SET_SWT_SAMPLES_PER_POINT,
     FPGA_SET_SWT_NPOINTS,
     FPGA_GET_SWT_SWEEP_CNT,
     FPGA_GET_SWT_VOL_LVL,
     FPGA_GET_SWT_STEPS,
+	FPGA_GET_SWT_SAMPLES_PER_STEP,
     FPGA_GET_SWT_SAMPLE_SKIP,
     FPGA_GET_SWT_SAMPLES_PER_POINT,
     FPGA_GET_SWT_NPOINTS,
@@ -182,13 +186,13 @@ uint16_t read_sweep_table_value_FRAM(uint8_t table_id, uint8_t step_id) {
 
 
 void send_FPGA_langmuir_msg(uint8_t func_id, FPGA_msg_arg_t* fpgama) {
-    uint8_t msg[256] = {0};
+    uint8_t msg[64] = {0};
     uint8_t msg_cnt = 0;
 
     bool is_FPGA_readback_reqeust = false;
     uint8_t request_info[16] = {0};
     uint8_t request_info_len = 0;
-    uint8_t readback_data[256] = {0};
+    uint8_t readback_data[64] = {0};
     uint8_t readback_len = 0;
 
     bool save_to_FRAM = false;
@@ -236,6 +240,11 @@ void send_FPGA_langmuir_msg(uint8_t func_id, FPGA_msg_arg_t* fpgama) {
             msg[msg_cnt++] = FPGA_SET_SWT_STEPS;
             msg[msg_cnt++] = fpgama->N_steps;
             break;
+        case FPGA_SET_SWT_SAMPLES_PER_STEP:
+            msg[msg_cnt++] = FPGA_SET_SWT_SAMPLES_PER_STEP;
+            msg[msg_cnt++] = ((uint8_t*)(&fpgama->N_samples_per_step))[0];
+            msg[msg_cnt++] = ((uint8_t*)(&fpgama->N_samples_per_step))[1];
+            break;
         case FPGA_SET_SWT_SAMPLE_SKIP:
             msg[msg_cnt++] = FPGA_SET_SWT_SAMPLE_SKIP;
             msg[msg_cnt++] = ((uint8_t*)(&fpgama->N_skip))[0];
@@ -271,6 +280,11 @@ void send_FPGA_langmuir_msg(uint8_t func_id, FPGA_msg_arg_t* fpgama) {
             request_info[request_info_len++] = msg[msg_cnt++] = FPGA_GET_SWT_STEPS;
             is_FPGA_readback_reqeust = true;
             readback_len = sizeof(fpgama->N_steps);
+            break;
+        case FPGA_GET_SWT_SAMPLES_PER_STEP:
+            request_info[request_info_len++] = msg[msg_cnt++] = FPGA_GET_SWT_SAMPLES_PER_STEP;
+            is_FPGA_readback_reqeust = true;
+            readback_len = sizeof(fpgama->N_samples_per_step);
             break;
         case FPGA_GET_SWT_SAMPLE_SKIP:
             request_info[request_info_len++] = msg[msg_cnt++] = FPGA_GET_SWT_SAMPLE_SKIP;
