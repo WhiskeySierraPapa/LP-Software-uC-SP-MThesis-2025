@@ -332,8 +332,8 @@ void send_FPGA_langmuir_msg(uint8_t func_id, FPGA_msg_arg_t* fpgama) {
 };
 
 void copy_full_sweep_table_FRAM_to_FPGA(uint8_t fram_table_id, uint8_t fpga_table_id) {
-    for(uint8_t step_id = 0; step_id < 255; step_id++) {
-
+    for(int i = 0; i < 256; i++) {
+        uint8_t step_id = i;
         uint16_t value = read_sweep_table_value_FRAM(fram_table_id, step_id);
 
         FPGA_msg_arg_t fpga_msg_args;
