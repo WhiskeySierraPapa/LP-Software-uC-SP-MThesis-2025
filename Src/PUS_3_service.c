@@ -16,8 +16,8 @@
 #define DEF_FPGA_N1         2
 #define DEF_FPGA_PS         false
 
-#define DEF_SPP_APP_ID        61  // Just some random numbers.
-#define DEF_PUS_SOURCE_ID     14
+#define HK_SPP_APP_ID        61  // Just some random numbers.
+#define HK_PUS_SOURCE_ID     14
 
 extern uint16_t temperature_i;
 extern uint16_t uc3v_i;
@@ -201,57 +201,39 @@ void SPP_collect_HK_data(uint32_t current_ticks) {
 }
 
 
+static void HK_make_headers_send(uint16_t sel_SID) {
+        HK_par_report_structure_t* HKPRS = get_HKPRS(sel_SID);
+        uint8_t TM_data[MAX_TM_DATA_LEN];
+        uint16_t HK_data_len = encode_HK_struct(HKPRS, TM_data);
+        SPP_header_t TM_SPP_header = SPP_make_header(
+            SPP_VERSION,
+            SPP_PACKET_TYPE_TM,
+            1,
+            HK_SPP_APP_ID,
+            SPP_SEQUENCE_SEG_UNSEG,
+            HKPRS->seq_count,
+            SPP_PUS_TM_HEADER_LEN_WO_SPARE + HK_data_len + CRC_BYTE_LEN - 1
+        );
+        PUS_TM_header_t TM_PUS_header  = PUS_make_TM_header(
+            PUS_VERSION,
+            0,
+            HOUSEKEEPING_SERVICE_ID,
+            HK_PARAMETER_REPORT,
+            0,
+            HK_PUS_SOURCE_ID,
+            0
+        );
+        SPP_send_TM(&TM_SPP_header, &TM_PUS_header, TM_data, HK_data_len);
+        HKPRS->seq_count++;
+}
+
+
 void SPP_periodic_HK_send() {
     if (HKPRS_uc.periodic_send) {
-        HK_par_report_structure_t* HKPRS = get_HKPRS(UC_SID);
-        uint8_t TM_data[MAX_TM_DATA_LEN];
-        uint16_t HK_data_len = encode_HK_struct(HKPRS, TM_data);
-        SPP_header_t TM_SPP_header = SPP_make_header(
-            SPP_VERSION,
-            SPP_PACKET_TYPE_TM,
-            1,
-            DEF_SPP_APP_ID,
-            SPP_SEQUENCE_SEG_UNSEG,
-            HKPRS->seq_count,
-            SPP_PUS_TM_HEADER_LEN_WO_SPARE + HK_data_len + CRC_BYTE_LEN - 1
-        );
-        PUS_TM_header_t TM_PUS_header  = PUS_make_TM_header(
-            PUS_VERSION,
-            0,
-            HOUSEKEEPING_SERVICE_ID,
-            HK_PARAMETER_REPORT,
-            0,
-            DEF_PUS_SOURCE_ID,
-            0
-        );
-        SPP_send_TM(&TM_SPP_header, &TM_PUS_header, TM_data, HK_data_len);
-        HKPRS->seq_count++;
+        HK_make_headers_send(UC_SID);
     }
     if (HKPRS_fpga.periodic_send) {
-        HK_par_report_structure_t* HKPRS = get_HKPRS(FPGA_SID);
-        uint8_t TM_data[MAX_TM_DATA_LEN];
-        uint16_t HK_data_len = encode_HK_struct(HKPRS, TM_data);
-        SPP_header_t TM_SPP_header = SPP_make_header(
-            SPP_VERSION,
-            SPP_PACKET_TYPE_TM,
-            1,
-            DEF_SPP_APP_ID,
-            SPP_SEQUENCE_SEG_UNSEG,
-            HKPRS->seq_count,
-            SPP_PUS_TM_HEADER_LEN_WO_SPARE + HK_data_len + CRC_BYTE_LEN - 1
-        );
-        PUS_TM_header_t TM_PUS_header  = PUS_make_TM_header(
-            PUS_VERSION,
-            0,
-            HOUSEKEEPING_SERVICE_ID,
-            HK_PARAMETER_REPORT,
-            0,
-            DEF_PUS_SOURCE_ID,
-            0
-        );
-        SPP_send_TM(&TM_SPP_header, &TM_PUS_header, TM_data, HK_data_len);
-        HKPRS->seq_count++;
-
+        HK_make_headers_send(FPGA_SID);
     }
 }
 

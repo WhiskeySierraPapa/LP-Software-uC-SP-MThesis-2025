@@ -807,6 +807,17 @@ void StartDefaultTask(void const * argument)
 
   /* USER CODE BEGIN 5 */
 
+    /* DO NOT TOUCH IF NOT SURE WHAT THESE MEAN 
+    *  REFER TO: ARM® CoreSight ™Architecture Specification v3.0
+    *  REFER TO: Arm® v7-M Architecture Reference Manual
+    */
+  	//__disable_irq();
+  	//CoreDebug->DEMCR &= ~CoreDebug_DEMCR_TRCENA_Msk; // Disable
+  	//DWT->LAR = 0xC5ACCE55; // Unlock DWT reg for editing
+  	//DWT->CYCCNT = 0; // Reset counter
+  	//DWT->CTRL &= ~DWT_CTRL_CYCCNTENA_Msk; // Disable Counter
+  	//__enable_irq();
+
     // Initialize SD card
     HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_SET);
     //BSP_SD_Init();
@@ -822,9 +833,9 @@ void StartDefaultTask(void const * argument)
 	    readFRAM(FRAM_BOOT_CNT, (uint8_t*) &boot_cnt, 2);
 	    boot_cnt = boot_cnt + 1;
 	    writeFRAM(FRAM_BOOT_CNT, (uint8_t*) &boot_cnt, 2);
-        char bcnt[256] = {0};
+      char bcnt[256] = {0};
 	    sprintf(bcnt,"Boot count is now %u\r\n", boot_cnt);
-        SPP_DLog(bcnt);
+      SPP_DLog(bcnt);
     }
 
 /*
@@ -898,7 +909,6 @@ void StartDefaultTask(void const * argument)
 	f_close(&stateFile);
 */
 
-    //debug_FRAM_sweep_table(0);
     /* Infinite loop */
     for(;;) {
         current_ticks = xTaskGetTickCount();
