@@ -153,7 +153,8 @@ static SPP_error SPP_add_data_to_packet(uint8_t* data, uint16_t data_len, uint8_
 }
 
 // TODO: Test if this works.
-void SPP_encode_full_msg(SPP_header_t* resp_SPP_header, PUS_TM_header_t* 
+// This function combines the SPP, PUS headers, data and appends a calculated CRC
+void SPP_prepare_full_msg(SPP_header_t* resp_SPP_header, PUS_TM_header_t* 
 response_secondary_header, uint8_t* data, uint16_t data_len, uint8_t* OUT_full_msg,
  uint16_t* OUT_full_msg_len ) {
 
@@ -218,7 +219,7 @@ SPP_error SPP_send_TM(SPP_header_t* resp_SPP_header, PUS_TM_header_t* response_s
     current_pointer += CRC_BYTE_LEN;
     packet_total_len = current_pointer - response_TM_packet;
 */
-    SPP_encode_full_msg(resp_SPP_header, response_secondary_header, data, data_len, response_TM_packet, &packet_total_len);
+    SPP_prepare_full_msg(resp_SPP_header, response_secondary_header, data, data_len, response_TM_packet, &packet_total_len);
 
     uint16_t cobs_packet_total_len = COBS_encode(response_TM_packet, packet_total_len, response_TM_packet_COBS);
  

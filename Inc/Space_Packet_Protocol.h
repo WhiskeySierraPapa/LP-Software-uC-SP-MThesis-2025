@@ -175,7 +175,7 @@ SPP_error SPP_send_TM(SPP_header_t* resp_SPP_header, PUS_TM_header_t* response_s
 
 SPP_error SPP_DLog(char* data);
 
-void SPP_encode_full_msg(SPP_header_t* resp_SPP_header, PUS_TM_header_t* 
+void SPP_prepare_full_msg(SPP_header_t* resp_SPP_header, PUS_TM_header_t* 
 response_secondary_header, uint8_t* data, uint16_t data_len, uint8_t* OUT_full_msg,
  uint16_t* OUT_full_msg_len );
 /* PUS */
