@@ -68,6 +68,7 @@ const FPGA_Func_ID_t FPGA_supported_msg_IDs[] = {
 
 #define LANGMUIR_READBACK_MAX_SIZE      256
 #define LANGMUIR_READBACK_TIMEOUT_MS    50
+/*  TODO: REMOVE
 typedef enum {
     LANG_RB_PRE0,
     LANG_RB_PRE1,
@@ -77,10 +78,44 @@ typedef enum {
 } Langmuir_Readback_State_t;
 
 Langmuir_Readback_State_t LangmuirReadbackState = LANG_RB_PRE0;
+*/
 uint8_t FPGA_byte_recv = 0xFF;
 uint8_t FPGA_readback_msg[LANGMUIR_READBACK_MAX_SIZE];
 uint16_t rb_seq_cnt = 0;
-uint16_t rb_apid = 0xABBA;
+#define READBACK_APID  0xABBA
+
+#define SCIENTIFIC_DATA_PREAMBLE        0x83
+#define SC_DATA_MAX_SIZE                10000
+#define SC_CB_PACKET_RAW_DATA_LEN       6 // 2 sequence counter bytes and 2 data bytes each probe.
+#define SC_CB_PACKET_FULL_DATA_LEN      1 + SC_CB_PACKET_RAW_DATA_LEN  // 1 byte header
+
+uint8_t scientific_cb_data_packet[SC_CB_PACKET_FULL_DATA_LEN];
+
+
+uint8_t scientific_data[SC_DATA_MAX_SIZE];
+uint32_t sc_data_id = 0;
+
+
+#define CB_SC_DATA_APID     0x2CB
+uint16_t cb_sc_seq_count = 0;
+
+#define SWT_SC_DATA_APID    0x2AD
+uint16_t swt_sc_seq_count = 0;
+
+bool sc_data_en = false;
+
+typedef enum {
+    LANG_SC_PRE,
+    LANG_SC_SEQ_CNT0,
+    LANG_SC_SEQ_CNT1,
+    LANG_SC_PROBE0_DATA0,
+    LANG_SC_PROBE0_DATA1,
+    LANG_SC_PROBE1_DATA0,
+    LANG_SC_PROBE1_DATA1,
+} Langmuir_Scientific_Data_Message_State_t;
+
+Langmuir_Scientific_Data_Message_State_t LSDMS = LANG_SC_PRE;
+
 
 
 static inline bool check_FPGA_msg_format(uint8_t len) {
@@ -103,7 +138,7 @@ static inline void clear_FPGA_rb_buf() {
 }
 
 
-static bool recieve_readback(uint8_t expected_data_len, uint8_t* output_buf) {
+static bool receive_readback(uint8_t expected_data_len, uint8_t* output_buf) {
     clear_FPGA_rb_buf();
     uint8_t full_msg_len = 2 + expected_data_len + 1;  // Two preamble bytes and single postamble
     HAL_StatusTypeDef recv_res = HAL_UART_Receive(&huart5, FPGA_readback_msg, full_msg_len, 50);
@@ -121,7 +156,7 @@ static bool recieve_readback(uint8_t expected_data_len, uint8_t* output_buf) {
 
 static bool wait_for_readback(uint8_t* request_info, uint8_t request_info_len, uint8_t* output_buf, uint8_t expected_data_len) {
     memcpy(output_buf, request_info, request_info_len);
-    bool res = recieve_readback(expected_data_len, output_buf + request_info_len);
+    bool res = receive_readback(expected_data_len, output_buf + request_info_len);
     return res;
 }
 
@@ -132,7 +167,7 @@ static void send_readback_ground(uint8_t* data, uint16_t data_len) {
         SPP_VERSION,
         SPP_PACKET_TYPE_TM,
         0,
-        rb_apid,
+        READBACK_APID,
         SPP_SEQUENCE_SEG_UNSEG,
         rb_seq_cnt,
         data_len + CRC_BYTE_LEN - 1
@@ -155,11 +190,12 @@ static uint16_t get_sweep_table_address(uint8_t save_id) {
 }
 
 
-SPP_error save_sweep_table_value_FRAM(uint8_t save_id, uint8_t step_id, uint16_t value) {
-    uint16_t sweep_table_address = get_sweep_table_address(save_id);
-//    if (sweep_table_address > FRAM_FINAL_ADDRESS) {
-//        return UNDEFINED_ERROR;
-//    }
+SPP_error save_sweep_table_value_FRAM(uint8_t table_id, uint8_t step_id, uint16_t value) {
+    if (table_id > 7) { // Table IDs 0-7
+        // TODO Add error generation here. (PUS1)
+        return UNDEFINED_ERROR; // TODO Changes this to something unique.
+    }
+    uint16_t sweep_table_address = get_sweep_table_address(table_id);
     uint16_t FRAM_address = sweep_table_address + (step_id * 2); // step ID is 0x00 to 0xFF, but each value is 16 bits.
 
     writeFRAM(FRAM_address, (uint8_t*) &value, 2);
@@ -168,20 +204,83 @@ SPP_error save_sweep_table_value_FRAM(uint8_t save_id, uint8_t step_id, uint16_t
 
 
 uint16_t read_sweep_table_value_FRAM(uint8_t table_id, uint8_t step_id) {
+    if (table_id > 7) { // Table IDs 0-7
+        // TODO Add error generation here. (PUS1)
+        return 0xFFFF;
+    }
     uint16_t value = {0x0000};
     uint16_t sweep_table_address = get_sweep_table_address(table_id);
 
-//    if (sweep_table_address < FRAM_FINAL_ADDRESS) {
-        uint16_t FRAM_address = sweep_table_address + (step_id * 2);
-        // For some reason the HAL_Delay and volatile result makes these reads work.
-        // Also recompiling seems to also make the read work. Maybe there are some hardware issues with the board or
-        // there are some initialzation issues.
-        //HAL_Delay(50);
-        readFRAM(FRAM_address, (uint8_t*) &value, 2);
-//    }
+    uint16_t FRAM_address = sweep_table_address + (step_id * 2);
+    readFRAM(FRAM_address, (uint8_t*) &value, 2);
+
     return value;
 };
 
+
+void enable_scientific_data_callback() {
+    sc_data_en = true;
+    HAL_UART_Receive_DMA(&huart5, scientific_cb_data_packet, 7);
+}
+
+void disable_scientific_data_callback() {
+    sc_data_en = false;
+}
+
+void handle_scientific_data_packet() {
+    if (sc_data_id >= SC_DATA_MAX_SIZE || !sc_data_en) {
+		return;
+	}
+    if (scientific_cb_data_packet[0] == SCIENTIFIC_DATA_PREAMBLE) {
+        // memcpy(scientific_data + sc_data_id, scientific_cb_data_packet + 1, 6);
+        SPP_header_t SC_SPP_header = SPP_make_header(
+            SPP_VERSION,
+            SPP_PACKET_TYPE_TM,
+            0,
+            CB_SC_DATA_APID,
+            SPP_SEQUENCE_SEG_UNSEG,
+            cb_sc_seq_count,
+            SC_CB_PACKET_RAW_DATA_LEN + CRC_BYTE_LEN - 1
+        );
+        
+    }
+}
+
+/*
+void handle_scientific_data_packet() {
+	if (sc_data_id >= SC_DATA_MAX_SIZE || !sc_data_en) {
+		return;
+	}
+    uint8_t* packet = scientific_data_packet;
+    switch(LSDMS) {
+        case LANG_SC_PRE:
+            if (packet[0] == SCIENTIFIC_DATA_PREAMBLE) {
+                LSDMS = LANG_SC_SEQ_CNT0;
+            }
+            HAL_UART_Receive_DMA(&huart5, scientific_data_packet, 1);
+            break;
+
+        case LANG_SC_DATA0:
+            memcpy(scientific_data + sc_data_id, scientific_data_packet, 1);
+            sc_data_id++;
+            LSDMS  = LANG_SC_DATA1;
+            HAL_UART_Receive_DMA(&huart5, scientific_data_packet, 1);
+            break;
+
+        case LANG_SC_DATA1:
+            memcpy(scientific_data + sc_data_id, scientific_data_packet, 1);
+            sc_data_id++;
+            LSDMS  = LANG_SC_PRE;
+            HAL_UART_Receive_DMA(&huart5, scientific_data_packet, 1);
+            break;
+        default:
+            HAL_UART_Receive_DMA(&huart5, scientific_data_packet, 1);
+            break;
+    }
+
+
+}
+*/
 
 
 
@@ -204,6 +303,10 @@ void send_FPGA_langmuir_msg(uint8_t func_id, FPGA_msg_arg_t* fpgama) {
     switch (func_id) {
         case FPGA_EN_CB_MODE:
             msg[msg_cnt++] = FPGA_EN_CB_MODE;
+            enable_scientific_data_callback();
+            //is_FPGA_readback_reqeust = true;
+            //readback_len = 3;
+            //HAL_UART_Receive(&huart5, scientific_data_packet, 3, 1000);
             break;
         case FPGA_SET_CB_VOL_LVL:
             msg[msg_cnt++] = FPGA_SET_CB_VOL_LVL;
@@ -213,8 +316,7 @@ void send_FPGA_langmuir_msg(uint8_t func_id, FPGA_msg_arg_t* fpgama) {
             break;
         case FPGA_DIS_CB_MODE:
             request_info[request_info_len++] = msg[msg_cnt++] = FPGA_DIS_CB_MODE;
-            is_FPGA_readback_reqeust = true;
-            readback_len = 1;
+            disable_scientific_data_callback();
             break;
         case FPGA_GET_CB_VOL_LVL:
             request_info[request_info_len++] = msg[msg_cnt++] = FPGA_GET_CB_VOL_LVL;

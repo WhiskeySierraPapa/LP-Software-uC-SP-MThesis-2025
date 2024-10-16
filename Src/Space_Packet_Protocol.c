@@ -152,6 +152,37 @@ static SPP_error SPP_add_data_to_packet(uint8_t* data, uint16_t data_len, uint8_
     return SPP_OK;
 }
 
+// TODO: Test if this works.
+void SPP_encode_full_msg(SPP_header_t* resp_SPP_header, PUS_TM_header_t* 
+response_secondary_header, uint8_t* data, uint16_t data_len, uint8_t* OUT_full_msg,
+ uint16_t* OUT_full_msg_len ) {
+
+    uint8_t* current_pointer = OUT_full_msg;
+    uint16_t packet_total_len = current_pointer - OUT_full_msg;
+
+    SPP_encode_header(resp_SPP_header, current_pointer);
+    current_pointer += SPP_PRIMARY_HEADER_LEN;
+    packet_total_len = current_pointer - OUT_full_msg;
+
+
+    if (response_secondary_header != NULL) {
+        PUS_encode_TM_header(response_secondary_header, current_pointer);
+        current_pointer += SPP_PUS_TM_HEADER_LEN_WO_SPARE;
+        packet_total_len = current_pointer - OUT_full_msg;
+    }
+
+    if (data != NULL) {
+        SPP_add_data_to_packet(data, data_len, current_pointer);
+        current_pointer += data_len;
+        packet_total_len = current_pointer - OUT_full_msg;
+    }
+
+    SPP_add_CRC_to_msg(OUT_full_msg, packet_total_len, current_pointer);
+    current_pointer += CRC_BYTE_LEN;
+    packet_total_len = current_pointer - OUT_full_msg;
+
+    *OUT_full_msg_len = packet_total_len;
+}
 
 
 SPP_error SPP_send_TM(SPP_header_t* resp_SPP_header, PUS_TM_header_t* response_secondary_header, uint8_t* data, uint16_t data_len) {
@@ -161,7 +192,8 @@ SPP_error SPP_send_TM(SPP_header_t* resp_SPP_header, PUS_TM_header_t* response_s
         response_TM_packet[i] = 0x00;
         response_TM_packet_COBS[i] = 0x00;
     }
-
+    uint16_t packet_total_len = 0;
+/*
     uint8_t* current_pointer = response_TM_packet;
     uint16_t packet_total_len = current_pointer - response_TM_packet;
 
@@ -185,6 +217,8 @@ SPP_error SPP_send_TM(SPP_header_t* resp_SPP_header, PUS_TM_header_t* response_s
     SPP_add_CRC_to_msg(response_TM_packet, packet_total_len, current_pointer);
     current_pointer += CRC_BYTE_LEN;
     packet_total_len = current_pointer - response_TM_packet;
+*/
+    SPP_encode_full_msg(resp_SPP_header, response_secondary_header, data, data_len, response_TM_packet, &packet_total_len);
 
     uint16_t cobs_packet_total_len = COBS_encode(response_TM_packet, packet_total_len, response_TM_packet_COBS);
  

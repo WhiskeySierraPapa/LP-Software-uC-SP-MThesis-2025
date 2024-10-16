@@ -738,7 +738,8 @@ void HAL_SRAM_DMA_XferCpltCallback(DMA_HandleTypeDef *hdma) {
 //bool msg_from_FPGA = false;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart5) {
-  //      msg_from_FPGA = true;
+        handle_scientific_data_packet();
+        volatile int i = 0;
 	} else if (huart == &SPP_DEBUG_UART) {
         *(DEBUGRxBuffer + SPP_DEBUG_recv_count) = SPP_DEBUG_recv_char;
         if (SPP_DEBUG_recv_char == 0x00) {

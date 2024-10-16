@@ -175,6 +175,9 @@ SPP_error SPP_send_TM(SPP_header_t* resp_SPP_header, PUS_TM_header_t* response_s
 
 SPP_error SPP_DLog(char* data);
 
+void SPP_encode_full_msg(SPP_header_t* resp_SPP_header, PUS_TM_header_t* 
+response_secondary_header, uint8_t* data, uint16_t data_len, uint8_t* OUT_full_msg,
+ uint16_t* OUT_full_msg_len );
 /* PUS */
 PUS_TM_header_t PUS_make_TM_header(uint8_t PUS_version_number, uint8_t sc_time_ref_status, uint8_t service_type_id,
                                 uint8_t message_subtype_id, uint16_t message_type_counter, uint16_t destination_id, uint16_t time);
