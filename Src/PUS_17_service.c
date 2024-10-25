@@ -16,10 +16,12 @@ SPP_error SPP_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_
         return UNDEFINED_ERROR;
     }
 
-    SPP_header_t resp_SPP_header;
-    PUS_TM_header_t resp_PUS_TM_header;
+
 
     if (req_PUS_header->message_subtype_id == T_ARE_YOU_ALIVE_TEST_ID) {
+        SPP_header_t resp_SPP_header;
+        PUS_TM_header_t resp_PUS_TM_header;
+        
         send_succ_acc(req_SPP_header, req_PUS_header);
         
         send_succ_start(req_SPP_header, req_PUS_header);
@@ -46,11 +48,10 @@ SPP_error SPP_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_
             req_PUS_header->source_id,
             0
         );
+        
+        SPP_send_TM(&resp_SPP_header, &resp_PUS_TM_header, NULL, 0);
+        send_succ_comp(req_SPP_header, req_PUS_header);
     }
-
-    SPP_send_TM(&resp_SPP_header, &resp_PUS_TM_header, NULL, 0);
-
-    send_succ_comp(req_SPP_header, req_PUS_header);
 
     return SPP_OK;
 }
