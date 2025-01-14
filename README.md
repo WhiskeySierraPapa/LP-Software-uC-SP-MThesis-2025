@@ -5,5 +5,7 @@ Instrument software development for Langmuir probe onboard ROMEO satellite
 ## Code based on
 SPIDER2 DataHub Code
 ## Description
-The code contains the Microcontroller part of the Langmuir Probe Payload software. The Langmuir Probe Payload is a part of the ROMEO mission.
+The code contains the Microcontroller part of the Langmuir Probe Payload software.
+The code is compiled and flashed using STM32CubeIDE 1.8.0.
+The Langmuir Probe Payload is a part of the ROMEO mission.
 A detailed description of the software is available in the Master Thesis document.
