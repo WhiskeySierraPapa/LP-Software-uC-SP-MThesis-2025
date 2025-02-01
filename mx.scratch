@@ -3,10 +3,10 @@
   <FileVersion>3.0</FileVersion>
   <Workspace>
     <WorkspaceType>Single-project</WorkspaceType>
-    <WorkspacePath>C:\Users\Lab-user1\Desktop\MasterThesis\Langmuir-DataHub-EMUScience-uC\</WorkspacePath>
+    <WorkspacePath>C:\Users\sergi\Desktop\Master Year 2\Master Thesis\LP-Software-uC-SP-MThesis-2024\</WorkspacePath>
     <underRoot>true</underRoot>
     <TrustZone>0</TrustZone>
-    <HAL_Driver>C:\Users\Lab-user1\STM32Cube\Repository\STM32Cube_FW_F7_V1.15.0</HAL_Driver>
+    <HAL_Driver>C:\Users\sergi\STM32Cube\Repository\STM32Cube_FW_F7_V1.15.0</HAL_Driver>
     <CMSIS>Drivers/CMSIS</CMSIS>
     <Toolchain>STM32CubeIDE</Toolchain>
     <IocFile>Langmuir-DataHub-EMUScience-uC.ioc</IocFile>
@@ -58,17 +58,18 @@
           <cpucore>Arm Cortex-M7</cpucore>
           <fpu>DP</fpu>
           <memories>
-            <memory access="xrw" name="RAM" size="512" start="0x20000000" />
-            <memory access="rx" name="FLASH" size="2048" start="0x8000000" />
+            <memory access="xrw" name="RAM" size="524288" start="0x20000000" />
+            <memory access="rx" name="FLASH" size="2097152" start="0x8000000" />
           </memories>
-          <startup>C:\Users\Lab-user1\STM32Cube\Repository\STM32Cube_FW_F7_V1.15.0\Drivers\CMSIS\Device\ST\STM32F7xx\Source\Templates\gcc\startup_stm32f767xx.s</startup>
+          <startup>C:\Users\sergi\STM32Cube\Repository\STM32Cube_FW_F7_V1.15.0\Drivers\CMSIS\Device\ST\STM32F7xx\Source\Templates\gcc\startup_stm32f767xx.s</startup>
           <LinkSettings>
             <LinkAdditionalLibs />
           </LinkSettings>
           <heapSize>0x200</heapSize>
           <stackSize>0x400</stackSize>
+          <cpuclock>216</cpuclock>
           <board>custom</board>
-          <debugprobe />
+          <debugprobe>swd</debugprobe>
           <optimization />
           <Aincludes>
             <include />

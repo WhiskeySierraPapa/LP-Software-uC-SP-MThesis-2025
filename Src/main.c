@@ -67,8 +67,6 @@ DMA_HandleTypeDef hdma_sdmmc1_tx;
 UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart5;
 UART_HandleTypeDef huart2;
-DMA_HandleTypeDef hdma_uart4_rx;
-DMA_HandleTypeDef hdma_uart4_tx;
 DMA_HandleTypeDef hdma_uart5_rx;
 DMA_HandleTypeDef hdma_uart5_tx;
 DMA_HandleTypeDef hdma_usart2_rx;
@@ -77,6 +75,7 @@ DMA_HandleTypeDef hdma_memtomem_dma2_stream1;
 SRAM_HandleTypeDef hsram1;
 
 osThreadId defaultTaskHandle;
+osThreadId UART_OBC_TaskHandle;
 /* USER CODE BEGIN PV */
 
 FATFS FatFs;
@@ -108,6 +107,8 @@ uint16_t fpga3v_i = 0;
 uint16_t fpga1p5v_i = 0;
 uint16_t vbat_i = 0;
 
+SemaphoreHandle_t uartSemaphore;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -122,6 +123,7 @@ static void MX_FMC_Init(void);
 static void MX_UART4_Init(void);
 static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void const * argument);
+void handle_UART_OBC(void const * argument);
 
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
@@ -140,6 +142,8 @@ static void MX_NVIC_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+
+	uartSemaphore = xSemaphoreCreateBinary();
 
   /* USER CODE END 1 */
 
@@ -194,8 +198,12 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 2048);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+
+  /* definition and creation of UART_OBC_Task */
+  osThreadDef(UART_OBC_Task, handle_UART_OBC, osPriorityHigh, 0, 128);
+  UART_OBC_TaskHandle = osThreadCreate(osThread(UART_OBC_Task), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
@@ -613,12 +621,6 @@ static void MX_DMA_Init(void)
   }
 
   /* DMA interrupt init */
-  /* DMA1_Stream2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
-  /* DMA1_Stream4_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
   /* DMA1_Stream5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
@@ -740,20 +742,27 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart5) {
         handle_scientific_data_packet();
         volatile int i = 0;
-	} else if (huart == &SPP_DEBUG_UART) {
+	}
+	else if (huart == &SPP_DEBUG_UART)
+	{
         *(DEBUGRxBuffer + SPP_DEBUG_recv_count) = SPP_DEBUG_recv_char;
         if (SPP_DEBUG_recv_char == 0x00) {
-            SPP_DEBUG_message_received = 1;
+
+//            SPP_DEBUG_message_received = 1;
+            osSignalSet(UART_OBC_TaskHandle, 0x01);
             SPP_DEBUG_recv_count = 0;
         } else {
             SPP_DEBUG_recv_count++;
         }
         HAL_UART_Receive_DMA(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
 
-	} else if (huart == &SPP_OBC_UART) {
+	}
+	else if (huart == &SPP_OBC_UART)
+	{
         *(OBCRxBuffer + SPP_OBC_recv_count) = SPP_OBC_recv_char;
         if (SPP_OBC_recv_char == 0x00) {
-            SPP_OBC_message_received = 1;
+//            SPP_OBC_message_received = 1;
+            osSignalSet(UART_OBC_TaskHandle, 0x02);
             SPP_OBC_recv_count = 0;
         } else {
             SPP_OBC_recv_count++;
@@ -829,36 +838,16 @@ void StartDefaultTask(void const * argument)
     HAL_UART_Receive_DMA(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
     HAL_UART_Receive_DMA(&SPP_OBC_UART, &SPP_OBC_recv_char, 1);
 
-    { // Update boot count in FRAM
-	    uint16_t boot_cnt = 0;
-	    readFRAM(FRAM_BOOT_CNT, (uint8_t*) &boot_cnt, 2);
-	    boot_cnt = boot_cnt + 1;
-	    writeFRAM(FRAM_BOOT_CNT, (uint8_t*) &boot_cnt, 2);
-      char bcnt[256] = {0};
-	    sprintf(bcnt,"Boot count is now %u\r\n", boot_cnt);
-      SPP_DLog(bcnt);
-    }
+    // Update boot count in FRAM
+	uint16_t boot_cnt = 0;
+	readFRAM(FRAM_BOOT_CNT, (uint8_t*) &boot_cnt, 2);
+	boot_cnt = boot_cnt + 1;
+	writeFRAM(FRAM_BOOT_CNT, (uint8_t*) &boot_cnt, 2);
+	char bcnt[256] = {0};
+	sprintf(bcnt,"Boot count is now %u\r\n", boot_cnt);
+	SPP_DLog(bcnt);
 
-/*
-    // Read out uC GS identifier from FRAM
-    readFRAM(FRAM_GS_ID_UC, &uC_GS_ID, 1);
 
-    { // Boot up FPGA transmissions. Send FFU ID, Unit ID and GS ID stored in FRAM to FPGA.
-	    uint8_t gsid_fpga;
-
-	    readFRAM(FRAM_FFU_ID, &ffuID, 1);
-	    readFRAM(FRAM_UNIT_ID, &unitID, 1);
-	    readFRAM(FRAM_GS_ID_FPGA, &gsid_fpga, 1);
-
-	    uint8_t ffuID_TX[5] = {0xB5, 0x43, 0x46, ffuID, 0x0A};
-	    uint8_t unitID_TX[5] = {0xB5, 0x43, 0x55, unitID, 0x0A};
-	    uint8_t gsID_TX[5] = {0xB5, 0x43, 0x47, gsid_fpga, 0x0A};
-
-	    FPGA_Transmit_Binary(ffuID_TX, 5);
-	    FPGA_Transmit_Binary(unitID_TX, 5);
-	    FPGA_Transmit_Binary(gsID_TX, 5);
-    }
-*/
     // Appoint DMA to FMC
     hsram1.hdma = &hdma_memtomem_dma2_stream1;
 
@@ -867,105 +856,32 @@ void StartDefaultTask(void const * argument)
     ADCPacket[0] = 'A';
     ADCPacket[19] = '\n';
 
-    //uint8_t SD_Card_switch = 1;
-    //SD_Card_switch = HAL_GPIO_ReadPin(SD_SW_B_GPIO_Port, SD_SW_B_Pin);
-
-    FRESULT result = 0;
 
     HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
-/*
-    if (SD_Card_switch == 0) {
-	    result = openFPGADataFile();
 
-	    if (result == FR_OK) {
-		    FPGAFileOpen = 1;
-	    }
-	    else {
-		    FPGAFileOpen = 0;
-		    HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, GPIO_PIN_SET);
-	    }
-
-	    result = openUCDataFile();
-
-	    if (result == FR_OK) {
-		    uCFileOpen = 1;
-	    }
-	    else {
-		    uCFileOpen = 0;
-		    HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, GPIO_PIN_SET);
-	    }
-    }
-    else
-	    HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, GPIO_PIN_SET);
-*/
     uint32_t current_ticks = 0;
     uint32_t ucFileTicks = 0;
-    uint32_t SPP_ticks = 0;
     uint8_t oldFlightState = 0;
-/*
-	f_open(&stateFile, "/FLIGHT_STATES.log", FA_OPEN_APPEND | FA_WRITE);
-	char bootstr[256];
-	sprintf(bootstr, "Boot completed, entering main loop at t = %ld ms\n", current_ticks);
-	f_write(&stateFile, bootstr, strlen(bootstr), 0);
-	f_close(&stateFile);
-*/
+
 
     /* Infinite loop */
-    for(;;) {
+    for(;;)
+    {
         current_ticks = xTaskGetTickCount();
 
         SPP_collect_HK_data(current_ticks);
-
-        if (SPP_DEBUG_message_received) {
-            SPP_handle_incoming_TC(DEBUG_TC);
-            SPP_DEBUG_message_received = 0;
-        }
-        if (SPP_OBC_message_received) {
-            SPP_handle_incoming_TC(OBC_TC);
-            SPP_OBC_message_received = 0;
-        }
-
         
-        // if (msg_from_FPGA) {
-        // 		FPGA_rx_langmuir_readback(FPGA_byte_recv);
-		    //     msg_from_FPGA = false;
-        // }
-        
-        if (current_ticks - SPP_ticks > 5000) {
-            //FPGA_Transmit_Binary(sweep_table, 16);
-            //HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
+		//FPGA_Transmit_Binary(sweep_table, 16);
+		//HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
 
 
-    	    //uint8_t readback_test[4] = {0xB5, 0x43, 0xEF, 0x0A};
-    	    //FPGA_Transmit_Binary(readback_test, 4);
+		//uint8_t readback_test[4] = {0xB5, 0x43, 0xEF, 0x0A};
+		//FPGA_Transmit_Binary(readback_test, 4);
 
-            SPP_periodic_HK_send();
-            SPP_ticks = current_ticks;
-        }
+		SPP_periodic_HK_send();
 
 
 
-	    //if (FPGAFlightState < 7)
-		//    HandleFPGAStream();
-/*
-	    // uC Binary file
-	    if (FPGAFlightState > 2 && FPGAFlightState < 7) {
-		    if (uCFileOpen) {
-			    if (current_ticks - ucFileTicks > 1000) {	// Sync uC file every sec
-				    f_sync(&uCDataFile);
-				    ucFileTicks = current_ticks;
-			    }
-
-			    if (ADCNewData) {
-				    ADCNewData = 0;
-				    memcpy(&ADCPacket[1], &current_ticks, 4);
-				    memcpy(&ADCPacket[5], ADCValues, 2);
-				    memcpy(&ADCPacket[9], &ADCValues[1], 8);
-				    f_write(&uCDataFile, ADCPacket, 20, 0);
-			    }
-		    }
-	    }
-*/
 	    // This pin controls UART line switching inside the FPGA
 	    if (console_enabled)
 		    HAL_GPIO_WritePin(UC_CONSOLE_EN_GPIO_Port, UC_CONSOLE_EN_Pin, GPIO_PIN_SET);
@@ -980,27 +896,46 @@ void StartDefaultTask(void const * argument)
 	    if (FPGAFlightState != oldFlightState) {
 		    	//char str[256];
 			    oldFlightState = FPGAFlightState;
-/*
-			f_open(&stateFile, "/FLIGHT_STATES.log", FA_OPEN_APPEND | FA_WRITE);
-			sprintf(str, "Time: %ld, State: %d\n", current_ticks, FPGAFlightState);
-			f_write(&stateFile, str, strlen(str), 0);
-			f_close(&stateFile);
-
 	    }
 
-	    if (FPGAFlightState == STATE_LANDED) {
-		    if (FPGAFileOpen) {
-			    f_close(&FPGADataFile);
-			    FPGAFileOpen = 0;
-		    }
-		    if (uCFileOpen) {
-			    f_close(&uCDataFile);
-			    uCFileOpen = 0;
-		    }
-*/
-	    }
+	    osDelay(5000);
     }
   /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_handle_UART_OBC */
+/**
+* @brief Function implementing the UART_OBC_Task thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_handle_UART_OBC */
+void handle_UART_OBC(void const * argument)
+{
+  /* USER CODE BEGIN handle_UART_OBC */
+  /* Infinite loop */
+	for(;;)
+	{
+		osEvent evt = osSignalWait(0x07, osWaitForever);
+
+		if (evt.status == osEventSignal)
+		{
+			if (evt.value.signals & 0x01)
+			{
+				SPP_handle_incoming_TC(DEBUG_TC);
+				SPP_DEBUG_message_received = 0;
+			}
+
+			if (evt.value.signals & 0x02)
+			{
+				SPP_handle_incoming_TC(OBC_TC);
+				SPP_OBC_message_received = 0;
+			}
+		}
+
+		osDelay(1);
+	}
+  /* USER CODE END handle_UART_OBC */
 }
 
 /**
