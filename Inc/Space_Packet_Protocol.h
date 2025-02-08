@@ -24,12 +24,20 @@ extern UART_HandleTypeDef huart2;
 extern uint8_t DEBUG_Space_Packet_Data_Buffer[256];
 extern uint8_t OBC_Space_Packet_Data_Buffer[1024];
 
-extern uint8_t DEBUGRxBuffer[COBS_FRAME_LEN];
+
+typedef struct {
+	uint8_t RxBuffer[COBS_FRAME_LEN];  	// Pointer to the data buffer
+    uint16_t COBS_frame_size; 			// Number of valid bytes in the buffer
+    volatile uint8_t isProcessing; 		// Flag to indicate if data is being processed
+} UART_Rx_COBS_Frame;
+
+extern UART_Rx_COBS_Frame OBCRxBuffer;
+extern UART_Rx_COBS_Frame DEBUGRxBuffer;
+
 extern uint8_t DEBUGTxBuffer[COBS_FRAME_LEN];
 extern uint16_t SPP_DEBUG_recv_count;
 extern uint8_t SPP_DEBUG_recv_char;
 
-extern uint8_t OBCRxBuffer[COBS_FRAME_LEN];
 extern uint8_t OBCTxBuffer[COBS_FRAME_LEN];
 extern uint16_t SPP_OBC_recv_count;
 extern uint8_t SPP_OBC_recv_char;
@@ -158,6 +166,8 @@ typedef struct {
     uint16_t time;                  // 16
     uint32_t spare;
 } PUS_TM_header_t;
+
+
 
 /* SPP */
 SPP_error SPP_extract_packet_data(uint8_t* packet, uint8_t* data, uint16_t* ret_data_len, SPP_header_t* decoded_out_header);

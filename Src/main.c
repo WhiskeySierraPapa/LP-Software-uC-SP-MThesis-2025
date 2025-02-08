@@ -83,8 +83,11 @@ FIL stateFile;
 uint8_t unitID = 0;
 uint8_t ffuID = 0;
 
-uint8_t SPP_OBC_message_received = 0;
-uint8_t SPP_DEBUG_message_received = 0;
+//uint8_t SPP_OBC_message_received = 0;
+//uint8_t SPP_DEBUG_message_received = 0;
+//
+//uint8_t SPP_OBC_message_length = 0;
+//uint8_t SPP_DEBUG_message_length = 0;
 
 uint16_t ADCBuffer[11];		// Buffer for ADC values
 uint16_t ADCValues[11];		// Current ADC values
@@ -134,7 +137,11 @@ static void MX_NVIC_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+	OBCRxBuffer.COBS_frame_size = 0;
+	OBCRxBuffer.isProcessing = 0;
 
+	DEBUGRxBuffer.COBS_frame_size = 0;
+	DEBUGRxBuffer.isProcessing = 0;
 
   /* USER CODE END 1 */
 
@@ -622,38 +629,46 @@ void HAL_SRAM_DMA_XferCpltCallback(DMA_HandleTypeDef *hdma) {
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart5) {
         handle_scientific_data_packet();
-        volatile int i = 0;
 	}
 	else if (huart == &SPP_DEBUG_UART)
 	{
-        *(DEBUGRxBuffer + SPP_DEBUG_recv_count) = SPP_DEBUG_recv_char;
-        if (SPP_DEBUG_recv_char == 0x00)
-        {
-            osSignalSet(UART_OBC_TaskHandle, 0x01);
-            SPP_DEBUG_recv_count = 0;
-        }
-        else
-        {
-            SPP_DEBUG_recv_count++;
-        }
+		if(DEBUGRxBuffer.isProcessing == 0)
+		{
+			*(DEBUGRxBuffer.RxBuffer + SPP_DEBUG_recv_count) = SPP_DEBUG_recv_char;
+			if (SPP_DEBUG_recv_char == 0x00 || SPP_DEBUG_recv_count == COBS_FRAME_LEN - 1)
+			{
+				DEBUGRxBuffer.COBS_frame_size = SPP_DEBUG_recv_count + 1;
+				DEBUGRxBuffer.isProcessing = 1;
+				SPP_DEBUG_recv_count = 0;
+				osSignalSet(UART_OBC_TaskHandle, 0x01);
+			}
+			else
+			{
+				SPP_DEBUG_recv_count++;
+			}
+		}
 
         HAL_UART_Receive_IT(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
-
 	}
 	else if (huart == &SPP_OBC_UART)
 	{
-        *(OBCRxBuffer + SPP_OBC_recv_count) = SPP_OBC_recv_char;
-        if (SPP_OBC_recv_char == 0x00)
-        {
-            osSignalSet(UART_OBC_TaskHandle, 0x02);
-            SPP_OBC_recv_count = 0;
-        }
-        else
-        {
-            SPP_OBC_recv_count++;
-        }
+		if(OBCRxBuffer.isProcessing == 0)
+		{
+			*(OBCRxBuffer.RxBuffer + SPP_OBC_recv_count) = SPP_OBC_recv_char;
+			if (SPP_OBC_recv_char == 0x00 || SPP_OBC_recv_count == COBS_FRAME_LEN - 1)
+			{
+				OBCRxBuffer.COBS_frame_size = SPP_OBC_recv_count + 1;
+				OBCRxBuffer.isProcessing = 1;
+				SPP_OBC_recv_count = 0;
+				osSignalSet(UART_OBC_TaskHandle, 0x02);
+			}
+			else
+			{
+				SPP_OBC_recv_count++;
+			}
+		}
 
-        HAL_UART_Receive_DMA(&SPP_OBC_UART, &SPP_OBC_recv_char, 1);
+        HAL_UART_Receive_IT(&SPP_OBC_UART, &SPP_OBC_recv_char, 1);
 	}
 }
 
@@ -724,11 +739,14 @@ void handle_UART_OBC(void const * argument)
 			if (evt.value.signals & 0x01)
 			{
 				SPP_handle_incoming_TC(DEBUG_TC);
+				DEBUGRxBuffer.isProcessing = 0;
 			}
 
 			if (evt.value.signals & 0x02)
 			{
 				SPP_handle_incoming_TC(OBC_TC);
+				OBCRxBuffer.isProcessing = 0;
+
 			}
 		}
 	}

@@ -50,8 +50,11 @@ size_t COBS_encode(const void *data, size_t length, uint8_t *buffer) {
 	@return Number of bytes successfully decoded
 	@note Stops decoding if delimiter byte is found
 */
-size_t COBS_decode(const uint8_t *buffer, size_t length, void *data) {
-	assert(buffer && data);
+void COBS_decode(const uint8_t *buffer, size_t length, void *data) {
+
+	if (length < 2 || buffer[length - 1] != 0x00) {
+	        return 0;
+	}
 
 	const uint8_t *p_input_byte = buffer; // Pointer to input byte
 	uint8_t *p_output = (uint8_t *)data; // Pointer to output buffer
@@ -76,7 +79,36 @@ size_t COBS_decode(const uint8_t *buffer, size_t length, void *data) {
 		}
 		dist_next_zero--;
 	}
+}
 
-	return (size_t)(p_output - (uint8_t *)data);
+
+/** COBS verify if frame is valid
+	@param buffer Pointer to encoded input bytes
+	@param length Number of bytes to verify
+*/
+uint8_t COBS_is_valid(const uint8_t *buffer, size_t length)
+{
+	if (length < 2 || buffer[length - 1] != 0x00) {
+		return 0; // Must end with 0x00
+	}
+
+	size_t index = 0;
+
+	while (index < length - 1) {
+		uint8_t code = buffer[index]; // Get the code byte
+
+		if (code == 0 || index + code > length) {
+			return 0; // Code byte cannot be zero or exceed buffer length
+		}
+
+		index += code; // Move to the next code byte
+
+		// If we haven't reached the end, the next byte must be another code
+		if (index < length - 1 && buffer[index] == 0) {
+			return 0; // Unexpected zero found
+		}
+	}
+
+	return 1;
 }
 

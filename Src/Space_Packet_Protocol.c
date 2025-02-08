@@ -11,15 +11,23 @@
 uint8_t DEBUG_Space_Packet_Data_Buffer[256];
 uint8_t OBC_Space_Packet_Data_Buffer[1024];
 
-uint8_t DEBUGRxBuffer[COBS_FRAME_LEN];
-uint8_t DEBUGTxBuffer[COBS_FRAME_LEN];
-uint16_t SPP_DEBUG_recv_count = 0;
-uint8_t SPP_DEBUG_recv_char = 0xff;
 
-uint8_t OBCRxBuffer[COBS_FRAME_LEN];
-uint8_t OBCTxBuffer[COBS_FRAME_LEN];
-uint16_t SPP_OBC_recv_count = 0;
+UART_Rx_COBS_Frame DEBUGRxBuffer;
+uint8_t SPP_DEBUG_recv_char = 0xff;
+uint16_t SPP_DEBUG_recv_count = 0;
+uint8_t DEBUGTxBuffer[COBS_FRAME_LEN];
+
+
+UART_Rx_COBS_Frame OBCRxBuffer;
 uint8_t SPP_OBC_recv_char = 0xff;
+uint16_t SPP_OBC_recv_count = 0;
+uint8_t OBCTxBuffer[COBS_FRAME_LEN];
+
+
+//uint8_t OBCRxBuffer[COBS_FRAME_LEN];
+//uint8_t OBCTxBuffer[COBS_FRAME_LEN];
+//uint16_t SPP_OBC_recv_count = 0;
+//uint8_t SPP_OBC_recv_char = 0xff;
 
 
 // NONSTATIC FOR TESTING PURPOSES
@@ -42,8 +50,8 @@ SPP_error SPP_DLog(char* data){
 static SPP_error SPP_reset_UART_recv_DMA() {
     //HAL_UART_Receive_DMA(&SPP_DEBUG_UART, DEBUG_Space_Packet_Data_Buffer, 1);
     //HAL_UART_Receive_DMA(&SPP_OBC_UART, OBC_Space_Packet_Data_Buffer, 1);
-    HAL_UART_Receive_DMA(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
-    HAL_UART_Receive_DMA(&SPP_OBC_UART, &SPP_OBC_recv_char, 1);
+//    HAL_UART_Receive_DMA(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
+//    HAL_UART_Receive_DMA(&SPP_OBC_UART, &SPP_OBC_recv_char, 1);
     return SPP_OK;
 };
 
@@ -230,35 +238,43 @@ SPP_error SPP_send_TM(SPP_header_t* resp_SPP_header, PUS_TM_header_t* response_s
 
 
 
-// Test function to check if decodeing and encoding and data seperation works correctly.
+// Test function to check if decoding and encoding and data separation works correctly.
 SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
     SPP_error result_code = SPP_OK;
+    SPP_header_t primary_header;
+    SPP_error CRC_er;
+
     bool CRC_correct = true;
+    size_t COBS_frame_length;
+    uint16_t space_packet_length;
 
     uint8_t* recv_buffer;
     uint8_t* packet_buffer; 
 
     if (source == OBC_TC) {
-        recv_buffer   = OBCRxBuffer;
+        recv_buffer   = OBCRxBuffer.RxBuffer;
+        COBS_frame_length = OBCRxBuffer.COBS_frame_size;
         packet_buffer = OBC_Space_Packet_Data_Buffer;
     } else if (source == DEBUG_TC) {
-        recv_buffer   = DEBUGRxBuffer;
+        recv_buffer   = DEBUGRxBuffer.RxBuffer;
+        COBS_frame_length = DEBUGRxBuffer.COBS_frame_size;
         packet_buffer = DEBUG_Space_Packet_Data_Buffer;
     } else {
         // This should never happen.
     	return UNDEFINED_ERROR;
     }
 
-    HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
 
+    // Verify if the COBS frame is valid and if so unpack it
+    if(!COBS_is_valid(recv_buffer, COBS_frame_length))
+        	return SPP_PACKET_CRC_MISMATCH;
     COBS_decode(recv_buffer, COBS_FRAME_LEN, packet_buffer);
 
-    SPP_header_t primary_header;
-    SPP_decode_header(packet_buffer, &primary_header);
-    uint16_t space_packet_length = primary_header.packet_data_length + SPP_PRIMARY_HEADER_LEN + 1;
 
-    SPP_error CRC_er = SPP_validate_checksum(packet_buffer, space_packet_length);
-    
+    // Decode SPP header and verify its integrity
+    SPP_decode_header(packet_buffer, &primary_header);
+    space_packet_length = primary_header.packet_data_length + SPP_PRIMARY_HEADER_LEN + 1;
+    CRC_er = SPP_validate_checksum(packet_buffer, space_packet_length);
     if (CRC_er != SPP_OK) {
         CRC_correct = false;
     }
@@ -307,7 +323,7 @@ SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
             
         }
     }
-    SPP_reset_UART_recv_DMA();
+//    SPP_reset_UART_recv_DMA();
     return result_code;
 }
 
