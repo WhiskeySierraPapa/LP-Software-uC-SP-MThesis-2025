@@ -53,12 +53,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-ADC_HandleTypeDef hadc1;
-DMA_HandleTypeDef hdma_adc1;
 
 I2C_HandleTypeDef hi2c4;
-DMA_HandleTypeDef hdma_i2c4_rx;
-DMA_HandleTypeDef hdma_i2c4_tx;
 
 SD_HandleTypeDef hsd1;
 DMA_HandleTypeDef hdma_sdmmc1_rx;
@@ -67,9 +63,6 @@ DMA_HandleTypeDef hdma_sdmmc1_tx;
 UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart5;
 UART_HandleTypeDef huart2;
-DMA_HandleTypeDef hdma_uart5_rx;
-DMA_HandleTypeDef hdma_uart5_tx;
-DMA_HandleTypeDef hdma_usart2_rx;
 
 DMA_HandleTypeDef hdma_memtomem_dma2_stream1;
 SRAM_HandleTypeDef hsram1;
@@ -115,13 +108,12 @@ SemaphoreHandle_t uartSemaphore;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
-static void MX_ADC1_Init(void);
 static void MX_SDMMC1_SD_Init(void);
-static void MX_UART5_Init(void);
-static void MX_I2C4_Init(void);
 static void MX_FMC_Init(void);
-static void MX_UART4_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_I2C4_Init(void);
+static void MX_UART4_Init(void);
+static void MX_UART5_Init(void);
 void StartDefaultTask(void const * argument);
 void handle_UART_OBC(void const * argument);
 
@@ -143,7 +135,6 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
-	uartSemaphore = xSemaphoreCreateBinary();
 
   /* USER CODE END 1 */
 
@@ -166,13 +157,12 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_ADC1_Init();
   MX_SDMMC1_SD_Init();
-  MX_UART5_Init();
-  MX_I2C4_Init();
   MX_FMC_Init();
-  MX_UART4_Init();
   MX_USART2_UART_Init();
+  MX_I2C4_Init();
+  MX_UART4_Init();
+  MX_UART5_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -297,118 +287,18 @@ static void MX_NVIC_Init(void)
   /* SDMMC1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(SDMMC1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(SDMMC1_IRQn);
-  /* DMA1_Stream0_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
-  /* ADC_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(ADC_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(ADC_IRQn);
-  /* DMA1_Stream7_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream7_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream7_IRQn);
-  /* UART5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(UART5_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(UART5_IRQn);
   /* DMA2_Stream3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
   /* DMA2_Stream6_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream6_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream6_IRQn);
-  /* DMA1_Stream1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
-  /* DMA2_Stream0_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
   /* EXTI9_5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
   /* DMA2_Stream1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
-}
-
-/**
-  * @brief ADC1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_ADC1_Init(void)
-{
-
-  /* USER CODE BEGIN ADC1_Init 0 */
-
-  /* USER CODE END ADC1_Init 0 */
-
-  ADC_ChannelConfTypeDef sConfig = {0};
-
-  /* USER CODE BEGIN ADC1_Init 1 */
-
-  /* USER CODE END ADC1_Init 1 */
-  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
-  */
-  hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV8;
-  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc1.Init.ScanConvMode = ENABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;
-  hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 5;
-  hadc1.Init.DMAContinuousRequests = ENABLE;
-  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-  if (HAL_ADC_Init(&hadc1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
-  */
-  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
-  */
-  sConfig.Channel = ADC_CHANNEL_6;
-  sConfig.Rank = ADC_REGULAR_RANK_2;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
-  */
-  sConfig.Channel = ADC_CHANNEL_7;
-  sConfig.Rank = ADC_REGULAR_RANK_3;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
-  */
-  sConfig.Channel = ADC_CHANNEL_14;
-  sConfig.Rank = ADC_REGULAR_RANK_4;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
-  */
-  sConfig.Channel = ADC_CHANNEL_15;
-  sConfig.Rank = ADC_REGULAR_RANK_5;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN ADC1_Init 2 */
-
-  /* USER CODE END ADC1_Init 2 */
-
 }
 
 /**
@@ -434,7 +324,7 @@ static void MX_I2C4_Init(void)
   hi2c4.Init.OwnAddress2 = 0;
   hi2c4.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
   hi2c4.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c4.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
+  hi2c4.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
   if (HAL_I2C_Init(&hi2c4) != HAL_OK)
   {
     Error_Handler();
@@ -599,7 +489,6 @@ static void MX_DMA_Init(void)
 {
   /* DMA controller clock enable */
   __HAL_RCC_DMA2_CLK_ENABLE();
-  __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* Configure DMA request hdma_memtomem_dma2_stream1 on DMA2_Stream1 */
   hdma_memtomem_dma2_stream1.Instance = DMA2_Stream1;
@@ -619,14 +508,6 @@ static void MX_DMA_Init(void)
   {
     Error_Handler( );
   }
-
-  /* DMA interrupt init */
-  /* DMA1_Stream5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
-  /* DMA1_Stream6_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
 
 }
 /* FMC initialization function */
@@ -683,10 +564,10 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(UC_CONSOLE_EN_GPIO_Port, UC_CONSOLE_EN_Pin, GPIO_PIN_RESET);
@@ -746,49 +627,36 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	else if (huart == &SPP_DEBUG_UART)
 	{
         *(DEBUGRxBuffer + SPP_DEBUG_recv_count) = SPP_DEBUG_recv_char;
-        if (SPP_DEBUG_recv_char == 0x00) {
-
-//            SPP_DEBUG_message_received = 1;
+        if (SPP_DEBUG_recv_char == 0x00)
+        {
             osSignalSet(UART_OBC_TaskHandle, 0x01);
             SPP_DEBUG_recv_count = 0;
-        } else {
+        }
+        else
+        {
             SPP_DEBUG_recv_count++;
         }
-        HAL_UART_Receive_DMA(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
+
+        HAL_UART_Receive_IT(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
 
 	}
 	else if (huart == &SPP_OBC_UART)
 	{
         *(OBCRxBuffer + SPP_OBC_recv_count) = SPP_OBC_recv_char;
-        if (SPP_OBC_recv_char == 0x00) {
-//            SPP_OBC_message_received = 1;
+        if (SPP_OBC_recv_char == 0x00)
+        {
             osSignalSet(UART_OBC_TaskHandle, 0x02);
             SPP_OBC_recv_count = 0;
-        } else {
+        }
+        else
+        {
             SPP_OBC_recv_count++;
         }
+
         HAL_UART_Receive_DMA(&SPP_OBC_UART, &SPP_OBC_recv_char, 1);
 	}
-
 }
 
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
-    memcpy(ADCValues, ADCBuffer, 22);
-
-    temperature_i 	= ADCValues[0];
-    vbat_i 			= ADCValues[1];
-    fpga3v_i 		= ADCValues[2];
-    uc3v_i 			= ADCValues[3];
-    fpga1p5v_i 		= ADCValues[4];
-
-    temperature = ((float) ADCValues[0]) * 0.000732421875 + 20;
-    vbat = ((float) ADCValues[1]) * 0.000732421875 * 2;
-    fpga3v = ((float) ADCValues[2]) * 0.000732421875 * 1.33;
-    uc3v = ((float) ADCValues[3]) * 0.000732421875 * 1.33;
-    fpga1p5v = ((float) ADCValues[4]) * 0.000732421875;
-
-    ADCNewData = 1;
-}
 
 // Enables print() to terminal over SWD
 int _write(int file, char *ptr, int len)
@@ -817,52 +685,7 @@ void StartDefaultTask(void const * argument)
 
   /* USER CODE BEGIN 5 */
 
-    /* DO NOT TOUCH IF NOT SURE WHAT THESE MEAN 
-    *  REFER TO: ARM® CoreSight ™Architecture Specification v3.0
-    *  REFER TO: Arm® v7-M Architecture Reference Manual
-    */
-  	//__disable_irq();
-  	//CoreDebug->DEMCR &= ~CoreDebug_DEMCR_TRCENA_Msk; // Disable
-  	//DWT->LAR = 0xC5ACCE55; // Unlock DWT reg for editing
-  	//DWT->CYCCNT = 0; // Reset counter
-  	//DWT->CTRL &= ~DWT_CTRL_CYCCNTENA_Msk; // Disable Counter
-  	//__enable_irq();
-
-    // Initialize SD card
-    HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_SET);
-    //BSP_SD_Init();
-    //f_mount(&FatFs, (TCHAR const*) SDPath, 0);
-
-
-    //HAL_UART_Receive_DMA(&huart5, &FPGA_byte_recv, 1);
-    HAL_UART_Receive_DMA(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
-    HAL_UART_Receive_DMA(&SPP_OBC_UART, &SPP_OBC_recv_char, 1);
-
-    // Update boot count in FRAM
-	uint16_t boot_cnt = 0;
-	readFRAM(FRAM_BOOT_CNT, (uint8_t*) &boot_cnt, 2);
-	boot_cnt = boot_cnt + 1;
-	writeFRAM(FRAM_BOOT_CNT, (uint8_t*) &boot_cnt, 2);
-	char bcnt[256] = {0};
-	sprintf(bcnt,"Boot count is now %u\r\n", boot_cnt);
-	SPP_DLog(bcnt);
-
-
-    // Appoint DMA to FMC
-    hsram1.hdma = &hdma_memtomem_dma2_stream1;
-
-    // Start ADC DMA transfers
-    HAL_ADC_Start_DMA(&hadc1, (uint32_t*) ADCBuffer, 5);
-    ADCPacket[0] = 'A';
-    ADCPacket[19] = '\n';
-
-
-    HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
-
     uint32_t current_ticks = 0;
-    uint32_t ucFileTicks = 0;
-    uint8_t oldFlightState = 0;
-
 
     /* Infinite loop */
     for(;;)
@@ -870,33 +693,8 @@ void StartDefaultTask(void const * argument)
         current_ticks = xTaskGetTickCount();
 
         SPP_collect_HK_data(current_ticks);
-        
-		//FPGA_Transmit_Binary(sweep_table, 16);
-		//HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
-
-
-		//uint8_t readback_test[4] = {0xB5, 0x43, 0xEF, 0x0A};
-		//FPGA_Transmit_Binary(readback_test, 4);
 
 		SPP_periodic_HK_send();
-
-
-
-	    // This pin controls UART line switching inside the FPGA
-	    if (console_enabled)
-		    HAL_GPIO_WritePin(UC_CONSOLE_EN_GPIO_Port, UC_CONSOLE_EN_Pin, GPIO_PIN_SET);
-	    else
-		    HAL_GPIO_WritePin(UC_CONSOLE_EN_GPIO_Port, UC_CONSOLE_EN_Pin, GPIO_PIN_RESET);
-
-	    // Console mode - UART bypasses FPGA
-	    if (ConsoleCommandReady) {
-		    HandleConsole(); // Declared in FPGA_UART.c
-	    }
-
-	    if (FPGAFlightState != oldFlightState) {
-		    	//char str[256];
-			    oldFlightState = FPGAFlightState;
-	    }
 
 	    osDelay(5000);
     }
@@ -913,6 +711,9 @@ void StartDefaultTask(void const * argument)
 void handle_UART_OBC(void const * argument)
 {
   /* USER CODE BEGIN handle_UART_OBC */
+    HAL_UART_Receive_IT(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
+    HAL_UART_Receive_IT(&SPP_OBC_UART, &SPP_OBC_recv_char, 1);
+
   /* Infinite loop */
 	for(;;)
 	{
@@ -923,17 +724,13 @@ void handle_UART_OBC(void const * argument)
 			if (evt.value.signals & 0x01)
 			{
 				SPP_handle_incoming_TC(DEBUG_TC);
-				SPP_DEBUG_message_received = 0;
 			}
 
 			if (evt.value.signals & 0x02)
 			{
 				SPP_handle_incoming_TC(OBC_TC);
-				SPP_OBC_message_received = 0;
 			}
 		}
-
-		osDelay(1);
 	}
   /* USER CODE END handle_UART_OBC */
 }
