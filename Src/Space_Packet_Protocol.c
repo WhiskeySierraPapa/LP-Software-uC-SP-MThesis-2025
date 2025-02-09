@@ -34,14 +34,14 @@ uint8_t OBCTxBuffer[COBS_FRAME_LEN];
 /* static */ SPP_error SPP_UART_transmit_DMA(uint8_t* data, uint16_t data_len) {
 	*(data + data_len) = 0x00; // Adding sentinel value.
 	data_len++;
-    HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, data, data_len);
-    HAL_UART_Transmit(&SPP_OBC_UART, data, data_len, 100);
+//    HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, data, data_len);
+//    HAL_UART_Transmit(&SPP_OBC_UART, data, data_len, 100);
     return SPP_OK;
 }
 
 
 SPP_error SPP_DLog(char* data){
-    HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, (uint8_t*)data, strlen(data));
+//    HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, (uint8_t*)data, strlen(data));
 	HAL_Delay(5);
     return SPP_OK;
 }
@@ -232,99 +232,74 @@ SPP_error SPP_send_TM(SPP_header_t* resp_SPP_header, PUS_TM_header_t* response_s
     uint16_t cobs_packet_total_len = COBS_encode(response_TM_packet, packet_total_len, response_TM_packet_COBS);
  
     memcpy(OBCTxBuffer, response_TM_packet_COBS, cobs_packet_total_len);
-    SPP_UART_transmit_DMA(OBCTxBuffer, cobs_packet_total_len);
+//    SPP_UART_transmit_DMA(OBCTxBuffer, cobs_packet_total_len);
     return SPP_OK;
 }
 
 
 
-// Test function to check if decoding and encoding and data separation works correctly.
+// Function that processes incoming TC
 SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
-    SPP_error result_code = SPP_OK;
-    SPP_header_t primary_header;
-    SPP_error CRC_er;
+	uint8_t* 		COBS_buffer;
+	size_t 			COBS_buffer_length;
+	uint8_t* 		SPP_buffer;
 
-    bool CRC_correct = true;
-    size_t COBS_frame_length;
-    uint16_t space_packet_length;
 
-    uint8_t* recv_buffer;
-    uint8_t* packet_buffer; 
+    // Select the correct buffer based on the source
+	switch (source) {
+		case OBC_TC:
+			COBS_buffer = OBCRxBuffer.RxBuffer;
+			COBS_buffer_length = OBCRxBuffer.COBS_frame_size;
+			SPP_buffer = OBC_Space_Packet_Data_Buffer;
+			break;
+		case DEBUG_TC:
+			COBS_buffer = DEBUGRxBuffer.RxBuffer;
+			COBS_buffer_length = DEBUGRxBuffer.COBS_frame_size;
+			SPP_buffer = DEBUG_Space_Packet_Data_Buffer;
+			break;
+		default:
+			return UNDEFINED_ERROR;
+	}
 
-    if (source == OBC_TC) {
-        recv_buffer   = OBCRxBuffer.RxBuffer;
-        COBS_frame_length = OBCRxBuffer.COBS_frame_size;
-        packet_buffer = OBC_Space_Packet_Data_Buffer;
-    } else if (source == DEBUG_TC) {
-        recv_buffer   = DEBUGRxBuffer.RxBuffer;
-        COBS_frame_length = DEBUGRxBuffer.COBS_frame_size;
-        packet_buffer = DEBUG_Space_Packet_Data_Buffer;
-    } else {
-        // This should never happen.
-    	return UNDEFINED_ERROR;
+
+    // Decode COBS frame if valid
+    if(!COBS_is_valid(COBS_buffer, COBS_buffer_length)){
+		return UNDEFINED_ERROR;
     }
+    COBS_decode(COBS_buffer, COBS_FRAME_LEN, SPP_buffer);
 
-
-    // Verify if the COBS frame is valid and if so unpack it
-    if(!COBS_is_valid(recv_buffer, COBS_frame_length))
-        	return SPP_PACKET_CRC_MISMATCH;
-    COBS_decode(recv_buffer, COBS_FRAME_LEN, packet_buffer);
-
-
-    // Decode SPP header and verify its integrity
-    SPP_decode_header(packet_buffer, &primary_header);
-    space_packet_length = primary_header.packet_data_length + SPP_PRIMARY_HEADER_LEN + 1;
-    CRC_er = SPP_validate_checksum(packet_buffer, space_packet_length);
-    if (CRC_er != SPP_OK) {
-        CRC_correct = false;
-    }
+    // Decode SPP header and verify its checksum
+    SPP_header_t 	SPP_primary_header;
+    SPP_decode_header(SPP_buffer, &SPP_primary_header);
+    uint16_t  SPP_buffer_length = SPP_primary_header.packet_data_length + SPP_PRIMARY_HEADER_LEN + 1;
+	if (SPP_validate_checksum(SPP_buffer, SPP_buffer_length) != SPP_OK) {
+		return SPP_PACKET_CRC_MISMATCH;
+	}
     
-    if (primary_header.secondary_header_flag) {
-        // PUS HEADER IS PRESENT
-        uint8_t secondary_header_buffer[SPP_PUS_TC_HEADER_LEN_WO_SPARE];
-        memcpy(secondary_header_buffer, packet_buffer + SPP_PRIMARY_HEADER_LEN, SPP_PUS_TC_HEADER_LEN_WO_SPARE);
+    // Decode PUS header if present
+    if (SPP_primary_header.secondary_header_flag) {
+    	uint8_t secondary_header_buffer[SPP_PUS_TC_HEADER_LEN_WO_SPARE];
+        memcpy(secondary_header_buffer, SPP_buffer + SPP_PRIMARY_HEADER_LEN, SPP_PUS_TC_HEADER_LEN_WO_SPARE);
 
         PUS_TC_header_t PUS_TC_header;
         PUS_decode_TC_header(secondary_header_buffer, &PUS_TC_header);
         
-        if (!CRC_correct) {
-            send_fail_acc(&primary_header, &PUS_TC_header);
-            result_code = SPP_PACKET_CRC_MISMATCH;
+		uint8_t* data = SPP_buffer + SPP_PRIMARY_HEADER_LEN + SPP_PUS_TC_HEADER_LEN_WO_SPARE;
 
-        } else {
-            uint8_t* data = packet_buffer + SPP_PRIMARY_HEADER_LEN + SPP_PUS_TC_HEADER_LEN_WO_SPARE;
-
-            if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID) {
-                SPP_handle_HK_TC(&primary_header, &PUS_TC_header, data);
-            }
-            else if (PUS_TC_header.service_type_id == FUNCTION_MANAGEMNET_ID) {
-                SPP_handle_FM_TC(&primary_header, &PUS_TC_header, data);
-            }
-            else if (PUS_TC_header.service_type_id == TEST_SERVICE_ID) {
-                SPP_handle_TEST_TC(&primary_header, &PUS_TC_header);
-            } else {
-                result_code = SPP_UNHANDLED_PUS_ID;
-                send_fail_acc(&primary_header, &PUS_TC_header);
-            }
-        }
-
-    } else {
-        // SPP WITHOUT PUS HEADER
-        if (!CRC_correct) {
-            /* There are two different checks of CRC_correct due to
-            *  the need for sending a "PUS 1 Service Fail to Accept TM",
-            *  when a PUS header is present. This is not the case,
-            *  when there is only an SPP header.
-            */
-            result_code = SPP_PACKET_CRC_MISMATCH; 
-
-        } else {
-            // Handle Non-PUS SPP here.
-            
-        }
+		if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID) {
+			SPP_handle_HK_TC(&SPP_primary_header, &PUS_TC_header, data);
+		}
+		else if (PUS_TC_header.service_type_id == FUNCTION_MANAGEMNET_ID) {
+			SPP_handle_FM_TC(&SPP_primary_header, &PUS_TC_header, data);
+		}
+		else if (PUS_TC_header.service_type_id == TEST_SERVICE_ID) {
+			SPP_handle_TEST_TC(&SPP_primary_header, &PUS_TC_header);
+		} else {
+			send_fail_acc(&SPP_primary_header, &PUS_TC_header);
+			return SPP_UNHANDLED_PUS_ID;
+		}
     }
-//    SPP_reset_UART_recv_DMA();
-    return result_code;
+    return SPP_OK;
 }
 
 

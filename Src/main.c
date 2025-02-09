@@ -195,11 +195,11 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 512);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* definition and creation of UART_OBC_Task */
-  osThreadDef(UART_OBC_Task, handle_UART_OBC, osPriorityHigh, 0, 128);
+  osThreadDef(UART_OBC_Task, handle_UART_OBC, osPriorityNormal, 0, 128);
   UART_OBC_TaskHandle = osThreadCreate(osThread(UART_OBC_Task), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -749,6 +749,7 @@ void handle_UART_OBC(void const * argument)
 
 			}
 		}
+		osDelay(1);
 	}
   /* USER CODE END handle_UART_OBC */
 }
