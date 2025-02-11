@@ -29,7 +29,6 @@
 #include "FRAM.h"
 #include "FPGA_UART.h"
 #include "FPGA_Data_saving.h"
-#include "GS_Telemetry.h"
 #include "uC_Data_Saving.h"
 #include "COBS.h"
 #include "Space_Packet_Protocol.h"
@@ -102,6 +101,9 @@ uint16_t uc3v_i = 0;
 uint16_t fpga3v_i = 0;
 uint16_t fpga1p5v_i = 0;
 uint16_t vbat_i = 0;
+
+uint16_t HK_SPP_APP_ID = 0;
+uint16_t HK_PUS_SOURCE_ID = 0;
 
 SemaphoreHandle_t uartSemaphore;
 
@@ -199,7 +201,7 @@ int main(void)
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* definition and creation of UART_OBC_Task */
-  osThreadDef(UART_OBC_Task, handle_UART_OBC, osPriorityNormal, 0, 128);
+  osThreadDef(UART_OBC_Task, handle_UART_OBC, osPriorityNormal, 0, 512);
   UART_OBC_TaskHandle = osThreadCreate(osThread(UART_OBC_Task), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -707,9 +709,9 @@ void StartDefaultTask(void const * argument)
     {
         current_ticks = xTaskGetTickCount();
 
-        SPP_collect_HK_data(current_ticks);
+        PUS_3_collect_HK_data(current_ticks);
 
-		SPP_periodic_HK_send();
+		PUS_3_HK_send();
 
 	    osDelay(5000);
     }

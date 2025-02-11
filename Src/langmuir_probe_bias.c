@@ -173,7 +173,7 @@ static void send_readback_ground(uint8_t* data, uint16_t data_len) {
         data_len + CRC_BYTE_LEN - 1
     );
     rb_seq_cnt++;
-    SPP_send_TM(&SPP_header, NULL, data, data_len);
+    Send_TM(&SPP_header, NULL, data, data_len);
 };
 
 static uint16_t get_sweep_table_address(uint8_t save_id) {

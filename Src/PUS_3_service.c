@@ -4,6 +4,7 @@
  *  Created on: 2024. gada 12. jūn.
  *      Author: Rūdolfs Arvīds Kalniņš <rakal@kth.se>
  */
+#include "General_Functions.h"
 #include "Space_Packet_Protocol.h"
 
 #define MAX_PAR_COUNT       16
@@ -11,26 +12,28 @@
 #define MAX_TM_DATA_LEN     (MAX_PAR_COUNT * 4) + 2 // Each parameter is potentialy 4 bytes and struct id is 2 bytes.
 #define DEF_COL_INTV        500
 #define DEF_UC_N1           3
-#define DEF_UC_PS           false
+#define DEF_UC_PS           0
 
 #define DEF_FPGA_N1         2
-#define DEF_FPGA_PS         false
+#define DEF_FPGA_PS         0
 
-#define HK_SPP_APP_ID        61  // Just some random numbers.
-#define HK_PUS_SOURCE_ID     14
+//#define HK_SPP_APP_ID        61  // Just some random numbers.
+//#define HK_PUS_SOURCE_ID     14
 
 extern uint16_t temperature_i;
 extern uint16_t uc3v_i;
 extern uint16_t fpga3v_i;
 extern uint16_t fpga1p5v_i;
 extern uint16_t vbat_i;
+extern uint16_t HK_SPP_APP_ID;
+extern uint16_t HK_PUS_SOURCE_ID;
 
 typedef struct {
     uint16_t SID;
     uint16_t collection_interval;
     uint16_t N1;
     uint32_t parameters[MAX_PAR_COUNT]; // 32 bit here for future proofing. All params currently are 16-bit.
-    bool     periodic_send;
+    uint8_t  periodic_send; // 0 - do not send, 1 - send one time, 2 - send periodically
     uint32_t last_collect_tick;
     uint32_t seq_count;
 } HK_par_report_structure_t;
@@ -71,6 +74,11 @@ HK_par_report_structure_t HKPRS_err = {
     .seq_count              = 0,
 };
 
+
+HK_par_report_structure_t* HKPRS;
+uint8_t HK_TM_data[MAX_TM_DATA_LEN];
+uint16_t HK_TM_data_len;
+
 static HK_par_report_structure_t* get_HKPRS(uint16_t SID) {
     HK_par_report_structure_t* selected_HKPRS;
     if (SID == UC_SID) {
@@ -110,6 +118,17 @@ static void fill_report_struct(uint16_t SID) {
     }  
 }
 
+void PUS_3_collect_HK_data(uint32_t current_ticks) {
+    if ((current_ticks - HKPRS_uc.last_collect_tick) > HKPRS_uc.collection_interval) {
+        fill_report_struct(HKPRS_uc.SID);
+        HKPRS_uc.last_collect_tick = current_ticks;
+    }
+    if ((current_ticks - HKPRS_fpga.last_collect_tick) > HKPRS_fpga.collection_interval) {
+        fill_report_struct(HKPRS_fpga.SID);
+        HKPRS_fpga.last_collect_tick = current_ticks;
+    }
+}
+
 
 static uint16_t encode_HK_struct(HK_par_report_structure_t* HKPRS, uint8_t* out_buffer) {
     uint8_t* orig_pointer = out_buffer;
@@ -124,50 +143,41 @@ static uint16_t encode_HK_struct(HK_par_report_structure_t* HKPRS, uint8_t* out_
 }
 
 
+void PUS_3_HK_send() {
 
-static void send_HK_struct(SPP_header_t* req_p_header , PUS_TC_header_t* req_s_header, uint8_t* data, uint16_t SID) {
-    HK_par_report_structure_t* HKPRS = get_HKPRS(SID);
-    uint8_t TM_data[MAX_TM_DATA_LEN];
-    uint16_t HK_data_len = encode_HK_struct(HKPRS, TM_data);
-    SPP_header_t TM_SPP_header = SPP_make_header(
-        SPP_VERSION,
-        SPP_PACKET_TYPE_TM,
-        1,
-        req_p_header->application_process_id,
-        SPP_SEQUENCE_SEG_UNSEG,
-        HKPRS->seq_count,
-        SPP_PUS_TM_HEADER_LEN_WO_SPARE + HK_data_len + CRC_BYTE_LEN - 1
-    );
-    PUS_TM_header_t TM_PUS_header  = PUS_make_TM_header(
-        PUS_VERSION,
-        0,
-        HOUSEKEEPING_SERVICE_ID,
-        HK_PARAMETER_REPORT,
-        0,
-        req_s_header->source_id,
-        0
-    );
-    SPP_send_TM(&TM_SPP_header, &TM_PUS_header, TM_data, HK_data_len);
-    HKPRS->seq_count++;
+	if (HKPRS_uc.periodic_send == 2 || HKPRS_uc.periodic_send == 1) {
+		if (HKPRS_uc.periodic_send == 1) {
+			HKPRS_uc.periodic_send = 0;
+		}
+
+		uint16_t tm_data_len = encode_HK_struct(&HKPRS_uc, HK_TM_data);
+
+		Add_SPP_PUS_and_send_TM(HK_SPP_APP_ID,
+							 HK_PUS_SOURCE_ID,
+							 HKPRS_uc.seq_count,
+							 HK_TM_data,
+							 tm_data_len);
+		HKPRS_uc.seq_count++;
+	}
+
+	if (HKPRS_fpga.periodic_send == 2 || HKPRS_fpga.periodic_send == 1) {
+		if (HKPRS_fpga.periodic_send == 1) {
+			HKPRS_fpga.periodic_send = 0;
+		}
+
+		uint16_t tm_data_len = encode_HK_struct(&HKPRS_fpga, HK_TM_data);
+
+		Add_SPP_PUS_and_send_TM(HK_SPP_APP_ID,
+							 HK_PUS_SOURCE_ID,
+							 HKPRS_fpga.seq_count,
+							 HK_TM_data,
+							 tm_data_len);
+		HKPRS_fpga.seq_count++;
+	}
 }
 
-static void send_one_shot(SPP_header_t* req_p_header , PUS_TC_header_t* req_s_header, uint8_t* data) {
-    uint16_t nof_structs = 0;
-    memcpy(&nof_structs, data, sizeof(nof_structs));
-    data += sizeof(nof_structs);
-    
-    uint16_t SIDs[MAX_STRUCT_COUNT];
-    for (int i = 0; i < nof_structs; i++) {
-        memcpy(&(SIDs[i]), data, sizeof(SIDs[i]));
-        data += sizeof(SIDs[i]);
-    }
-    for (int i = 0; i < nof_structs; i++) {
-        uint16_t SID = SIDs[i];
-        send_HK_struct(req_p_header, req_s_header, data, SID);
-    }
-}
 
-static void set_periodic_report(uint8_t* data, bool state) {
+static void set_report_frequency(uint8_t* data, uint8_t state) {
     uint16_t nof_SIDs = 0;
     memcpy(&nof_SIDs, data, sizeof(nof_SIDs));
     data += sizeof(nof_SIDs);
@@ -189,56 +199,8 @@ static void set_periodic_report(uint8_t* data, bool state) {
 }
 
 
-void SPP_collect_HK_data(uint32_t current_ticks) {
-    if ((current_ticks - HKPRS_uc.last_collect_tick) > HKPRS_uc.collection_interval) {
-        fill_report_struct(HKPRS_uc.SID);
-        HKPRS_uc.last_collect_tick = current_ticks;
-    }
-    if ((current_ticks - HKPRS_fpga.last_collect_tick) > HKPRS_fpga.collection_interval) {
-        fill_report_struct(HKPRS_fpga.SID);
-        HKPRS_fpga.last_collect_tick = current_ticks;
-    }
-}
-
-
-static void HK_make_headers_send(uint16_t sel_SID) {
-        HK_par_report_structure_t* HKPRS = get_HKPRS(sel_SID);
-        uint8_t TM_data[MAX_TM_DATA_LEN];
-        uint16_t HK_data_len = encode_HK_struct(HKPRS, TM_data);
-        SPP_header_t TM_SPP_header = SPP_make_header(
-            SPP_VERSION,
-            SPP_PACKET_TYPE_TM,
-            1,
-            HK_SPP_APP_ID,
-            SPP_SEQUENCE_SEG_UNSEG,
-            HKPRS->seq_count,
-            SPP_PUS_TM_HEADER_LEN_WO_SPARE + HK_data_len + CRC_BYTE_LEN - 1
-        );
-        PUS_TM_header_t TM_PUS_header  = PUS_make_TM_header(
-            PUS_VERSION,
-            0,
-            HOUSEKEEPING_SERVICE_ID,
-            HK_PARAMETER_REPORT,
-            0,
-            HK_PUS_SOURCE_ID,
-            0
-        );
-        SPP_send_TM(&TM_SPP_header, &TM_PUS_header, TM_data, HK_data_len);
-        HKPRS->seq_count++;
-}
-
-
-void SPP_periodic_HK_send() {
-    if (HKPRS_uc.periodic_send) {
-        HK_make_headers_send(UC_SID);
-    }
-    if (HKPRS_fpga.periodic_send) {
-        HK_make_headers_send(FPGA_SID);
-    }
-}
-
 // HK - Housekeeping PUS service 3
-SPP_error SPP_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* secondary_header, uint8_t* data) {
+SPP_error PUS_3_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* secondary_header, uint8_t* data) {
     if (Current_Global_Device_State != NORMAL_MODE) {
         return UNDEFINED_ERROR;
     }
@@ -246,12 +208,15 @@ SPP_error SPP_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* secondary
         return UNDEFINED_ERROR;
     }
 
-   if (secondary_header->message_subtype_id == HK_EN_PERIODIC_REPORTS) {
-        set_periodic_report(data, true);
+    HK_SPP_APP_ID = SPP_header->application_process_id;
+    HK_PUS_SOURCE_ID = secondary_header->source_id;
+
+    if (secondary_header->message_subtype_id == HK_ONE_SHOT) {
+    	set_report_frequency(data, 1);
+	}else if (secondary_header->message_subtype_id == HK_EN_PERIODIC_REPORTS) {
+		set_report_frequency(data, 2);
     } else if (secondary_header->message_subtype_id == HK_DIS_PERIODIC_REPORTS) {
-        set_periodic_report(data, false);
-    } else if (secondary_header->message_subtype_id == HK_ONE_SHOT) {
-        send_one_shot(SPP_header, secondary_header, data);
+    	set_report_frequency(data, 0);
     }
     return SPP_OK;
 }

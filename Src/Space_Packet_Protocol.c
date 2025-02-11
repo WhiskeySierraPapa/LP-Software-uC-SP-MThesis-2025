@@ -31,29 +31,13 @@ uint8_t OBCTxBuffer[COBS_FRAME_LEN];
 
 
 // NONSTATIC FOR TESTING PURPOSES
-/* static */ SPP_error SPP_UART_transmit_DMA(uint8_t* data, uint16_t data_len) {
+/* static */ SPP_error SPP_UART_transmit(uint8_t* data, uint16_t data_len) {
 	*(data + data_len) = 0x00; // Adding sentinel value.
 	data_len++;
-//    HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, data, data_len);
-//    HAL_UART_Transmit(&SPP_OBC_UART, data, data_len, 100);
+    HAL_UART_Transmit(&SPP_DEBUG_UART, data, data_len, 100);
+    HAL_UART_Transmit(&SPP_OBC_UART, data, data_len, 100);
     return SPP_OK;
 }
-
-
-SPP_error SPP_DLog(char* data){
-//    HAL_UART_Transmit_DMA(&SPP_DEBUG_UART, (uint8_t*)data, strlen(data));
-	HAL_Delay(5);
-    return SPP_OK;
-}
-
-
-static SPP_error SPP_reset_UART_recv_DMA() {
-    //HAL_UART_Receive_DMA(&SPP_DEBUG_UART, DEBUG_Space_Packet_Data_Buffer, 1);
-    //HAL_UART_Receive_DMA(&SPP_OBC_UART, OBC_Space_Packet_Data_Buffer, 1);
-//    HAL_UART_Receive_DMA(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
-//    HAL_UART_Receive_DMA(&SPP_OBC_UART, &SPP_OBC_recv_char, 1);
-    return SPP_OK;
-};
 
 
 // CRC16-CCITT
@@ -163,7 +147,7 @@ static SPP_error SPP_add_data_to_packet(uint8_t* data, uint16_t data_len, uint8_
 // TODO: Test if this works.
 // This function combines the SPP, PUS headers, data and appends a calculated CRC
 void SPP_prepare_full_msg(SPP_header_t* resp_SPP_header, PUS_TM_header_t* 
-response_secondary_header, uint8_t* data, uint16_t data_len, uint8_t* OUT_full_msg,
+resp_PUS_header, uint8_t* data, uint16_t data_len, uint8_t* OUT_full_msg,
  uint16_t* OUT_full_msg_len ) {
 
     uint8_t* current_pointer = OUT_full_msg;
@@ -174,8 +158,8 @@ response_secondary_header, uint8_t* data, uint16_t data_len, uint8_t* OUT_full_m
     packet_total_len = current_pointer - OUT_full_msg;
 
 
-    if (response_secondary_header != NULL) {
-        PUS_encode_TM_header(response_secondary_header, current_pointer);
+    if (resp_PUS_header != NULL) {
+        PUS_encode_TM_header(resp_PUS_header, current_pointer);
         current_pointer += SPP_PUS_TM_HEADER_LEN_WO_SPARE;
         packet_total_len = current_pointer - OUT_full_msg;
     }
@@ -194,47 +178,23 @@ response_secondary_header, uint8_t* data, uint16_t data_len, uint8_t* OUT_full_m
 }
 
 
-SPP_error SPP_send_TM(SPP_header_t* resp_SPP_header, PUS_TM_header_t* response_secondary_header, uint8_t* data, uint16_t data_len) {
-    uint8_t response_TM_packet[SPP_MAX_PACKET_LEN];
-    uint8_t response_TM_packet_COBS[SPP_MAX_PACKET_LEN];
-    for(int i = 0; i < SPP_MAX_PACKET_LEN; i++) {
-        response_TM_packet[i] = 0x00;
-        response_TM_packet_COBS[i] = 0x00;
-    }
-    uint16_t packet_total_len = 0;
-/*
-    uint8_t* current_pointer = response_TM_packet;
-    uint16_t packet_total_len = current_pointer - response_TM_packet;
-
-    SPP_encode_header(resp_SPP_header, current_pointer);
-    current_pointer += SPP_PRIMARY_HEADER_LEN;
-    packet_total_len = current_pointer - response_TM_packet;
-
-
-    if (response_secondary_header != NULL) {
-        PUS_encode_TM_header(response_secondary_header, current_pointer);
-        current_pointer += SPP_PUS_TM_HEADER_LEN_WO_SPARE;
-        packet_total_len = current_pointer - response_TM_packet;
-    }
-
-    if (data != NULL) {
-        SPP_add_data_to_packet(data, data_len, current_pointer);
-        current_pointer += data_len;
-        packet_total_len = current_pointer - response_TM_packet;
-    }
-
-    SPP_add_CRC_to_msg(response_TM_packet, packet_total_len, current_pointer);
-    current_pointer += CRC_BYTE_LEN;
-    packet_total_len = current_pointer - response_TM_packet;
-*/
-    SPP_prepare_full_msg(resp_SPP_header, response_secondary_header, data, data_len, response_TM_packet, &packet_total_len);
-
-    uint16_t cobs_packet_total_len = COBS_encode(response_TM_packet, packet_total_len, response_TM_packet_COBS);
- 
-    memcpy(OBCTxBuffer, response_TM_packet_COBS, cobs_packet_total_len);
-//    SPP_UART_transmit_DMA(OBCTxBuffer, cobs_packet_total_len);
-    return SPP_OK;
-}
+//SPP_error SPP_send_TM(SPP_header_t* resp_SPP_header, PUS_TM_header_t* resp_PUS_header, uint8_t* data, uint16_t data_len) {
+//    uint8_t response_TM_packet[SPP_MAX_PACKET_LEN];
+//    uint8_t response_TM_packet_COBS[SPP_MAX_PACKET_LEN];
+//    for(int i = 0; i < SPP_MAX_PACKET_LEN; i++) {
+//        response_TM_packet[i] = 0x00;
+//        response_TM_packet_COBS[i] = 0x00;
+//    }
+//    uint16_t packet_total_len = 0;
+//
+//    SPP_prepare_full_msg(resp_SPP_header, resp_PUS_header, data, data_len, response_TM_packet, &packet_total_len);
+//
+//    uint16_t cobs_packet_total_len = COBS_encode(response_TM_packet, packet_total_len, response_TM_packet_COBS);
+//
+//    memcpy(OBCTxBuffer, response_TM_packet_COBS, cobs_packet_total_len);
+//    SPP_UART_transmit(OBCTxBuffer, cobs_packet_total_len);
+//    return SPP_OK;
+//}
 
 
 
@@ -287,12 +247,17 @@ SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
 		uint8_t* data = SPP_buffer + SPP_PRIMARY_HEADER_LEN + SPP_PUS_TC_HEADER_LEN_WO_SPARE;
 
 		if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID) {
-			SPP_handle_HK_TC(&SPP_primary_header, &PUS_TC_header, data);
+			send_succ_acc(&SPP_primary_header, &PUS_TC_header);
+//			uint8_t data_aux = 23;
+//			HAL_UART_Transmit(&SPP_OBC_UART, &data_aux, 1, 100);
+			PUS_3_handle_HK_TC(&SPP_primary_header, &PUS_TC_header, data);
 		}
 		else if (PUS_TC_header.service_type_id == FUNCTION_MANAGEMNET_ID) {
+//			send_succ_acc(&SPP_primary_header, &PUS_TC_header);
 			SPP_handle_FM_TC(&SPP_primary_header, &PUS_TC_header, data);
 		}
 		else if (PUS_TC_header.service_type_id == TEST_SERVICE_ID) {
+//			send_succ_acc(&SPP_primary_header, &PUS_TC_header);
 			SPP_handle_TEST_TC(&SPP_primary_header, &PUS_TC_header);
 		} else {
 			send_fail_acc(&SPP_primary_header, &PUS_TC_header);

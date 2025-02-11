@@ -211,9 +211,9 @@ void send_fail_comp (SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
 
 
 /* PUS_3_service */
-SPP_error SPP_handle_HK_TC(SPP_header_t* primary_header, PUS_TC_header_t* secondary_header, uint8_t* data);
-void SPP_collect_HK_data(uint32_t current_ticks);
-void SPP_periodic_HK_send();
+SPP_error PUS_3_handle_HK_TC(SPP_header_t* primary_header, PUS_TC_header_t* secondary_header, uint8_t* data);
+void PUS_3_collect_HK_data(uint32_t current_ticks);
+void PUS_3_HK_send();
 
 /* PUS_8_service */
 SPP_error SPP_handle_FM_TC(SPP_header_t* SPP_header , PUS_TC_header_t* secondary_header, uint8_t* data);
@@ -224,5 +224,5 @@ SPP_error SPP_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_
 
 
 
-SPP_error SPP_UART_transmit_DMA(uint8_t* data, uint16_t data_len);
+SPP_error SPP_UART_transmit(uint8_t* data, uint16_t data_len);
 #endif /* SPACE_PACKET_PROTOCOL_H_ */

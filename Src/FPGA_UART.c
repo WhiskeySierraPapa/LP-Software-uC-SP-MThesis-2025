@@ -142,9 +142,9 @@ void HandleConsole() {
 	  }
 	  else if (strcmp(cmd, "format") == 0) {
 		  FPGA_Transmit("\n\r\n\rClosing FPGA & uC data files...\n\r");
-		  FPGAFileOpen = 0;
+//		  FPGAFileOpen = 0;
 		  uCFileOpen = 0;
-		  f_close(&FPGADataFile);
+//		  f_close(&FPGADataFile);
 		  f_close(&uCDataFile);
 		  FPGA_Transmit("Formatting SD card...\n\r");
 
@@ -161,7 +161,7 @@ void HandleConsole() {
 		  openUCDataFile();
 		  openFPGADataFile();
 		  uCFileOpen = 1;
-		  FPGAFileOpen = 1;
+//		  FPGAFileOpen = 1;
 
 		  HAL_UART_Receive_DMA(&huart5, FPGARxBuffer, 1);
 	  }

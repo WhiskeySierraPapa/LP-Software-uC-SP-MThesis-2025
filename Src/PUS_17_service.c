@@ -49,7 +49,7 @@ SPP_error SPP_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_
             0
         );
         
-        SPP_send_TM(&resp_SPP_header, &resp_PUS_TM_header, NULL, 0);
+        Send_TM(&resp_SPP_header, &resp_PUS_TM_header, NULL, 0);
         send_succ_comp(req_SPP_header, req_PUS_header);
     }
 

@@ -26,15 +26,17 @@ static SPP_error SPP_send_req_ver(SPP_header_t* req_SPP_header, PUS_TC_header_t*
 
     SPP_header_t resp_SPP_header;
     PUS_TM_header_t resp_PUS_TM_header;
-    uint8_t data[SPP_PRIMARY_HEADER_LEN];
+//    uint8_t data[SPP_PRIMARY_HEADER_LEN];
+
+    uint8_t data ;
 
     resp_SPP_header = SPP_make_header(
         SPP_VERSION,
         SPP_PACKET_TYPE_TM,
-        req_SPP_header->secondary_header_flag,
-        req_SPP_header->application_process_id,
+        1,
+        1,
         SPP_SEQUENCE_SEG_UNSEG,
-        req_SPP_header->packet_sequence_count,
+        0,
         SPP_PUS_TM_HEADER_LEN_WO_SPARE + SPP_PRIMARY_HEADER_LEN + CRC_BYTE_LEN - 1
     );
     // Create response PUS TM header with 1,requested_ACK
@@ -44,15 +46,15 @@ static SPP_error SPP_send_req_ver(SPP_header_t* req_SPP_header, PUS_TC_header_t*
         REQUEST_VERIFICATION_SERVICE_ID,
         requested_ACK,
         0,
-        req_PUS_header->source_id,
+        1,
         0
     );
 
     // Data sent in request verification is the request primary header itself.
     // Thus we need to copy it into the data field of the response.
-    SPP_encode_header(req_SPP_header, data);
+//    SPP_encode_header(req_SPP_header, data);
 
-    SPP_send_TM(&resp_SPP_header, &resp_PUS_TM_header, data, SPP_PRIMARY_HEADER_LEN);
+    Send_TM(&resp_SPP_header, &resp_PUS_TM_header, &data, 1);
     return SPP_OK;
 }
 

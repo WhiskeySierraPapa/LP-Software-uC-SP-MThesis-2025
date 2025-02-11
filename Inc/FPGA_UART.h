@@ -4,7 +4,6 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "FRAM.h"
-#include "GS_Telemetry.h"
 #include "uC_Data_Saving.h"
 #include <stdio.h>
 #include <stdlib.h>
