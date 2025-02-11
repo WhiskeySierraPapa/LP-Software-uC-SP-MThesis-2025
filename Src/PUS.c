@@ -5,6 +5,7 @@
  *      Author: Rūdolfs Arvīds Kalniņš <rakal@kth.se>
  */
 #include "Space_Packet_Protocol.h"
+#include "PUS.h"
 
 SPP_error PUS_decode_TC_header(uint8_t* raw_header, PUS_TC_header_t* secondary_header) {
     secondary_header->PUS_version_number = (raw_header[0] & 0xF0) >> 4;

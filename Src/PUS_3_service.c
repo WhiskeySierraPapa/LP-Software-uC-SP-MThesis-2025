@@ -153,10 +153,13 @@ void PUS_3_HK_send() {
 		uint16_t tm_data_len = encode_HK_struct(&HKPRS_uc, HK_TM_data);
 
 		Add_SPP_PUS_and_send_TM(HK_SPP_APP_ID,
-							 HK_PUS_SOURCE_ID,
-							 HKPRS_uc.seq_count,
-							 HK_TM_data,
-							 tm_data_len);
+								1,
+								HKPRS_uc.seq_count,
+								HK_PUS_SOURCE_ID,
+								HOUSEKEEPING_SERVICE_ID,
+								HK_PARAMETER_REPORT,
+								HK_TM_data,
+								tm_data_len);
 		HKPRS_uc.seq_count++;
 	}
 
@@ -168,10 +171,13 @@ void PUS_3_HK_send() {
 		uint16_t tm_data_len = encode_HK_struct(&HKPRS_fpga, HK_TM_data);
 
 		Add_SPP_PUS_and_send_TM(HK_SPP_APP_ID,
-							 HK_PUS_SOURCE_ID,
-							 HKPRS_fpga.seq_count,
-							 HK_TM_data,
-							 tm_data_len);
+								1,
+								HKPRS_fpga.seq_count,
+								HK_PUS_SOURCE_ID,
+								HOUSEKEEPING_SERVICE_ID,
+								HK_PARAMETER_REPORT,
+								HK_TM_data,
+								tm_data_len);
 		HKPRS_fpga.seq_count++;
 	}
 }

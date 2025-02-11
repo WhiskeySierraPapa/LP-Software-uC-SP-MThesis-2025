@@ -87,54 +87,6 @@ typedef enum {
     UNDEFINED_ERROR                         = -127,
 } SPP_error;
 
-typedef enum {
-    REQUEST_VERIFICATION_SERVICE_ID      = 1,
-    HOUSEKEEPING_SERVICE_ID              = 3,
-    FUNCTION_MANAGEMNET_ID               = 8,
-    TEST_SERVICE_ID                      = 17,
-} PUS_Service_ID;
-
-// Request Verification service [1] subtype IDs
-typedef enum { // ALL TM
-    RV_SUCC_ACCEPTANCE_VERIFICATION_ID     = 1,
-    RV_FAIL_ACCEPTANCE_VERIFICATION_ID     = 2,
-    RV_SUCC_START_OF_EXEC_VERIFICATION_ID  = 3,
-    RV_FAIL_START_OF_EXEC_VERIFICATION_ID  = 4,
-    RV_SUCC_PROG_OF_EXEC_VERIFICATION_ID   = 5,
-    RV_FAIL_PROG_OF_EXEC_VERIFICATION_ID   = 6,
-    RV_SUCC_COMPL_OF_EXEC_VERIFICATION_ID  = 7,
-    RV_FAIL_COMPL_OF_EXEC_VERIFICATION_ID  = 8,
-} PUS_RV_Subtype_ID;
-
-
-
-// House Keeping service [3] subtype IDs
-typedef enum {
-    HK_CREATE_HK_PAR_REPORT_STRUCT         = 1,  // TC
-    HK_DELETE_HK_PAR_REPORT_STRUCT         = 3,  // TC
-    HK_EN_PERIODIC_REPORTS                 = 5,  // TC
-    HK_DIS_PERIODIC_REPORTS                = 6,  // TC
-    HK_REPORT_HK_PAR_REPORT_STRUCT         = 9,  // TC
-    HK_REPORT_HK_PAR_REPORT_STRUCT_REPORT  = 10, // TM (response to 9)
-    HK_PARAMETER_REPORT                    = 25, // TM
-    HK_ONE_SHOT                            = 27, // TC
-} PUS_HK_Subtype_ID;
-
-
-// Function Management [8] subtype IDs
-typedef enum {
-    FM_PERFORM_FUNCTION                    = 1,  // TC
-} PUS_FM_Subtype_ID;
-
-
-// Test (Ping) service [17] subtype IDS
-typedef enum {
-    T_ARE_YOU_ALIVE_TEST_ID              = 1, // TC
-    T_ARE_YOU_ALIVE_TEST_REPORT_ID       = 2, // TM
-    T_ON_BOARD_CONN_TEST_ID              = 3, // TC
-    T_ON_BOARD_CONN_TEST_REPORT_ID       = 4, // TM
-} PUS_T_Subtype_ID;
-
 
 // Actual bit widths added as comments. Using bitmaps and just memcpy didnt work. Idk why.
 typedef struct {
@@ -147,33 +99,13 @@ typedef struct {
 	uint16_t packet_data_length;    // 16
 } SPP_header_t;
 
-typedef struct {
-    uint8_t  PUS_version_number;    // 4
-    uint8_t  ACK_flags;             // 4
-    uint8_t  service_type_id;       // 8
-    uint8_t  message_subtype_id;    // 8
-    uint16_t source_id;             // 16
-    uint32_t spare;                 
-} PUS_TC_header_t;
-
-typedef struct {
-    uint8_t  PUS_version_number;    // 4
-    uint8_t  sc_time_ref_status;    // 4
-    uint8_t  service_type_id;       // 8
-    uint8_t  message_subtype_id;    // 8
-    uint16_t message_type_counter;  // 16
-    uint16_t destination_id;        // 16
-    uint16_t time;                  // 16
-    uint32_t spare;
-} PUS_TM_header_t;
-
-
 
 /* SPP */
 SPP_error SPP_extract_packet_data(uint8_t* packet, uint8_t* data, uint16_t* ret_data_len, SPP_header_t* decoded_out_header);
 SPP_error SPP_encode_header(SPP_header_t* primary_header, uint8_t* result_buffer);
 SPP_error SPP_decode_header(uint8_t* raw_header, SPP_header_t* primary_header);
-
+SPP_error SPP_add_CRC_to_msg(uint8_t* packet, uint16_t length, uint8_t* output);
+SPP_error SPP_add_data_to_packet(uint8_t* data, uint16_t data_len, uint8_t* packet);
 SPP_error SPP_validate_checksum(uint8_t* packet, uint16_t packet_length);
 
 SPP_error SPP_handle_incoming_TC(SPP_TC_source);
@@ -181,48 +113,6 @@ void SPP_Callback();
 
 SPP_header_t SPP_make_header(uint8_t packet_version_number, uint8_t packet_type, uint8_t secondary_header_flag, uint16_t application_process_id, uint8_t sequence_flags, uint16_t packet_sequence_count, uint16_t packet_data_length);
 
-SPP_error SPP_send_TM(SPP_header_t* resp_SPP_header, PUS_TM_header_t* response_secondary_header, uint8_t* data, uint16_t data_len);
-
 SPP_error SPP_DLog(char* data);
 
-void SPP_prepare_full_msg(SPP_header_t* resp_SPP_header, PUS_TM_header_t* 
-response_secondary_header, uint8_t* data, uint16_t data_len, uint8_t* OUT_full_msg,
- uint16_t* OUT_full_msg_len );
-/* PUS */
-PUS_TM_header_t PUS_make_TM_header(uint8_t PUS_version_number, uint8_t sc_time_ref_status, uint8_t service_type_id,
-                                uint8_t message_subtype_id, uint16_t message_type_counter, uint16_t destination_id, uint16_t time);
-
-SPP_error PUS_decode_TC_header(uint8_t* raw_header, PUS_TC_header_t* secondary_header);
-SPP_error PUS_encode_TC_header(PUS_TC_header_t* secondary_header, uint8_t* result_buffer);
-SPP_error PUS_decode_TM_header(uint8_t* raw_header, PUS_TM_header_t* secondary_header);
-SPP_error PUS_encode_TM_header(PUS_TM_header_t* secondary_header, uint8_t* result_buffer);
-
-
-/* PUS_1_service */
-void send_succ_acc  (SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
-void send_fail_acc  (SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
-void send_succ_start(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
-void send_fail_start(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
-void send_succ_prog (SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
-void send_fail_prog (SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
-void send_succ_comp (SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
-void send_fail_comp (SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h);
-
-
-
-/* PUS_3_service */
-SPP_error PUS_3_handle_HK_TC(SPP_header_t* primary_header, PUS_TC_header_t* secondary_header, uint8_t* data);
-void PUS_3_collect_HK_data(uint32_t current_ticks);
-void PUS_3_HK_send();
-
-/* PUS_8_service */
-SPP_error SPP_handle_FM_TC(SPP_header_t* SPP_header , PUS_TC_header_t* secondary_header, uint8_t* data);
-
-/* PUS_17_service */
-SPP_error SPP_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_PUS_header);
-
-
-
-
-SPP_error SPP_UART_transmit(uint8_t* data, uint16_t data_len);
 #endif /* SPACE_PACKET_PROTOCOL_H_ */

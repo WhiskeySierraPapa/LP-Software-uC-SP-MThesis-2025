@@ -5,7 +5,8 @@
  *      Author: Rūdolfs Arvīds Kalniņš <rakal@kth.se>
  */
 #include "Space_Packet_Protocol.h"
-
+#include "General_Functions.h"
+#include "PUS_1_service.h"
 
 
 SPP_error SPP_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_PUS_header) {
@@ -22,9 +23,9 @@ SPP_error SPP_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_
         SPP_header_t resp_SPP_header;
         PUS_TM_header_t resp_PUS_TM_header;
         
-        send_succ_acc(req_SPP_header, req_PUS_header);
+        PUS_1_send_succ_acc(req_SPP_header, req_PUS_header);
         
-        send_succ_start(req_SPP_header, req_PUS_header);
+        PUS_1_send_succ_start(req_SPP_header, req_PUS_header);
 
         resp_SPP_header = SPP_make_header(
             SPP_VERSION,
@@ -36,7 +37,7 @@ SPP_error SPP_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_
             SPP_PUS_TM_HEADER_LEN_WO_SPARE + CRC_BYTE_LEN - 1
         );
 
-        send_succ_prog(req_SPP_header, req_PUS_header);
+        PUS_1_send_succ_prog(req_SPP_header, req_PUS_header);
 
         // Create response PUS TM header with 17,2
         resp_PUS_TM_header = PUS_make_TM_header(
@@ -50,7 +51,7 @@ SPP_error SPP_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_
         );
         
         Send_TM(&resp_SPP_header, &resp_PUS_TM_header, NULL, 0);
-        send_succ_comp(req_SPP_header, req_PUS_header);
+        PUS_1_send_succ_comp(req_SPP_header, req_PUS_header);
     }
 
     return SPP_OK;

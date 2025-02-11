@@ -4,7 +4,7 @@
  *  Created on: 2024. gada 31. jūl.
  *      Author: Rūdolfs Arvīds Kalniņš <rakal@kth.se>
  */
-
+#include "General_Functions.h"
 #include "langmuir_probe_bias.h"
 #include "FPGA_UART.h"
 
@@ -244,7 +244,7 @@ void handle_scientific_data_packet() {
         );
         uint8_t temp_SPP_packet[128];
         uint16_t SPP_packet_len;
-        SPP_prepare_full_msg(&SC_SPP_header, NULL, scientific_cb_data_packet + 1, SC_CB_PACKET_RAW_DATA_LEN, temp_SPP_packet, &SPP_packet_len);
+        Prepare_full_msg(&SC_SPP_header, NULL, scientific_cb_data_packet + 1, SC_CB_PACKET_RAW_DATA_LEN, temp_SPP_packet, &SPP_packet_len);
 
         
     }

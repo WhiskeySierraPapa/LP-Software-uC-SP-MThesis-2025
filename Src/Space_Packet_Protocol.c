@@ -6,6 +6,11 @@
  */
 
 #include "Space_Packet_Protocol.h"
+#include "PUS.h"
+#include "PUS_1_service.h"
+#include "PUS_3_service.h"
+#include "PUS_8_service.h"
+#include "PUS_17_service.h"
 #include <stdio.h>
 
 uint8_t DEBUG_Space_Packet_Data_Buffer[256];
@@ -28,16 +33,6 @@ uint8_t OBCTxBuffer[COBS_FRAME_LEN];
 //uint8_t OBCTxBuffer[COBS_FRAME_LEN];
 //uint16_t SPP_OBC_recv_count = 0;
 //uint8_t SPP_OBC_recv_char = 0xff;
-
-
-// NONSTATIC FOR TESTING PURPOSES
-/* static */ SPP_error SPP_UART_transmit(uint8_t* data, uint16_t data_len) {
-	*(data + data_len) = 0x00; // Adding sentinel value.
-	data_len++;
-    HAL_UART_Transmit(&SPP_DEBUG_UART, data, data_len, 100);
-    HAL_UART_Transmit(&SPP_OBC_UART, data, data_len, 100);
-    return SPP_OK;
-}
 
 
 // CRC16-CCITT
@@ -132,70 +127,17 @@ static inline uint16_t byte_swap16(uint16_t value) {
 }
 
 
-static SPP_error SPP_add_CRC_to_msg(uint8_t* packet, uint16_t length, uint8_t* output) {
+SPP_error SPP_add_CRC_to_msg(uint8_t* packet, uint16_t length, uint8_t* output) {
     uint16_t calculated_CRC = SPP_calc_CRC16(packet, length);
     uint16_t bs_CRC = byte_swap16(calculated_CRC); // (byteswapped CRC) - memcpy copies starting from LSB thus we swap.
     memcpy(output, &bs_CRC, CRC_BYTE_LEN);
     return SPP_OK;
 }
 
-static SPP_error SPP_add_data_to_packet(uint8_t* data, uint16_t data_len, uint8_t* packet) {
+SPP_error SPP_add_data_to_packet(uint8_t* data, uint16_t data_len, uint8_t* packet) {
     memcpy(packet, data, data_len);
     return SPP_OK;
 }
-
-// TODO: Test if this works.
-// This function combines the SPP, PUS headers, data and appends a calculated CRC
-void SPP_prepare_full_msg(SPP_header_t* resp_SPP_header, PUS_TM_header_t* 
-resp_PUS_header, uint8_t* data, uint16_t data_len, uint8_t* OUT_full_msg,
- uint16_t* OUT_full_msg_len ) {
-
-    uint8_t* current_pointer = OUT_full_msg;
-    uint16_t packet_total_len = current_pointer - OUT_full_msg;
-
-    SPP_encode_header(resp_SPP_header, current_pointer);
-    current_pointer += SPP_PRIMARY_HEADER_LEN;
-    packet_total_len = current_pointer - OUT_full_msg;
-
-
-    if (resp_PUS_header != NULL) {
-        PUS_encode_TM_header(resp_PUS_header, current_pointer);
-        current_pointer += SPP_PUS_TM_HEADER_LEN_WO_SPARE;
-        packet_total_len = current_pointer - OUT_full_msg;
-    }
-
-    if (data != NULL) {
-        SPP_add_data_to_packet(data, data_len, current_pointer);
-        current_pointer += data_len;
-        packet_total_len = current_pointer - OUT_full_msg;
-    }
-
-    SPP_add_CRC_to_msg(OUT_full_msg, packet_total_len, current_pointer);
-    current_pointer += CRC_BYTE_LEN;
-    packet_total_len = current_pointer - OUT_full_msg;
-
-    *OUT_full_msg_len = packet_total_len;
-}
-
-
-//SPP_error SPP_send_TM(SPP_header_t* resp_SPP_header, PUS_TM_header_t* resp_PUS_header, uint8_t* data, uint16_t data_len) {
-//    uint8_t response_TM_packet[SPP_MAX_PACKET_LEN];
-//    uint8_t response_TM_packet_COBS[SPP_MAX_PACKET_LEN];
-//    for(int i = 0; i < SPP_MAX_PACKET_LEN; i++) {
-//        response_TM_packet[i] = 0x00;
-//        response_TM_packet_COBS[i] = 0x00;
-//    }
-//    uint16_t packet_total_len = 0;
-//
-//    SPP_prepare_full_msg(resp_SPP_header, resp_PUS_header, data, data_len, response_TM_packet, &packet_total_len);
-//
-//    uint16_t cobs_packet_total_len = COBS_encode(response_TM_packet, packet_total_len, response_TM_packet_COBS);
-//
-//    memcpy(OBCTxBuffer, response_TM_packet_COBS, cobs_packet_total_len);
-//    SPP_UART_transmit(OBCTxBuffer, cobs_packet_total_len);
-//    return SPP_OK;
-//}
-
 
 
 // Function that processes incoming TC
@@ -247,20 +189,18 @@ SPP_error SPP_handle_incoming_TC(SPP_TC_source source) {
 		uint8_t* data = SPP_buffer + SPP_PRIMARY_HEADER_LEN + SPP_PUS_TC_HEADER_LEN_WO_SPARE;
 
 		if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID) {
-			send_succ_acc(&SPP_primary_header, &PUS_TC_header);
-//			uint8_t data_aux = 23;
-//			HAL_UART_Transmit(&SPP_OBC_UART, &data_aux, 1, 100);
+			PUS_1_send_succ_acc(&SPP_primary_header, &PUS_TC_header);
 			PUS_3_handle_HK_TC(&SPP_primary_header, &PUS_TC_header, data);
 		}
 		else if (PUS_TC_header.service_type_id == FUNCTION_MANAGEMNET_ID) {
-//			send_succ_acc(&SPP_primary_header, &PUS_TC_header);
+			PUS_1_send_succ_acc(&SPP_primary_header, &PUS_TC_header);
 			SPP_handle_FM_TC(&SPP_primary_header, &PUS_TC_header, data);
 		}
 		else if (PUS_TC_header.service_type_id == TEST_SERVICE_ID) {
-//			send_succ_acc(&SPP_primary_header, &PUS_TC_header);
+			PUS_1_send_succ_acc(&SPP_primary_header, &PUS_TC_header);
 			SPP_handle_TEST_TC(&SPP_primary_header, &PUS_TC_header);
 		} else {
-			send_fail_acc(&SPP_primary_header, &PUS_TC_header);
+			PUS_1_send_fail_acc(&SPP_primary_header, &PUS_TC_header);
 			return SPP_UNHANDLED_PUS_ID;
 		}
     }

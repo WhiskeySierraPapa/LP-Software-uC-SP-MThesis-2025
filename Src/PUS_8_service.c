@@ -7,8 +7,10 @@
 
 
 #include "Space_Packet_Protocol.h"
+#include "PUS.h"
 #include "device_state.h"
 #include "langmuir_probe_bias.h"
+#include "PUS_1_service.h"
 
 typedef enum {
     CPY_TABLE_FRAM_TO_FPGA = 0xE0,
@@ -144,10 +146,10 @@ SPP_error SPP_handle_FM_TC(SPP_header_t* SPP_header , PUS_TC_header_t* secondary
     }
 
     if (secondary_header->message_subtype_id == FM_PERFORM_FUNCTION) {
-        send_succ_acc(SPP_header, secondary_header);
+    	PUS_1_send_succ_acc(SPP_header, secondary_header);
         err = perform_function(SPP_header, secondary_header, data);
     } else {
-        send_fail_acc(SPP_header, secondary_header);
+    	PUS_1_send_fail_acc(SPP_header, secondary_header);
         err = SPP_UNHANDLED_PUS_ID;
     }
 
