@@ -6,9 +6,11 @@
  */
 #include "Space_Packet_Protocol.h"
 #include "PUS.h"
+#include "PUS_1_service.h"
 
 #ifndef PUS_3_SERVICE_H_
 #define PUS_3_SERVICE_H_
+
 
 /* PUS_3_service */
 SPP_error PUS_3_handle_HK_TC(SPP_header_t* primary_header, PUS_TC_header_t* secondary_header, uint8_t* data);

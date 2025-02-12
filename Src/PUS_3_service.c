@@ -6,6 +6,10 @@
  */
 #include "General_Functions.h"
 #include "Space_Packet_Protocol.h"
+#include "PUS_1_service.h"
+
+#include "FreeRTOS.h"
+#include "queue.h"
 
 #define MAX_PAR_COUNT       16
 #define MAX_STRUCT_COUNT    16
@@ -78,6 +82,11 @@ HK_par_report_structure_t HKPRS_err = {
 HK_par_report_structure_t* HKPRS;
 uint8_t HK_TM_data[MAX_TM_DATA_LEN];
 uint16_t HK_TM_data_len;
+
+// This queue is used to receive info from the UART handler task regarding the ACK fields
+osMessageQId PUS_3_Queue;
+ACK_info_structure PUS_3_ACK_data_to_receive;
+
 
 static HK_par_report_structure_t* get_HKPRS(uint16_t SID) {
     HK_par_report_structure_t* selected_HKPRS;
@@ -152,10 +161,10 @@ void PUS_3_HK_send() {
 
 		uint16_t tm_data_len = encode_HK_struct(&HKPRS_uc, HK_TM_data);
 
-		Add_SPP_PUS_and_send_TM(HK_SPP_APP_ID,
+		Add_SPP_PUS_and_send_TM(PUS_3_ACK_data_to_receive.SPP_header.application_process_id,
 								1,
 								HKPRS_uc.seq_count,
-								HK_PUS_SOURCE_ID,
+								PUS_3_ACK_data_to_receive.PUS_TC_header.source_id,
 								HOUSEKEEPING_SERVICE_ID,
 								HK_PARAMETER_REPORT,
 								HK_TM_data,
@@ -170,10 +179,10 @@ void PUS_3_HK_send() {
 
 		uint16_t tm_data_len = encode_HK_struct(&HKPRS_fpga, HK_TM_data);
 
-		Add_SPP_PUS_and_send_TM(HK_SPP_APP_ID,
+		Add_SPP_PUS_and_send_TM(PUS_3_ACK_data_to_receive.SPP_header.application_process_id,
 								1,
 								HKPRS_fpga.seq_count,
-								HK_PUS_SOURCE_ID,
+								PUS_3_ACK_data_to_receive.PUS_TC_header.source_id,
 								HOUSEKEEPING_SERVICE_ID,
 								HK_PARAMETER_REPORT,
 								HK_TM_data,
@@ -206,23 +215,41 @@ static void set_report_frequency(uint8_t* data, uint8_t state) {
 
 
 // HK - Housekeeping PUS service 3
-SPP_error PUS_3_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* secondary_header, uint8_t* data) {
-    if (Current_Global_Device_State != NORMAL_MODE) {
-        return UNDEFINED_ERROR;
-    }
-    if (secondary_header == NULL) {
+SPP_error PUS_3_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_header, uint8_t* data) {
+    if (Current_Global_Device_State != NORMAL_MODE || PUS_TC_header == NULL) {
         return UNDEFINED_ERROR;
     }
 
     HK_SPP_APP_ID = SPP_header->application_process_id;
-    HK_PUS_SOURCE_ID = secondary_header->source_id;
+    HK_PUS_SOURCE_ID = PUS_TC_header->source_id;
 
-    if (secondary_header->message_subtype_id == HK_ONE_SHOT) {
-    	set_report_frequency(data, 1);
-	}else if (secondary_header->message_subtype_id == HK_EN_PERIODIC_REPORTS) {
-		set_report_frequency(data, 2);
-    } else if (secondary_header->message_subtype_id == HK_DIS_PERIODIC_REPORTS) {
-    	set_report_frequency(data, 0);
+    // Prepare ACK data
+    ACK_info_structure PUS_3_ACK_data_to_send;
+    PUS_3_ACK_data_to_send.SPP_header = *SPP_header;
+    PUS_3_ACK_data_to_send.PUS_TC_header = *PUS_TC_header;
+
+    // Define report frequency and handle different message subtypes
+    uint8_t report_frequency = 0;
+
+    switch (PUS_TC_header->message_subtype_id) {
+        case HK_ONE_SHOT:
+            report_frequency = 1;
+            break;
+        case HK_EN_PERIODIC_REPORTS:
+            report_frequency = 2;
+            break;
+        case HK_DIS_PERIODIC_REPORTS:
+            report_frequency = 0;
+            break;
+        default:
+            return UNDEFINED_ERROR;  // Invalid message subtype
     }
+
+    // Send ACK data to queue and update report frequency
+    if (xQueueSend(PUS_3_Queue, &PUS_3_ACK_data_to_send, 0) == pdPASS) {
+        set_report_frequency(data, report_frequency);
+        PUS_1_send_succ_start(SPP_header, PUS_TC_header);
+    }
+
     return SPP_OK;
 }

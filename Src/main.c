@@ -32,6 +32,11 @@
 #include "uC_Data_Saving.h"
 #include "COBS.h"
 #include "Space_Packet_Protocol.h"
+#include "PUS.h"
+#include "PUS_1_service.h"
+#include "PUS_3_service.h"
+#include "PUS_8_service.h"
+#include "PUS_17_service.h"
 #include "langmuir_probe_bias.h"
 #include "device_state.h"
 /* USER CODE END Includes */
@@ -66,7 +71,7 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_memtomem_dma2_stream1;
 SRAM_HandleTypeDef hsram1;
 
-osThreadId defaultTaskHandle;
+osThreadId PUS_3_TaskHandle;
 osThreadId UART_OBC_TaskHandle;
 /* USER CODE BEGIN PV */
 
@@ -105,7 +110,8 @@ uint16_t vbat_i = 0;
 uint16_t HK_SPP_APP_ID = 0;
 uint16_t HK_PUS_SOURCE_ID = 0;
 
-SemaphoreHandle_t uartSemaphore;
+extern osMessageQId PUS_3_Queue;
+extern ACK_info_structure PUS_3_ACK_data_to_receive;
 
 /* USER CODE END PV */
 
@@ -119,7 +125,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_I2C4_Init(void);
 static void MX_UART4_Init(void);
 static void MX_UART5_Init(void);
-void StartDefaultTask(void const * argument);
+void PUS_3_Service_Task(void const * argument);
 void handle_UART_OBC(void const * argument);
 
 static void MX_NVIC_Init(void);
@@ -145,6 +151,7 @@ int main(void)
 	DEBUGRxBuffer.COBS_frame_size = 0;
 	DEBUGRxBuffer.isProcessing = 0;
 
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -153,7 +160,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  PUS_3_Queue = xQueueCreate(1, sizeof(ACK_info_structure));
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -196,9 +203,9 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 512);
-  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+  /* definition and creation of PUS_3_Task */
+  osThreadDef(PUS_3_Task, PUS_3_Service_Task, osPriorityNormal, 0, 512);
+  PUS_3_TaskHandle = osThreadCreate(osThread(PUS_3_Task), NULL);
 
   /* definition and creation of UART_OBC_Task */
   osThreadDef(UART_OBC_Task, handle_UART_OBC, osPriorityNormal, 0, 512);
@@ -688,14 +695,14 @@ int _write(int file, char *ptr, int len)
 
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_StartDefaultTask */
+/* USER CODE BEGIN Header_PUS_3_Service_Task */
 /**
-    * @brief    Function implementing the defaultTask thread.
-    * @param    argument: Not used 
-    * @retval None
-    */
-/* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void const * argument)
+  * @brief  Function implementing the PUS_3_Task thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_PUS_3_Service_Task */
+void PUS_3_Service_Task(void const * argument)
 {
   /* init code for FATFS */
   MX_FATFS_Init();
@@ -707,11 +714,16 @@ void StartDefaultTask(void const * argument)
     /* Infinite loop */
     for(;;)
     {
+    	if (xQueueReceive(PUS_3_Queue, &PUS_3_ACK_data_to_receive, 0) == pdPASS) {
+    		PUS_1_send_succ_prog(&PUS_3_ACK_data_to_receive.SPP_header, &PUS_3_ACK_data_to_receive.PUS_TC_header);
+    	}
+
         current_ticks = xTaskGetTickCount();
 
         PUS_3_collect_HK_data(current_ticks);
 
 		PUS_3_HK_send();
+//		PUS_1_send_succ_comp(&PUS_3_ACK_data->SPP_header, &PUS_3_ACK_data->PUS_TC_header);
 
 	    osDelay(5000);
     }
