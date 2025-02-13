@@ -24,14 +24,16 @@ SPP_error SPP_handle_TEST_TC(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
         
         PUS_1_send_succ_prog(SPP_h, PUS_h);
 
+        uint8_t data = 0;
+
 		Add_SPP_PUS_and_send_TM(SPP_h->application_process_id,
 								1,
 								SPP_h->packet_sequence_count,
 								PUS_h->source_id,
 								TEST_SERVICE_ID,
 								T_ARE_YOU_ALIVE_TEST_ID,
-								NULL,
-								0);
+								&data,
+								1);
 
 		PUS_1_send_succ_comp(SPP_h, PUS_h);
     }

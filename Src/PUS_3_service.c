@@ -99,16 +99,16 @@ static void fill_report_struct(uint16_t SID) {
 
     switch(SID) {
         case UC_SID:
-            for(int i = 0; i < HKPRS->N1; i++) {
+            for(int i = 0; i < HKPRS_uc.N1; i++) {
             	HKPRS_uc.parameters[i] = uc_pars[i];
             }
             break;
         case FPGA_SID:
-            for(int i = 0; i < HKPRS->N1; i++) {
+            for(int i = 0; i < HKPRS_fpga.N1; i++) {
             	HKPRS_fpga.parameters[i] = fpga_pars[i];
             }
             break;
-    }  
+    }
 }
 
 void PUS_3_collect_HK_data(uint32_t current_ticks) {

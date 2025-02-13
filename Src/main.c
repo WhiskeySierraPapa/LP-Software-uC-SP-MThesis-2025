@@ -204,11 +204,11 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of PUS_3_Task */
-  osThreadDef(PUS_3_Task, PUS_3_Service_Task, osPriorityNormal, 0, 512);
+  osThreadDef(PUS_3_Task, PUS_3_Service_Task, osPriorityNormal, 0, 1024);
   PUS_3_TaskHandle = osThreadCreate(osThread(PUS_3_Task), NULL);
 
   /* definition and creation of UART_OBC_Task */
-  osThreadDef(UART_OBC_Task, handle_UART_OBC, osPriorityNormal, 0, 512);
+  osThreadDef(UART_OBC_Task, handle_UART_OBC, osPriorityNormal, 0, 1024);
   UART_OBC_TaskHandle = osThreadCreate(osThread(UART_OBC_Task), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
