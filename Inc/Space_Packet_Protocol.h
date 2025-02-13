@@ -108,7 +108,6 @@ SPP_error SPP_add_CRC_to_msg(uint8_t* packet, uint16_t length, uint8_t* output);
 SPP_error SPP_add_data_to_packet(uint8_t* data, uint16_t data_len, uint8_t* packet);
 SPP_error SPP_validate_checksum(uint8_t* packet, uint16_t packet_length);
 
-SPP_error SPP_handle_incoming_TC(SPP_TC_source);
 void SPP_Callback();
 
 SPP_header_t SPP_make_header(uint8_t packet_version_number, uint8_t packet_type, uint8_t secondary_header_flag, uint16_t application_process_id, uint8_t sequence_flags, uint16_t packet_sequence_count, uint16_t packet_data_length);

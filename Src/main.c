@@ -31,6 +31,7 @@
 #include "FPGA_Data_saving.h"
 #include "uC_Data_Saving.h"
 #include "COBS.h"
+#include "General_Functions.h"
 #include "Space_Packet_Protocol.h"
 #include "PUS.h"
 #include "PUS_1_service.h"
@@ -111,7 +112,6 @@ uint16_t HK_SPP_APP_ID = 0;
 uint16_t HK_PUS_SOURCE_ID = 0;
 
 extern osMessageQId PUS_3_Queue;
-extern ACK_info_structure PUS_3_ACK_data_to_receive;
 
 /* USER CODE END PV */
 
@@ -160,7 +160,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  PUS_3_Queue = xQueueCreate(1, sizeof(ACK_info_structure));
+  PUS_3_Queue = xQueueCreate(1, sizeof(PUS_3_msg));
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -710,22 +710,49 @@ void PUS_3_Service_Task(void const * argument)
   /* USER CODE BEGIN 5 */
 
     uint32_t current_ticks = 0;
+    uint8_t periodic_report = 0;
+    PUS_3_msg pus3_msg_received;
 
     /* Infinite loop */
     for(;;)
     {
-    	if (xQueueReceive(PUS_3_Queue, &PUS_3_ACK_data_to_receive, 0) == pdPASS) {
-    		PUS_1_send_succ_prog(&PUS_3_ACK_data_to_receive.SPP_header, &PUS_3_ACK_data_to_receive.PUS_TC_header);
+    	if(!periodic_report)
+    	{
+    		if (xQueueReceive(PUS_3_Queue, &pus3_msg_received, portMAX_DELAY) == pdPASS)
+    		{
+    			PUS_1_send_succ_start(&pus3_msg_received.SPP_header, &pus3_msg_received.PUS_TC_header);
+
+				current_ticks = xTaskGetTickCount();
+				PUS_3_collect_HK_data(current_ticks);
+
+				PUS_1_send_succ_prog(&pus3_msg_received.SPP_header, &pus3_msg_received.PUS_TC_header);
+
+				PUS_3_HK_send(&pus3_msg_received);
+
+				PUS_1_send_succ_comp(&pus3_msg_received.SPP_header, &pus3_msg_received.PUS_TC_header);
+
+				if(pus3_msg_received.uC_report_frequency ==2 || pus3_msg_received.FPGA_report_frequency ==2 )
+				{
+					periodic_report = 1;
+				}
+    		}
     	}
+    	else
+    	{
+    		if (xQueuePeek(PUS_3_Queue, &pus3_msg_received, 5000) == pdPASS)
+    		{
+    			periodic_report = 0;
+    		}
+    		else
+    		{
+    			current_ticks = xTaskGetTickCount();
 
-        current_ticks = xTaskGetTickCount();
+				PUS_3_collect_HK_data(current_ticks);
 
-        PUS_3_collect_HK_data(current_ticks);
+				PUS_3_HK_send(&pus3_msg_received);
+    		}
 
-		PUS_3_HK_send();
-//		PUS_1_send_succ_comp(&PUS_3_ACK_data->SPP_header, &PUS_3_ACK_data->PUS_TC_header);
-
-	    osDelay(5000);
+    	}
     }
   /* USER CODE END 5 */
 }
@@ -752,13 +779,13 @@ void handle_UART_OBC(void const * argument)
 		{
 			if (evt.value.signals & 0x01)
 			{
-				SPP_handle_incoming_TC(DEBUG_TC);
+				Handle_incoming_TC(DEBUG_TC);
 				DEBUGRxBuffer.isProcessing = 0;
 			}
 
 			if (evt.value.signals & 0x02)
 			{
-				SPP_handle_incoming_TC(OBC_TC);
+				Handle_incoming_TC(OBC_TC);
 				OBCRxBuffer.isProcessing = 0;
 
 			}

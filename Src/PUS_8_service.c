@@ -11,6 +11,7 @@
 #include "device_state.h"
 #include "langmuir_probe_bias.h"
 #include "PUS_1_service.h"
+#include "PUS_8_service.h"
 
 typedef enum {
     CPY_TABLE_FRAM_TO_FPGA = 0xE0,
