@@ -102,14 +102,17 @@ float fpga3v = 0;
 float fpga1p5v = 0;
 float vbat = 0;
 
-uint16_t temperature_i = 0;
-uint16_t uc3v_i = 0;
-uint16_t fpga3v_i = 0;
-uint16_t fpga1p5v_i = 0;
-uint16_t vbat_i = 0;
+uint16_t vbat_i = 1;
+uint16_t temperature_i = 2;
+uint16_t uc3v_i = 3;
+uint16_t fpga3v_i = 4;
+uint16_t fpga1p5v_i = 5;
 
 uint16_t HK_SPP_APP_ID = 0;
 uint16_t HK_PUS_SOURCE_ID = 0;
+
+extern uint8_t current_uC_report_frequency;
+extern uint8_t current_FPGA_report_frequency;
 
 extern osMessageQId PUS_3_Queue;
 
@@ -722,6 +725,13 @@ void PUS_3_Service_Task(void const * argument)
     		{
     			PUS_1_send_succ_start(&pus3_msg_received.SPP_header, &pus3_msg_received.PUS_TC_header);
 
+    			// Only update the frequency of the reports if they are supposed to be updated
+    			if(pus3_msg_received.new_uC_report_frequency == 1)
+    				current_uC_report_frequency = pus3_msg_received.uC_report_frequency;
+
+    			if(pus3_msg_received.new_FPGA_report_frequency == 1)
+					current_FPGA_report_frequency = pus3_msg_received.FPGA_report_frequency;
+
 				current_ticks = xTaskGetTickCount();
 				PUS_3_collect_HK_data(current_ticks);
 
@@ -731,7 +741,7 @@ void PUS_3_Service_Task(void const * argument)
 
 				PUS_1_send_succ_comp(&pus3_msg_received.SPP_header, &pus3_msg_received.PUS_TC_header);
 
-				if(pus3_msg_received.uC_report_frequency ==2 || pus3_msg_received.FPGA_report_frequency ==2 )
+				if(current_uC_report_frequency == 2 || current_FPGA_report_frequency ==2 )
 				{
 					periodic_report = 1;
 				}

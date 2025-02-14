@@ -33,6 +33,9 @@ extern uint16_t vbat_i;
 extern uint16_t HK_SPP_APP_ID;
 extern uint16_t HK_PUS_SOURCE_ID;
 
+uint8_t current_uC_report_frequency = 0;
+uint8_t current_FPGA_report_frequency = 0;
+
 typedef struct {
     uint16_t SID;
     uint16_t collection_interval;
@@ -137,9 +140,9 @@ static uint16_t encode_HK_struct(HK_par_report_structure_t* HKPRS, uint8_t* out_
 
 
 void PUS_3_HK_send(PUS_3_msg* pus3_msg_received) {
-	if (pus3_msg_received->uC_report_frequency >= 1) {
-		if (pus3_msg_received->uC_report_frequency == 1) {
-			pus3_msg_received->uC_report_frequency = 0;
+	if (current_uC_report_frequency >= 1) {
+		if (current_uC_report_frequency == 1) {
+			current_uC_report_frequency = 0;
 		}
 
 		uint16_t tm_data_len = encode_HK_struct(&HKPRS_uc, HK_TM_data);
@@ -155,9 +158,9 @@ void PUS_3_HK_send(PUS_3_msg* pus3_msg_received) {
 		HKPRS_uc.seq_count++;
 	}
 
-	if (pus3_msg_received->FPGA_report_frequency >= 1) {
-		if (pus3_msg_received->FPGA_report_frequency == 1) {
-			pus3_msg_received->FPGA_report_frequency = 0;
+	if (current_FPGA_report_frequency >= 1) {
+		if (current_FPGA_report_frequency == 1) {
+			current_FPGA_report_frequency = 0;
 		}
 
 		uint16_t tm_data_len = encode_HK_struct(&HKPRS_fpga, HK_TM_data);
@@ -187,10 +190,14 @@ static void set_report_frequency(uint8_t* data, uint8_t frequency, PUS_3_msg* pu
 
         switch(SID) {
             case UC_SID:
+            	// update the report frequency and set the flag for new frequency
             	pus3_msg_to_send->uC_report_frequency = frequency;
+            	pus3_msg_to_send->new_uC_report_frequency = 1;
                 break;
             case FPGA_SID:
+            	// update the report frequency and set the flag for new frequency
             	pus3_msg_to_send->FPGA_report_frequency = frequency;
+            	pus3_msg_to_send->new_FPGA_report_frequency = 1;
                 break;
         }
     }
@@ -207,6 +214,10 @@ SPP_error PUS_3_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_
     PUS_3_msg pus3_msg_to_send;
     pus3_msg_to_send.SPP_header = *SPP_header;
     pus3_msg_to_send.PUS_TC_header = *PUS_TC_header;
+    pus3_msg_to_send.uC_report_frequency = 0;
+    pus3_msg_to_send.new_uC_report_frequency = 0;
+    pus3_msg_to_send.FPGA_report_frequency = 0;
+    pus3_msg_to_send.new_FPGA_report_frequency = 0;
 
     // Define report frequency and handle different message subtypes
     uint8_t report_frequency = 0;

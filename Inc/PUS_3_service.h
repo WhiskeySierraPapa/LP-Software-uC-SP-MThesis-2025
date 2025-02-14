@@ -27,7 +27,9 @@ typedef struct {
 	SPP_header_t 	SPP_header;
 	PUS_TC_header_t PUS_TC_header;
 	uint8_t uC_report_frequency;
+	uint8_t new_uC_report_frequency;
 	uint8_t FPGA_report_frequency;
+	uint8_t new_FPGA_report_frequency; // 1 - uC, 2 - FPGA, 3 - uC & FPGA
 } PUS_3_msg;
 
 /* PUS_3_service */
