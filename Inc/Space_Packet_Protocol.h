@@ -26,26 +26,21 @@ extern uint8_t OBC_Space_Packet_Data_Buffer[1024];
 
 
 typedef struct {
-	uint8_t RxBuffer[COBS_FRAME_LEN];  	// Pointer to the data buffer
-    uint16_t COBS_frame_size; 			// Number of valid bytes in the buffer
+	uint8_t RxBuffer[MAX_COBS_FRAME_LEN];  	// Pointer to the data buffer
+    uint16_t frame_size; 			// Number of valid bytes in the buffer
     volatile uint8_t isProcessing; 		// Flag to indicate if data is being processed
 } UART_Rx_COBS_Frame;
 
-extern UART_Rx_COBS_Frame OBCRxBuffer;
-extern UART_Rx_COBS_Frame DEBUGRxBuffer;
+extern UART_Rx_COBS_Frame UART_RxBuffer;
+extern uint8_t UART_TxBuffer[MAX_COBS_FRAME_LEN];
+extern uint16_t UART_recv_count;
+extern uint8_t UART_recv_char;
 
-extern uint8_t DEBUGTxBuffer[COBS_FRAME_LEN];
-extern uint16_t SPP_DEBUG_recv_count;
-extern uint8_t SPP_DEBUG_recv_char;
-
-extern uint8_t OBCTxBuffer[COBS_FRAME_LEN];
-extern uint16_t SPP_OBC_recv_count;
-extern uint8_t SPP_OBC_recv_char;
 
 
 // Primary header is 6 bytes. From SPP standard.
-#define SPP_PRIMARY_HEADER_LEN            6
-#define SPP_PUS_TC_HEADER_LEN_WO_SPARE    5
+#define SPP_HEADER_LEN            6
+#define PUS_TC_HEADER_LEN_WO_SPARE    5
 #define SPP_PUS_TM_HEADER_LEN_WO_SPARE    9
 #define CRC_BYTE_LEN                      2
 #define SPP_PUS_TC_MIN_LEN  SPP_PRIMARY_HEADER_LEN + SPP_PUS_TC_HEADER_LEN_WO_SPARE + CRC_BYTE_LEN
@@ -64,8 +59,8 @@ extern uint8_t SPP_OBC_recv_char;
 #define SPP_SEQUENCE_SEG_LAST             2
 #define SPP_SEQUENCE_SEG_UNSEG            3
 
-#define SPP_DEBUG_UART                  huart4
-#define SPP_OBC_UART					huart2
+#define DEBUG_UART                  huart4
+#define OBC_UART					huart2
 
 typedef enum {
     OBC_TC                            = 0,

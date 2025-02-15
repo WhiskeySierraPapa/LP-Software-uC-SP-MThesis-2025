@@ -12,19 +12,6 @@
 #include "FreeRTOS.h"
 #include "queue.h"
 
-#define MAX_PAR_COUNT       16
-#define MAX_STRUCT_COUNT    16
-#define MAX_TM_DATA_LEN     (MAX_PAR_COUNT * 4) + 2 // Each parameter is potentialy 4 bytes and struct id is 2 bytes.
-#define DEF_COL_INTV        500
-#define DEF_UC_N1           3
-#define DEF_UC_PS           0
-
-#define DEF_FPGA_N1         2
-#define DEF_FPGA_PS         0
-
-//#define HK_SPP_APP_ID        61  // Just some random numbers.
-//#define HK_PUS_SOURCE_ID     14
-
 extern uint16_t temperature_i;
 extern uint16_t uc3v_i;
 extern uint16_t fpga3v_i;
@@ -35,22 +22,6 @@ extern uint16_t HK_PUS_SOURCE_ID;
 
 uint8_t current_uC_report_frequency = 0;
 uint8_t current_FPGA_report_frequency = 0;
-
-typedef struct {
-    uint16_t SID;
-    uint16_t collection_interval;
-    uint16_t N1;
-    uint32_t parameters[MAX_PAR_COUNT]; // 32 bit here for future proofing. All params currently are 16-bit.
-    uint8_t  periodic_send; // 0 - do not send, 1 - send one time, 2 - send periodically
-    uint32_t last_collect_tick;
-    uint32_t seq_count;
-} HK_par_report_structure_t;
-
-typedef enum {
-    UC_SID            = 0xAAAA,
-    FPGA_SID          = 0x5555,
-} HK_SID;
-
 
 HK_par_report_structure_t HKPRS_uc = {
     .SID                    = UC_SID,
@@ -178,26 +149,26 @@ void PUS_3_HK_send(PUS_3_msg* pus3_msg_received) {
 }
 
 
-static void set_report_frequency(uint8_t* data, uint8_t frequency, PUS_3_msg* pus3_msg_to_send) {
-    uint16_t nof_SIDs = 0;
-    memcpy(&nof_SIDs, data, sizeof(nof_SIDs));
-    data += sizeof(nof_SIDs);
+void set_report_frequency(uint8_t* data, PUS_3_msg* pus3_msg_received) {
+    uint8_t* data_iterator = data;
+	uint16_t SID_num = 0;
+    memcpy(&SID_num, data_iterator, sizeof(SID_num));
 
-    for(int i = 0; i < nof_SIDs; i++) {
+    data_iterator += sizeof(SID_num);
+
+    for(int i = 0; i < SID_num && data_iterator < data + (PUS_3_MAX_DATA_LEN * sizeof(uint8_t)); i++) {
         uint16_t SID = 0;
-        memcpy(&SID, data, sizeof(SID));
-        data += sizeof(SID);
+        memcpy(&SID, data_iterator, sizeof(SID));
+        data_iterator += sizeof(SID);
 
         switch(SID) {
             case UC_SID:
-            	// update the report frequency and set the flag for new frequency
-            	pus3_msg_to_send->uC_report_frequency = frequency;
-            	pus3_msg_to_send->new_uC_report_frequency = 1;
+            	// update the report frequency for microcontroller
+            	current_uC_report_frequency = pus3_msg_received->new_report_frequency;
                 break;
             case FPGA_SID:
-            	// update the report frequency and set the flag for new frequency
-            	pus3_msg_to_send->FPGA_report_frequency = frequency;
-            	pus3_msg_to_send->new_FPGA_report_frequency = 1;
+            	// update the report frequency for FPGA
+            	current_FPGA_report_frequency = pus3_msg_received->new_report_frequency;
                 break;
         }
     }
@@ -206,18 +177,13 @@ static void set_report_frequency(uint8_t* data, uint8_t frequency, PUS_3_msg* pu
 
 // HK - Housekeeping PUS service 3
 SPP_error PUS_3_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_header, uint8_t* data) {
-    if (Current_Global_Device_State != NORMAL_MODE || PUS_TC_header == NULL) {
+
+	if (Current_Global_Device_State != NORMAL_MODE) {
         return UNDEFINED_ERROR;
     }
-
-    // Prepare ACK data
-    PUS_3_msg pus3_msg_to_send;
-    pus3_msg_to_send.SPP_header = *SPP_header;
-    pus3_msg_to_send.PUS_TC_header = *PUS_TC_header;
-    pus3_msg_to_send.uC_report_frequency = 0;
-    pus3_msg_to_send.new_uC_report_frequency = 0;
-    pus3_msg_to_send.FPGA_report_frequency = 0;
-    pus3_msg_to_send.new_FPGA_report_frequency = 0;
+    if (SPP_header == NULL || PUS_TC_header == NULL) {
+        return UNDEFINED_ERROR;
+    }
 
     // Define report frequency and handle different message subtypes
     uint8_t report_frequency = 0;
@@ -233,15 +199,20 @@ SPP_error PUS_3_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_
             report_frequency = 0;
             break;
         default:
+        	PUS_1_send_fail_acc(SPP_header, PUS_TC_header);
             return UNDEFINED_ERROR;  // Invalid message subtype
     }
 
-    set_report_frequency(data, report_frequency, &pus3_msg_to_send);
+    PUS_1_send_succ_acc(SPP_header, PUS_TC_header);
 
-    // Send ACK data to queue and update report frequency
+	PUS_3_msg pus3_msg_to_send;
+	pus3_msg_to_send.SPP_header = *SPP_header;
+	pus3_msg_to_send.PUS_TC_header = *PUS_TC_header;
+	memcpy(pus3_msg_to_send.data, data, PUS_3_MAX_DATA_LEN);
+	pus3_msg_to_send.new_report_frequency = report_frequency;
+
     if (xQueueSend(PUS_3_Queue, &pus3_msg_to_send, 0) != pdPASS) {
     	PUS_1_send_fail_start(SPP_header, PUS_TC_header);
     }
-
     return SPP_OK;
 }

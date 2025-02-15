@@ -424,7 +424,7 @@ void send_FPGA_langmuir_msg(uint8_t func_id, FPGA_msg_arg_t* fpgama) {
         send_readback_ground(readback_data, readback_len + request_info_len);
 
     } else {
-        FPGA_Transmit_Binary(msg, msg_cnt);
+//        FPGA_Transmit_Binary(msg, msg_cnt);
 
         if (is_FPGA_readback_reqeust) {
         	bool success = wait_for_readback(request_info, request_info_len, readback_data, readback_len);

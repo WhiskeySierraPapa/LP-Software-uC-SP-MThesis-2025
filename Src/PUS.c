@@ -19,7 +19,7 @@ SPP_error PUS_decode_TC_header(uint8_t* raw_header, PUS_TC_header_t* secondary_h
 
 // Technically this is not needed since, Langmuir Probe Payload will not send TCs.
 SPP_error PUS_encode_TC_header(PUS_TC_header_t* secondary_header, uint8_t* result_buffer) {
-    for(int i = 0; i < SPP_PUS_TC_HEADER_LEN_WO_SPARE; i++) {
+    for(int i = 0; i < PUS_TC_HEADER_LEN_WO_SPARE; i++) {
         result_buffer[i] ^= result_buffer[i];    // Clear result buffer.
     }
 

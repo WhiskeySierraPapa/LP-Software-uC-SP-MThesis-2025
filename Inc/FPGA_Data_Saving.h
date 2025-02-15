@@ -1,5 +1,5 @@
 #include "main.h"
-#include <fatfs.h>
+//#include <fatfs.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -30,10 +30,10 @@ extern int8_t writeQueueLast;
 
 extern uint16_t currentDataRate;
 
-extern FIL FPGADataFile;
+//extern FIL FPGADataFile;
 extern uint8_t FPGAFileOpen;
 
-FRESULT openFPGADataFile();
+//FRESULT openFPGADataFile();
 void FPGADMATransferCplt();
 void FPGAStartDMATransfer();
 uint8_t writeBuffer(uint8_t bufferNumber);

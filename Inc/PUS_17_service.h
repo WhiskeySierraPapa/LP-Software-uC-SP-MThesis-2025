@@ -20,6 +20,6 @@ typedef enum {
 } PUS_T_Subtype_ID;
 
 /* PUS_17_service */
-SPP_error SPP_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_PUS_header);
+SPP_error PUS_17_handle_TEST_TC(SPP_header_t* req_SPP_header, PUS_TC_header_t* req_PUS_header);
 
 #endif /* PUS_17_SERVICE_H_ */

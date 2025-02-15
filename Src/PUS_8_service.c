@@ -17,7 +17,8 @@ typedef enum {
     CPY_TABLE_FRAM_TO_FPGA = 0xE0,
 } Aux_Func_ID_t;
 
-
+// This queue is used to receive info from the UART handler task
+osMessageQId PUS_8_Queue;
 
 SPP_error perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , uint8_t* data) {
     SPP_error err = SPP_OK;
@@ -140,19 +141,32 @@ SPP_error perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , uint
 
 
 // Function Management PUS service 8
-SPP_error SPP_handle_FM_TC(SPP_header_t* SPP_header , PUS_TC_header_t* secondary_header, uint8_t* data) {
-    SPP_error err = SPP_OK;
-    if (secondary_header == NULL) {
-        return SPP_MISSING_PUS_HEADER;
-    }
+SPP_error PUS_8_handle_FM_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_header, uint8_t* data) {
 
-    if (secondary_header->message_subtype_id == FM_PERFORM_FUNCTION) {
-    	PUS_1_send_succ_acc(SPP_header, secondary_header);
-        err = perform_function(SPP_header, secondary_header, data);
-    } else {
-    	PUS_1_send_fail_acc(SPP_header, secondary_header);
-        err = SPP_UNHANDLED_PUS_ID;
-    }
+	if (Current_Global_Device_State != NORMAL_MODE) {
+		return UNDEFINED_ERROR;
+	}
+	if (SPP_header == NULL || PUS_TC_header == NULL) {
+		return UNDEFINED_ERROR;
+	}
 
-    return err;
+	switch (PUS_TC_header->message_subtype_id) {
+		case FM_PERFORM_FUNCTION:
+			PUS_1_send_succ_acc(SPP_header, PUS_TC_header);
+			break;
+		default:
+			PUS_1_send_fail_acc(SPP_header, PUS_TC_header);
+			return SPP_UNHANDLED_PUS_ID;  // Invalid message subtype
+	}
+
+	PUS_8_msg pus8_msg_to_send;
+	pus8_msg_to_send.SPP_header = *SPP_header;
+	pus8_msg_to_send.PUS_TC_header = *PUS_TC_header;
+	memcpy(pus8_msg_to_send.data, data, PUS_8_MAX_DATA_LEN);
+
+	if (xQueueSend(PUS_8_Queue, &pus8_msg_to_send, 0) != pdPASS) {
+		PUS_1_send_fail_start(SPP_header, PUS_TC_header);
+	}
+
+    return SPP_OK;
 }

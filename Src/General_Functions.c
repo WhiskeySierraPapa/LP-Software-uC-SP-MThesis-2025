@@ -15,14 +15,13 @@
 
 extern uint16_t HK_SPP_APP_ID;
 extern uint16_t HK_PUS_SOURCE_ID;
-extern uint8_t OBCTxBuffer[COBS_FRAME_LEN];
 
 
 SPP_error UART_transmit(uint8_t* data, uint16_t data_len) {
 	*(data + data_len) = 0x00; // Adding sentinel value.
 	data_len++;
-    HAL_UART_Transmit(&SPP_DEBUG_UART, data, data_len, 100);
-    HAL_UART_Transmit(&SPP_OBC_UART, data, data_len, 100);
+    HAL_UART_Transmit(&DEBUG_UART, data, data_len, 100);
+    HAL_UART_Transmit(&OBC_UART, data, data_len, 100);
     return SPP_OK;
 }
 
@@ -36,7 +35,7 @@ void Prepare_full_msg(SPP_header_t* resp_SPP_header,
     uint8_t* current_pointer = OUT_full_msg;
 
     SPP_encode_header(resp_SPP_header, current_pointer);
-    current_pointer += SPP_PRIMARY_HEADER_LEN;
+    current_pointer += SPP_HEADER_LEN;
 
     if (resp_PUS_header != NULL) {
         PUS_encode_TM_header(resp_PUS_header, current_pointer);
@@ -72,8 +71,8 @@ SPP_error Send_TM(SPP_header_t* resp_SPP_header,
 												packet_total_len,
 												response_TM_packet_COBS);
 
-    memcpy(OBCTxBuffer, response_TM_packet_COBS, cobs_packet_total_len);
-    UART_transmit(OBCTxBuffer, cobs_packet_total_len);
+    memcpy(UART_TxBuffer, response_TM_packet_COBS, cobs_packet_total_len);
+    UART_transmit(UART_TxBuffer, cobs_packet_total_len);
     return SPP_OK;
 }
 
@@ -116,66 +115,44 @@ void Add_SPP_PUS_and_send_TM(uint16_t SPP_APP_ID,
 
 
 // Function that processes incoming TC
-SPP_error Handle_incoming_TC(SPP_TC_source source) {
-	uint8_t* 		COBS_buffer;
-	size_t 			COBS_buffer_length;
-	uint8_t* 		SPP_buffer;
-
-
-    // Select the correct buffer based on the source
-	switch (source) {
-		case OBC_TC:
-			COBS_buffer = OBCRxBuffer.RxBuffer;
-			COBS_buffer_length = OBCRxBuffer.COBS_frame_size;
-			SPP_buffer = OBC_Space_Packet_Data_Buffer;
-			break;
-		case DEBUG_TC:
-			COBS_buffer = DEBUGRxBuffer.RxBuffer;
-			COBS_buffer_length = DEBUGRxBuffer.COBS_frame_size;
-			SPP_buffer = DEBUG_Space_Packet_Data_Buffer;
-			break;
-		default:
-			return UNDEFINED_ERROR;
-	}
-
+SPP_error Handle_incoming_TC() {
 
     // Decode COBS frame if valid
-    if(!COBS_is_valid(COBS_buffer, COBS_buffer_length)){
+    if(!COBS_is_valid(UART_RxBuffer.RxBuffer, UART_RxBuffer.frame_size)){
 		return UNDEFINED_ERROR;
     }
-    COBS_decode(COBS_buffer, COBS_FRAME_LEN, SPP_buffer);
+    uint8_t input_data[UART_RxBuffer.frame_size];
+    COBS_decode(UART_RxBuffer.RxBuffer, UART_RxBuffer.frame_size, input_data);
 
     // Decode SPP header and verify its checksum
-    SPP_header_t 	SPP_primary_header;
-    SPP_decode_header(SPP_buffer, &SPP_primary_header);
-    uint16_t  SPP_buffer_length = SPP_primary_header.packet_data_length + SPP_PRIMARY_HEADER_LEN + 1;
-	if (SPP_validate_checksum(SPP_buffer, SPP_buffer_length) != SPP_OK) {
+    SPP_header_t 	SPP_header;
+    uint16_t  SPP_buffer_length;
+    SPP_decode_header(input_data, &SPP_header);
+    SPP_buffer_length = SPP_header.packet_data_length + SPP_HEADER_LEN + 1; // length = PUS + data + CRC
+	if (SPP_validate_checksum(input_data, SPP_buffer_length) != SPP_OK) {
 		return SPP_PACKET_CRC_MISMATCH;
 	}
 
     // Decode PUS header if present
-    if (SPP_primary_header.secondary_header_flag) {
-    	uint8_t secondary_header_buffer[SPP_PUS_TC_HEADER_LEN_WO_SPARE];
-        memcpy(secondary_header_buffer, SPP_buffer + SPP_PRIMARY_HEADER_LEN, SPP_PUS_TC_HEADER_LEN_WO_SPARE);
+    if (SPP_header.secondary_header_flag) {
+    	uint8_t secondary_header_buffer[PUS_TC_HEADER_LEN_WO_SPARE];
+        memcpy(secondary_header_buffer, input_data + SPP_HEADER_LEN, PUS_TC_HEADER_LEN_WO_SPARE);
 
         PUS_TC_header_t PUS_TC_header;
         PUS_decode_TC_header(secondary_header_buffer, &PUS_TC_header);
 
-		uint8_t* data = SPP_buffer + SPP_PRIMARY_HEADER_LEN + SPP_PUS_TC_HEADER_LEN_WO_SPARE;
+		uint8_t* data = input_data + SPP_HEADER_LEN + PUS_TC_HEADER_LEN_WO_SPARE;
 
 		if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID) {
-			PUS_1_send_succ_acc(&SPP_primary_header, &PUS_TC_header);
-			PUS_3_handle_HK_TC(&SPP_primary_header, &PUS_TC_header, data);
+			PUS_3_handle_HK_TC(&SPP_header, &PUS_TC_header, data);
 		}
 		else if (PUS_TC_header.service_type_id == FUNCTION_MANAGEMNET_ID) {
-			PUS_1_send_succ_acc(&SPP_primary_header, &PUS_TC_header);
-			SPP_handle_FM_TC(&SPP_primary_header, &PUS_TC_header, data);
+			PUS_8_handle_FM_TC(&SPP_header, &PUS_TC_header, data);
 		}
 		else if (PUS_TC_header.service_type_id == TEST_SERVICE_ID) {
-			PUS_1_send_succ_acc(&SPP_primary_header, &PUS_TC_header);
-			SPP_handle_TEST_TC(&SPP_primary_header, &PUS_TC_header);
+			PUS_17_handle_TEST_TC(&SPP_header, &PUS_TC_header);
 		} else {
-			PUS_1_send_fail_acc(&SPP_primary_header, &PUS_TC_header);
+			PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header);
 			return SPP_UNHANDLED_PUS_ID;
 		}
     }

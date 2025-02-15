@@ -17,16 +17,21 @@ uint8_t DEBUG_Space_Packet_Data_Buffer[256];
 uint8_t OBC_Space_Packet_Data_Buffer[1024];
 
 
-UART_Rx_COBS_Frame DEBUGRxBuffer;
-uint8_t SPP_DEBUG_recv_char = 0xff;
-uint16_t SPP_DEBUG_recv_count = 0;
-uint8_t DEBUGTxBuffer[COBS_FRAME_LEN];
+UART_Rx_COBS_Frame UART_RxBuffer;
+uint8_t UART_recv_char = 0xff;
+uint16_t UART_recv_count = 0;
+uint8_t UART_TxBuffer[MAX_COBS_FRAME_LEN];
 
-
-UART_Rx_COBS_Frame OBCRxBuffer;
-uint8_t SPP_OBC_recv_char = 0xff;
-uint16_t SPP_OBC_recv_count = 0;
-uint8_t OBCTxBuffer[COBS_FRAME_LEN];
+//UART_Rx_COBS_Frame DEBUGRxBuffer;
+//uint8_t SPP_DEBUG_recv_char = 0xff;
+//uint16_t SPP_DEBUG_recv_count = 0;
+//uint8_t DEBUGTxBuffer[COBS_FRAME_LEN];
+//
+//
+//UART_Rx_COBS_Frame OBCRxBuffer;
+//uint8_t SPP_OBC_recv_char = 0xff;
+//uint16_t SPP_OBC_recv_count = 0;
+//uint8_t OBCTxBuffer[COBS_FRAME_LEN];
 
 
 //uint8_t OBCRxBuffer[COBS_FRAME_LEN];
@@ -89,7 +94,7 @@ SPP_error SPP_decode_header(uint8_t* raw_header, SPP_header_t* primary_header) {
 
 
 SPP_error SPP_encode_header(SPP_header_t* primary_header, uint8_t* result_buffer) {
-    for(int i = 0; i < SPP_PRIMARY_HEADER_LEN; i++) {
+    for(int i = 0; i < SPP_HEADER_LEN; i++) {
         result_buffer[i] ^= result_buffer[i];    // Clear result buffer.
     }
 

@@ -10,32 +10,35 @@
 #include "PUS_17_service.h"
 
 
-SPP_error SPP_handle_TEST_TC(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
-    if (Current_Global_Device_State != NORMAL_MODE) {
+SPP_error PUS_17_handle_TEST_TC(SPP_header_t* SPP_header, PUS_TC_header_t* PUS_TC_header) {
+
+	if (Current_Global_Device_State != NORMAL_MODE) {
         return UNDEFINED_ERROR;
     }
-    if (SPP_h == NULL || PUS_h == NULL) {
+    if (SPP_header == NULL || PUS_TC_header == NULL) {
         return UNDEFINED_ERROR;
     }
 
-    if (PUS_h->message_subtype_id == T_ARE_YOU_ALIVE_TEST_ID) {
+    if (PUS_TC_header->message_subtype_id == T_ARE_YOU_ALIVE_TEST_ID) {
 
-        PUS_1_send_succ_start(SPP_h, PUS_h);
+    	PUS_1_send_succ_acc(SPP_header, PUS_TC_header);
+
+        PUS_1_send_succ_start(SPP_header, PUS_TC_header);
         
-        PUS_1_send_succ_prog(SPP_h, PUS_h);
+        PUS_1_send_succ_prog(SPP_header, PUS_TC_header);
 
         uint8_t data = 0;
 
-		Add_SPP_PUS_and_send_TM(SPP_h->application_process_id,
+		Add_SPP_PUS_and_send_TM(SPP_header->application_process_id,
 								1,
-								SPP_h->packet_sequence_count,
-								PUS_h->source_id,
+								SPP_header->packet_sequence_count,
+								PUS_TC_header->source_id,
 								TEST_SERVICE_ID,
 								T_ARE_YOU_ALIVE_TEST_ID,
 								&data,
 								1);
 
-		PUS_1_send_succ_comp(SPP_h, PUS_h);
+		PUS_1_send_succ_comp(SPP_header, PUS_TC_header);
     }
 
     return SPP_OK;

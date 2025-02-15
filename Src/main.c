@@ -21,7 +21,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
-#include "fatfs.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -60,10 +59,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 I2C_HandleTypeDef hi2c4;
-
-SD_HandleTypeDef hsd1;
-DMA_HandleTypeDef hdma_sdmmc1_rx;
-DMA_HandleTypeDef hdma_sdmmc1_tx;
+DMA_HandleTypeDef hdma_i2c4_rx;
+DMA_HandleTypeDef hdma_i2c4_tx;
 
 UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart5;
@@ -74,12 +71,13 @@ SRAM_HandleTypeDef hsram1;
 
 osThreadId PUS_3_TaskHandle;
 osThreadId UART_OBC_TaskHandle;
+osThreadId PUS_8_TaskHandle;
 /* USER CODE BEGIN PV */
 
-FATFS FatFs;
-FIL logFileFPGATx;
-FIL logFileFPGARx;
-FIL stateFile;
+//FATFS FatFs;
+//FIL logFileFPGATx;
+//FIL logFileFPGARx;
+//FIL stateFile;
 
 #define UNIT_ID_CU 0x1A
 #define UNIT_ID_EMUCONTROL 0x1B
@@ -115,6 +113,7 @@ extern uint8_t current_uC_report_frequency;
 extern uint8_t current_FPGA_report_frequency;
 
 extern osMessageQId PUS_3_Queue;
+extern osMessageQId PUS_8_Queue;
 
 /* USER CODE END PV */
 
@@ -122,7 +121,6 @@ extern osMessageQId PUS_3_Queue;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
-static void MX_SDMMC1_SD_Init(void);
 static void MX_FMC_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_I2C4_Init(void);
@@ -130,6 +128,7 @@ static void MX_UART4_Init(void);
 static void MX_UART5_Init(void);
 void PUS_3_Service_Task(void const * argument);
 void handle_UART_OBC(void const * argument);
+void PUS_8_Service_Task(void const * argument);
 
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
@@ -148,12 +147,8 @@ static void MX_NVIC_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	OBCRxBuffer.COBS_frame_size = 0;
-	OBCRxBuffer.isProcessing = 0;
-
-	DEBUGRxBuffer.COBS_frame_size = 0;
-	DEBUGRxBuffer.isProcessing = 0;
-
+	UART_RxBuffer.frame_size = 0;
+	UART_RxBuffer.isProcessing = 0;
 
   /* USER CODE END 1 */
 
@@ -164,6 +159,7 @@ int main(void)
 
   /* USER CODE BEGIN Init */
   PUS_3_Queue = xQueueCreate(1, sizeof(PUS_3_msg));
+  PUS_8_Queue = xQueueCreate(1, sizeof(PUS_8_msg));
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -176,7 +172,6 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_SDMMC1_SD_Init();
   MX_FMC_Init();
   MX_USART2_UART_Init();
   MX_I2C4_Init();
@@ -213,6 +208,10 @@ int main(void)
   /* definition and creation of UART_OBC_Task */
   osThreadDef(UART_OBC_Task, handle_UART_OBC, osPriorityNormal, 0, 1024);
   UART_OBC_TaskHandle = osThreadCreate(osThread(UART_OBC_Task), NULL);
+
+  /* definition and creation of PUS_8_Task */
+  osThreadDef(PUS_8_Task, PUS_8_Service_Task, osPriorityNormal, 0, 1024);
+  PUS_8_TaskHandle = osThreadCreate(osThread(PUS_8_Task), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
@@ -283,14 +282,11 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_UART4
-                              |RCC_PERIPHCLK_UART5|RCC_PERIPHCLK_I2C4
-                              |RCC_PERIPHCLK_SDMMC1|RCC_PERIPHCLK_CLK48;
+                              |RCC_PERIPHCLK_UART5|RCC_PERIPHCLK_I2C4;
   PeriphClkInitStruct.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
   PeriphClkInitStruct.Uart4ClockSelection = RCC_UART4CLKSOURCE_PCLK1;
   PeriphClkInitStruct.Uart5ClockSelection = RCC_UART5CLKSOURCE_PCLK1;
   PeriphClkInitStruct.I2c4ClockSelection = RCC_I2C4CLKSOURCE_PCLK1;
-  PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48SOURCE_PLL;
-  PeriphClkInitStruct.Sdmmc1ClockSelection = RCC_SDMMC1CLKSOURCE_CLK48;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -303,15 +299,6 @@ void SystemClock_Config(void)
   */
 static void MX_NVIC_Init(void)
 {
-  /* SDMMC1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(SDMMC1_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(SDMMC1_IRQn);
-  /* DMA2_Stream3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
-  /* DMA2_Stream6_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream6_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Stream6_IRQn);
   /* EXTI9_5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
@@ -363,34 +350,6 @@ static void MX_I2C4_Init(void)
   /* USER CODE BEGIN I2C4_Init 2 */
 
   /* USER CODE END I2C4_Init 2 */
-
-}
-
-/**
-  * @brief SDMMC1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_SDMMC1_SD_Init(void)
-{
-
-  /* USER CODE BEGIN SDMMC1_Init 0 */
-
-  /* USER CODE END SDMMC1_Init 0 */
-
-  /* USER CODE BEGIN SDMMC1_Init 1 */
-
-  /* USER CODE END SDMMC1_Init 1 */
-  hsd1.Instance = SDMMC1;
-  hsd1.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
-  hsd1.Init.ClockBypass = SDMMC_CLOCK_BYPASS_DISABLE;
-  hsd1.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
-  hsd1.Init.BusWide = SDMMC_BUS_WIDE_1B;
-  hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
-  hsd1.Init.ClockDiv = 0;
-  /* USER CODE BEGIN SDMMC1_Init 2 */
-
-  /* USER CODE END SDMMC1_Init 2 */
 
 }
 
@@ -508,6 +467,7 @@ static void MX_DMA_Init(void)
 {
   /* DMA controller clock enable */
   __HAL_RCC_DMA2_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* Configure DMA request hdma_memtomem_dma2_stream1 on DMA2_Stream1 */
   hdma_memtomem_dma2_stream1.Instance = DMA2_Stream1;
@@ -527,6 +487,14 @@ static void MX_DMA_Init(void)
   {
     Error_Handler( );
   }
+
+  /* DMA interrupt init */
+  /* DMA1_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
+  /* DMA1_Stream5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
 
 }
 /* FMC initialization function */
@@ -642,45 +610,26 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart5) {
         handle_scientific_data_packet();
 	}
-	else if (huart == &SPP_DEBUG_UART)
+	else if (huart == &DEBUG_UART /*|| huart == &SPP_OBC_UART*/)
 	{
-		if(DEBUGRxBuffer.isProcessing == 0)
+		if(UART_RxBuffer.isProcessing == 0)
 		{
-			*(DEBUGRxBuffer.RxBuffer + SPP_DEBUG_recv_count) = SPP_DEBUG_recv_char;
-			if (SPP_DEBUG_recv_char == 0x00 || SPP_DEBUG_recv_count == COBS_FRAME_LEN - 1)
+			*(UART_RxBuffer.RxBuffer + UART_recv_count) = UART_recv_char;
+			if (UART_recv_char == 0x00 || UART_recv_count == MAX_COBS_FRAME_LEN - 1)
 			{
-				DEBUGRxBuffer.COBS_frame_size = SPP_DEBUG_recv_count + 1;
-				DEBUGRxBuffer.isProcessing = 1;
-				SPP_DEBUG_recv_count = 0;
+				UART_RxBuffer.frame_size = UART_recv_count + 1;
+				UART_RxBuffer.isProcessing = 1;
+				UART_recv_count = 0;
 				osSignalSet(UART_OBC_TaskHandle, 0x01);
 			}
 			else
 			{
-				SPP_DEBUG_recv_count++;
+				UART_recv_count++;
 			}
 		}
 
-        HAL_UART_Receive_IT(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
-	}
-	else if (huart == &SPP_OBC_UART)
-	{
-		if(OBCRxBuffer.isProcessing == 0)
-		{
-			*(OBCRxBuffer.RxBuffer + SPP_OBC_recv_count) = SPP_OBC_recv_char;
-			if (SPP_OBC_recv_char == 0x00 || SPP_OBC_recv_count == COBS_FRAME_LEN - 1)
-			{
-				OBCRxBuffer.COBS_frame_size = SPP_OBC_recv_count + 1;
-				OBCRxBuffer.isProcessing = 1;
-				SPP_OBC_recv_count = 0;
-				osSignalSet(UART_OBC_TaskHandle, 0x02);
-			}
-			else
-			{
-				SPP_OBC_recv_count++;
-			}
-		}
-
-        HAL_UART_Receive_IT(&SPP_OBC_UART, &SPP_OBC_recv_char, 1);
+        HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1);
+//        HAL_UART_Receive_IT(&OBC_UART, &UART_recv_char, 1);
 	}
 }
 
@@ -707,8 +656,6 @@ int _write(int file, char *ptr, int len)
 /* USER CODE END Header_PUS_3_Service_Task */
 void PUS_3_Service_Task(void const * argument)
 {
-  /* init code for FATFS */
-  MX_FATFS_Init();
 
   /* USER CODE BEGIN 5 */
 
@@ -726,11 +673,7 @@ void PUS_3_Service_Task(void const * argument)
     			PUS_1_send_succ_start(&pus3_msg_received.SPP_header, &pus3_msg_received.PUS_TC_header);
 
     			// Only update the frequency of the reports if they are supposed to be updated
-    			if(pus3_msg_received.new_uC_report_frequency == 1)
-    				current_uC_report_frequency = pus3_msg_received.uC_report_frequency;
-
-    			if(pus3_msg_received.new_FPGA_report_frequency == 1)
-					current_FPGA_report_frequency = pus3_msg_received.FPGA_report_frequency;
+    			set_report_frequency(pus3_msg_received.data, &pus3_msg_received);
 
 				current_ticks = xTaskGetTickCount();
 				PUS_3_collect_HK_data(current_ticks);
@@ -761,8 +704,8 @@ void PUS_3_Service_Task(void const * argument)
 
 				PUS_3_HK_send(&pus3_msg_received);
     		}
-
     	}
+    	osDelay(1);
     }
   /* USER CODE END 5 */
 }
@@ -777,8 +720,8 @@ void PUS_3_Service_Task(void const * argument)
 void handle_UART_OBC(void const * argument)
 {
   /* USER CODE BEGIN handle_UART_OBC */
-    HAL_UART_Receive_IT(&SPP_DEBUG_UART, &SPP_DEBUG_recv_char, 1);
-    HAL_UART_Receive_IT(&SPP_OBC_UART, &SPP_OBC_recv_char, 1);
+    HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1);
+//    HAL_UART_Receive_IT(&OBC_UART, &UART_recv_char, 1);
 
   /* Infinite loop */
 	for(;;)
@@ -789,20 +732,43 @@ void handle_UART_OBC(void const * argument)
 		{
 			if (evt.value.signals & 0x01)
 			{
-				Handle_incoming_TC(DEBUG_TC);
-				DEBUGRxBuffer.isProcessing = 0;
-			}
-
-			if (evt.value.signals & 0x02)
-			{
-				Handle_incoming_TC(OBC_TC);
-				OBCRxBuffer.isProcessing = 0;
-
+				Handle_incoming_TC();
+				UART_RxBuffer.isProcessing = 0;
 			}
 		}
 		osDelay(1);
 	}
   /* USER CODE END handle_UART_OBC */
+}
+
+/* USER CODE BEGIN Header_PUS_8_Service_Task */
+/**
+* @brief Function implementing the PUS_8_Task thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_PUS_8_Service_Task */
+void PUS_8_Service_Task(void const * argument)
+{
+  /* USER CODE BEGIN PUS_8_Service_Task */
+  /* Infinite loop */
+
+	PUS_8_msg pus8_msg_received;
+	for(;;)
+	{
+		if (xQueueReceive(PUS_8_Queue, &pus8_msg_received, portMAX_DELAY) == pdPASS)
+		{
+			PUS_1_send_succ_start(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header);
+
+			PUS_1_send_succ_prog(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header);
+
+			//	err = perform_function(SPP_header, PUS_TC_header, data);
+
+			PUS_1_send_succ_comp(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header);
+		}
+		osDelay(1);
+	}
+  /* USER CODE END PUS_8_Service_Task */
 }
 
 /**

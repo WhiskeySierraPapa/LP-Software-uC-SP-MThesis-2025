@@ -22,21 +22,6 @@
           <name>..\Src\custom.c</name>
         </file>
         <file>
-          <name>ffconf.h</name>
-        </file>
-        <file>
-          <name>bsp_driver_sd.h</name>
-        </file>
-        <file>
-          <name>sd_diskio.h</name>
-        </file>
-        <file>
-          <name>fatfs.h</name>
-        </file>
-        <file>
-          <name>fatfs_platform.h</name>
-        </file>
-        <file>
           <name>stm32f7xx_it.h</name>
         </file>
         <file>
@@ -87,7 +72,6 @@
             <include>Middlewares\Third_Party\FreeRTOS\Source\include</include>
             <include>Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS</include>
             <include>Middlewares\Third_Party\FreeRTOS\Source\portable\GCC\ARM_CM7\r0p1</include>
-            <include>Middlewares\Third_Party\FatFs\src</include>
             <include>Drivers\CMSIS\Device\ST\STM32F7xx\Include</include>
             <include>Drivers\CMSIS\Include</include>
           </Cincludes>

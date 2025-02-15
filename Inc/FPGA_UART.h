@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include <fatfs.h>
+//#include <fatfs.h>
 
 #define RX_STATE_PREAMBLE_1 1
 #define RX_STATE_PREAMBLE_2 2
