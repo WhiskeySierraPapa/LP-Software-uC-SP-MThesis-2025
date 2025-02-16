@@ -6,11 +6,14 @@
  */
 #include "Space_Packet_Protocol.h"
 #include "PUS.h"
+#include "langmuir_probe_bias.h"
 
 #ifndef PUS_8_SERVIE_H_
 #define PUS_8_SERVIE_H_
 
 #define PUS_8_MAX_DATA_LEN 20
+
+
 
 // Function Management [8] subtype IDs
 typedef enum {
@@ -23,7 +26,52 @@ typedef struct {
 	uint8_t data[PUS_8_MAX_DATA_LEN];
 } PUS_8_msg;
 
+typedef struct {
+	uint8_t  func_id;
+	uint8_t  N_args;
+    uint8_t  probe_ID;
+    uint8_t  step_ID;
+    uint16_t voltage_level;
+    uint16_t N_skip;
+    uint8_t  N_steps;
+    uint16_t N_f; // Samples per points
+    uint16_t N_points;
+    GS_Target_t  target;
+    uint16_t N_samples_per_step;
+} PUS_8_msg_unpacked;
+
+typedef enum {
+    FPGA_EN_CB_MODE          = 0xCA,
+    FPGA_DIS_CB_MODE         = 0xC0,
+
+    FPGA_SET_CB_VOL_LVL      = 0xCB,
+    FPGA_GET_CB_VOL_LVL      = 0xCC,
+
+    FPGA_SWT_ACTIVATE_SWEEP         = 0xAA,
+    FPGA_SET_SWT_VOL_LVL            = 0xAB,
+    FPGA_SET_SWT_STEPS              = 0xAC,
+    FPGA_SET_SWT_SAMPLES_PER_STEP   = 0xAD,
+    FPGA_SET_SWT_SAMPLE_SKIP        = 0xAE,
+    FPGA_SET_SWT_SAMPLES_PER_POINT  = 0xAF,
+    FPGA_SET_SWT_NPOINTS            = 0xB0,
+
+    FPGA_GET_SWT_SWEEP_CNT          = 0xA0,
+    FPGA_GET_SWT_VOL_LVL            = 0xA1,
+    FPGA_GET_SWT_STEPS              = 0xA2,
+    FPGA_GET_SWT_SAMPLES_PER_STEP   = 0xA3,
+    FPGA_GET_SWT_SAMPLE_SKIP        = 0xA4,
+    FPGA_GET_SWT_SAMPLES_PER_POINT  = 0xA5,
+    FPGA_GET_SWT_NPOINTS            = 0xA6,
+
+} PUS_8_Func_ID;
+
+typedef enum {
+    CPY_TABLE_FRAM_TO_FPGA = 0xE0,
+} Aux_Func_ID_t;
+
 /* PUS_8_service */
+void PUS_8_unpack_msg(uint8_t* data, PUS_8_msg_unpacked* pus8_msg_unpacked);
+SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , PUS_8_msg_unpacked* pus8_msg_unpacked);
 SPP_error PUS_8_handle_FM_TC(SPP_header_t* SPP_header , PUS_TC_header_t* secondary_header, uint8_t* data);
 
 #endif /* PUS_8_SERVIE_H_ */

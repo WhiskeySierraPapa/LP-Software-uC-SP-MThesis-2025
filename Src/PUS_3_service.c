@@ -149,7 +149,7 @@ void PUS_3_HK_send(PUS_3_msg* pus3_msg_received) {
 }
 
 
-void set_report_frequency(uint8_t* data, PUS_3_msg* pus3_msg_received) {
+void PUS_3_set_report_frequency(uint8_t* data, PUS_3_msg* pus3_msg_received) {
     uint8_t* data_iterator = data;
 	uint16_t SID_num = 0;
     memcpy(&SID_num, data_iterator, sizeof(SID_num));

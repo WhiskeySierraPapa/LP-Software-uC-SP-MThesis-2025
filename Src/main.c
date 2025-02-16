@@ -672,8 +672,7 @@ void PUS_3_Service_Task(void const * argument)
     		{
     			PUS_1_send_succ_start(&pus3_msg_received.SPP_header, &pus3_msg_received.PUS_TC_header);
 
-    			// Only update the frequency of the reports if they are supposed to be updated
-    			set_report_frequency(pus3_msg_received.data, &pus3_msg_received);
+    			PUS_3_set_report_frequency(pus3_msg_received.data, &pus3_msg_received);
 
 				current_ticks = xTaskGetTickCount();
 				PUS_3_collect_HK_data(current_ticks);
@@ -754,6 +753,8 @@ void PUS_8_Service_Task(void const * argument)
   /* Infinite loop */
 
 	PUS_8_msg pus8_msg_received;
+	PUS_8_msg_unpacked pus8_msg_unpacked;
+
 	for(;;)
 	{
 		if (xQueueReceive(PUS_8_Queue, &pus8_msg_received, portMAX_DELAY) == pdPASS)
@@ -762,7 +763,9 @@ void PUS_8_Service_Task(void const * argument)
 
 			PUS_1_send_succ_prog(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header);
 
-			//	err = perform_function(SPP_header, PUS_TC_header, data);
+			PUS_8_unpack_msg(pus8_msg_received.data, &pus8_msg_unpacked);
+
+			PUS_8_perform_function(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header, &pus8_msg_unpacked);
 
 			PUS_1_send_succ_comp(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header);
 		}
