@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "FPGA_UART.h"
 #include "COBS.h"
 #include "main.h"
 #include "device_state.h"
@@ -49,6 +48,8 @@ extern uint8_t UART_recv_char;
 
 #define SPP_VERSION                       0
 
+#define SPP_APP_ID 23
+
 #define SPP_MAX_PACKET_LEN              256
 
 #define SPP_PACKET_TYPE_TM                0
@@ -61,6 +62,8 @@ extern uint8_t UART_recv_char;
 
 #define DEBUG_UART                  huart4
 #define OBC_UART					huart2
+
+
 
 typedef enum {
     OBC_TC                            = 0,

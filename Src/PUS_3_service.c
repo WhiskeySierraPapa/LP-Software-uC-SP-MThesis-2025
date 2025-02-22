@@ -9,9 +9,6 @@
 #include "PUS_1_service.h"
 #include "PUS_3_service.h"
 
-#include "FreeRTOS.h"
-#include "queue.h"
-
 extern uint16_t temperature_i;
 extern uint16_t uc3v_i;
 extern uint16_t fpga3v_i;
@@ -19,6 +16,7 @@ extern uint16_t fpga1p5v_i;
 extern uint16_t vbat_i;
 extern uint16_t HK_SPP_APP_ID;
 extern uint16_t HK_PUS_SOURCE_ID;
+extern QueueHandle_t UART_OBC_Out_Queue;
 
 uint8_t current_uC_report_frequency = 0;
 uint8_t current_FPGA_report_frequency = 0;
@@ -59,7 +57,7 @@ uint8_t HK_TM_data[MAX_TM_DATA_LEN];
 uint16_t HK_TM_data_len;
 
 // This queue is used to receive info from the UART handler task
-osMessageQId PUS_3_Queue;
+QueueHandle_t PUS_3_Queue;
 
 static void fill_report_struct(uint16_t SID) {
     uint16_t s_vbat = vbat_i;
@@ -98,15 +96,15 @@ void PUS_3_collect_HK_data(uint32_t current_ticks) {
 
 
 static uint16_t encode_HK_struct(HK_par_report_structure_t* HKPRS, uint8_t* out_buffer) {
-    uint8_t* orig_pointer = out_buffer;
-    memcpy(out_buffer, &(HKPRS->SID), sizeof(HKPRS->SID));
-    out_buffer += sizeof(HKPRS->SID);
+    uint8_t* iterator_pointer = out_buffer;
+    memcpy(iterator_pointer, &(HKPRS->SID), sizeof(HKPRS->SID));
+    iterator_pointer += sizeof(HKPRS->SID);
 
     for (int i = 0; i < HKPRS->N1; i++) {
-        memcpy(out_buffer, &(HKPRS->parameters[i]), sizeof(HKPRS->parameters[i]));
-        out_buffer += sizeof(HKPRS->parameters[i]);
+        memcpy(iterator_pointer, &(HKPRS->parameters[i]), sizeof(HKPRS->parameters[i]));
+        iterator_pointer += sizeof(HKPRS->parameters[i]);
     }
-    return out_buffer - orig_pointer;
+    return iterator_pointer - out_buffer;
 }
 
 
@@ -116,17 +114,16 @@ void PUS_3_HK_send(PUS_3_msg* pus3_msg_received) {
 			current_uC_report_frequency = 0;
 		}
 
-		uint16_t tm_data_len = encode_HK_struct(&HKPRS_uc, HK_TM_data);
+		UART_OUT_msg msg_to_send_uC = {0};
 
-		Add_SPP_PUS_and_send_TM(pus3_msg_received->SPP_header.application_process_id,
-								1,
-								HKPRS_uc.seq_count,
-								pus3_msg_received->PUS_TC_header.source_id,
-								HOUSEKEEPING_SERVICE_ID,
-								HK_PARAMETER_REPORT,
-								HK_TM_data,
-								tm_data_len);
-		HKPRS_uc.seq_count++;
+		msg_to_send_uC.PUS_HEADER_PRESENT	= 1;
+		msg_to_send_uC.PUS_SOURCE_ID 		= pus3_msg_received->PUS_TC_header.source_id;
+		msg_to_send_uC.SERVICE_ID			= HOUSEKEEPING_SERVICE_ID;
+		msg_to_send_uC.SUBTYPE_ID			= HK_PARAMETER_REPORT;
+		uint16_t tm_data_len = encode_HK_struct(&HKPRS_uc, msg_to_send_uC.TM_data);
+		msg_to_send_uC.TM_data_len			= tm_data_len;
+
+		xQueueSend(UART_OBC_Out_Queue, &msg_to_send_uC, portMAX_DELAY);
 	}
 
 	if (current_FPGA_report_frequency >= 1) {
@@ -134,17 +131,16 @@ void PUS_3_HK_send(PUS_3_msg* pus3_msg_received) {
 			current_FPGA_report_frequency = 0;
 		}
 
-		uint16_t tm_data_len = encode_HK_struct(&HKPRS_fpga, HK_TM_data);
+		UART_OUT_msg msg_to_send_FPGA = {0};
 
-		Add_SPP_PUS_and_send_TM(pus3_msg_received->SPP_header.application_process_id,
-								1,
-								HKPRS_fpga.seq_count,
-								pus3_msg_received->PUS_TC_header.source_id,
-								HOUSEKEEPING_SERVICE_ID,
-								HK_PARAMETER_REPORT,
-								HK_TM_data,
-								tm_data_len);
-		HKPRS_fpga.seq_count++;
+		msg_to_send_FPGA.PUS_HEADER_PRESENT	= 1;
+		msg_to_send_FPGA.PUS_SOURCE_ID 		= pus3_msg_received->PUS_TC_header.source_id;
+		msg_to_send_FPGA.SERVICE_ID			= HOUSEKEEPING_SERVICE_ID;
+		msg_to_send_FPGA.SUBTYPE_ID			= HK_PARAMETER_REPORT;
+		uint16_t tm_data_len = encode_HK_struct(&HKPRS_fpga, msg_to_send_FPGA.TM_data);
+		msg_to_send_FPGA.TM_data_len			= tm_data_len;
+
+		xQueueSend(UART_OBC_Out_Queue, &msg_to_send_FPGA, portMAX_DELAY);
 	}
 }
 

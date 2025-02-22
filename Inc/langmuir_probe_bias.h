@@ -54,8 +54,6 @@ extern uint8_t FPGA_byte_recv;
 void send_FPGA_langmuir_msg(uint8_t func_id, FPGA_msg_arg_t* fpgama);
 bool is_langmuir_func(uint8_t func_id);
 bool FPGA_rx_langmuir_readback(uint8_t recv_byte);
-SPP_error save_sweep_table_value_FRAM(uint8_t save_id, uint8_t step_id, uint16_t value);
-uint16_t read_sweep_table_value_FRAM(uint8_t save_id, uint8_t step_id);
 void copy_full_sweep_table_FRAM_to_FPGA(uint8_t fram_table_id, uint8_t fpga_table_id);
 void handle_scientific_data_packet();
 #endif /* LANGMUIR_PROBE_BIAS_H_ */

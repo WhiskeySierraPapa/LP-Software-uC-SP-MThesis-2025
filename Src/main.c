@@ -65,13 +65,16 @@ DMA_HandleTypeDef hdma_i2c4_tx;
 UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart5;
 UART_HandleTypeDef huart2;
+DMA_HandleTypeDef hdma_uart4_tx;
+DMA_HandleTypeDef hdma_uart4_rx;
 
 DMA_HandleTypeDef hdma_memtomem_dma2_stream1;
 SRAM_HandleTypeDef hsram1;
 
 osThreadId PUS_3_TaskHandle;
-osThreadId UART_OBC_TaskHandle;
+osThreadId UART_OBC_IN_TasHandle;
 osThreadId PUS_8_TaskHandle;
+osThreadId UART_OBC_OUT_TaHandle;
 /* USER CODE BEGIN PV */
 
 //FATFS FatFs;
@@ -112,8 +115,11 @@ uint16_t HK_PUS_SOURCE_ID = 0;
 extern uint8_t current_uC_report_frequency;
 extern uint8_t current_FPGA_report_frequency;
 
-extern osMessageQId PUS_3_Queue;
-extern osMessageQId PUS_8_Queue;
+extern QueueHandle_t UART_OBC_Out_Queue;
+extern QueueHandle_t PUS_3_Queue;
+extern QueueHandle_t PUS_8_Queue;
+
+extern volatile uint8_t uart_tx_done;
 
 /* USER CODE END PV */
 
@@ -127,8 +133,9 @@ static void MX_I2C4_Init(void);
 static void MX_UART4_Init(void);
 static void MX_UART5_Init(void);
 void PUS_3_Service_Task(void const * argument);
-void handle_UART_OBC(void const * argument);
+void handle_UART_IN_OBC(void const * argument);
 void PUS_8_Service_Task(void const * argument);
+void handle_UART_OUT_OBC(void const * argument);
 
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
@@ -158,6 +165,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+  UART_OBC_Out_Queue = xQueueCreate(1, sizeof(UART_OUT_msg));
   PUS_3_Queue = xQueueCreate(1, sizeof(PUS_3_msg));
   PUS_8_Queue = xQueueCreate(1, sizeof(PUS_8_msg));
   /* USER CODE END Init */
@@ -181,7 +189,7 @@ int main(void)
   /* Initialize interrupts */
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_RESET);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -205,13 +213,17 @@ int main(void)
   osThreadDef(PUS_3_Task, PUS_3_Service_Task, osPriorityNormal, 0, 1024);
   PUS_3_TaskHandle = osThreadCreate(osThread(PUS_3_Task), NULL);
 
-  /* definition and creation of UART_OBC_Task */
-  osThreadDef(UART_OBC_Task, handle_UART_OBC, osPriorityNormal, 0, 1024);
-  UART_OBC_TaskHandle = osThreadCreate(osThread(UART_OBC_Task), NULL);
+  /* definition and creation of UART_OBC_IN_Tas */
+  osThreadDef(UART_OBC_IN_Tas, handle_UART_IN_OBC, osPriorityNormal, 0, 1024);
+  UART_OBC_IN_TasHandle = osThreadCreate(osThread(UART_OBC_IN_Tas), NULL);
 
   /* definition and creation of PUS_8_Task */
   osThreadDef(PUS_8_Task, PUS_8_Service_Task, osPriorityNormal, 0, 1024);
   PUS_8_TaskHandle = osThreadCreate(osThread(PUS_8_Task), NULL);
+
+  /* definition and creation of UART_OBC_OUT_Ta */
+  osThreadDef(UART_OBC_OUT_Ta, handle_UART_OUT_OBC, osPriorityAboveNormal, 0, 1024);
+  UART_OBC_OUT_TaHandle = osThreadCreate(osThread(UART_OBC_OUT_Ta), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
@@ -492,6 +504,12 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
+  /* DMA1_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
+  /* DMA1_Stream4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
   /* DMA1_Stream5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
@@ -606,33 +624,74 @@ void HAL_SRAM_DMA_XferCpltCallback(DMA_HandleTypeDef *hdma) {
 }
 
 //bool msg_from_FPGA = false;
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	if (huart == &huart5) {
-        handle_scientific_data_packet();
-	}
-	else if (huart == &DEBUG_UART /*|| huart == &SPP_OBC_UART*/)
-	{
-		if(UART_RxBuffer.isProcessing == 0)
-		{
-			*(UART_RxBuffer.RxBuffer + UART_recv_count) = UART_recv_char;
-			if (UART_recv_char == 0x00 || UART_recv_count == MAX_COBS_FRAME_LEN - 1)
-			{
-				UART_RxBuffer.frame_size = UART_recv_count + 1;
-				UART_RxBuffer.isProcessing = 1;
-				UART_recv_count = 0;
-				osSignalSet(UART_OBC_TaskHandle, 0x01);
-			}
-			else
-			{
-				UART_recv_count++;
-			}
-		}
+//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+//	if (huart == &DEBUG_UART /*|| huart == &SPP_OBC_UART*/)
+//	{
+//		if(UART_RxBuffer.isProcessing == 0)
+//		{
+//			*(UART_RxBuffer.RxBuffer + UART_recv_count) = UART_recv_char;
+//			if (UART_recv_char == 0x00 || UART_recv_count == MAX_COBS_FRAME_LEN - 1)
+//			{
+//				UART_RxBuffer.frame_size = UART_recv_count + 1;
+//				UART_RxBuffer.isProcessing = 1;
+//				UART_recv_count = 0;
+//				osSignalSet(UART_OBC_IN_TasHandle, 0x01);
+//			}
+//			else
+//			{
+//				UART_recv_count++;
+//			}
+//		}
+//        HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1);
+//	}
+//}
 
-        HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1);
-//        HAL_UART_Receive_IT(&OBC_UART, &UART_recv_char, 1);
-	}
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if(huart == &DEBUG_UART)
+    {
+
+        // Only process the received byte if we are not already processing a frame
+        if (UART_RxBuffer.isProcessing == 0)
+        {
+            // Store the received character in the buffer
+            UART_RxBuffer.RxBuffer[UART_recv_count] = UART_recv_char;
+
+            // Check if this is the end of frame (0x00 terminator) or the buffer is full
+            if (UART_recv_char == 0x00 || UART_recv_count >= MAX_COBS_FRAME_LEN - 1)
+            {
+                // Mark the frame size and indicate that a complete frame is available for processing
+                UART_RxBuffer.frame_size = UART_recv_count + 1;
+                UART_RxBuffer.isProcessing = 1;
+                UART_recv_count = 0;
+                // Signal the task that a complete frame is ready to be processed
+                osSignalSet(UART_OBC_IN_TasHandle, 0x01);
+            }
+            else
+            {
+                // Continue accumulating characters
+                UART_recv_count++;
+            }
+        }
+        else
+        {
+            // Optionally, if a frame is being processed, you could drop the new byte or add error handling
+        }
+
+        // Re-arm the UART receive interrupt to receive the next byte
+        if (HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1) != HAL_OK)
+        {
+        	//TO DO: move system in a critical state taht would try to fix the problem
+        	HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+        }
+    }
 }
 
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart == &DEBUG_UART) {
+        uart_tx_done = 1;  // Mark transmission as complete
+    }
+}
 
 // Enables print() to terminal over SWD
 int _write(int file, char *ptr, int len)
@@ -691,7 +750,7 @@ void PUS_3_Service_Task(void const * argument)
     	}
     	else
     	{
-    		if (xQueuePeek(PUS_3_Queue, &pus3_msg_received, 5000) == pdPASS)
+    		if (xQueuePeek(PUS_3_Queue, &pus3_msg_received, 500) == pdPASS)
     		{
     			periodic_report = 0;
     		}
@@ -709,35 +768,44 @@ void PUS_3_Service_Task(void const * argument)
   /* USER CODE END 5 */
 }
 
-/* USER CODE BEGIN Header_handle_UART_OBC */
+/* USER CODE BEGIN Header_handle_UART_IN_OBC */
 /**
-* @brief Function implementing the UART_OBC_Task thread.
+* @brief Function implementing the UART_OBC_IN_Tas thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_handle_UART_OBC */
-void handle_UART_OBC(void const * argument)
+/* USER CODE END Header_handle_UART_IN_OBC */
+void handle_UART_IN_OBC(void const * argument)
 {
-  /* USER CODE BEGIN handle_UART_OBC */
-    HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1);
-//    HAL_UART_Receive_IT(&OBC_UART, &UART_recv_char, 1);
+  /* USER CODE BEGIN handle_UART_IN_OBC */
+	HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1);
+	//    HAL_UART_Receive_IT(&OBC_UART, &UART_recv_char, 1);
 
-  /* Infinite loop */
+	/* Infinite loop */
 	for(;;)
 	{
-		osEvent evt = osSignalWait(0x07, osWaitForever);
+		osEvent evt = osSignalWait(0x01, osWaitForever);
 
 		if (evt.status == osEventSignal)
 		{
 			if (evt.value.signals & 0x01)
 			{
+//				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+//				osDelay(1000);
 				Handle_incoming_TC();
+//				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_RESET);
+//				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+//				HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1);
+//				osDelay(1000);
+//				UART_RxBuffer.RxBuffer = {0};
+				memset(UART_RxBuffer.RxBuffer, 0, sizeof(UART_RxBuffer.RxBuffer));
 				UART_RxBuffer.isProcessing = 0;
+
 			}
 		}
 		osDelay(1);
 	}
-  /* USER CODE END handle_UART_OBC */
+  /* USER CODE END handle_UART_IN_OBC */
 }
 
 /* USER CODE BEGIN Header_PUS_8_Service_Task */
@@ -763,15 +831,46 @@ void PUS_8_Service_Task(void const * argument)
 
 			PUS_1_send_succ_prog(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header);
 
+			pus8_msg_unpacked = (PUS_8_msg_unpacked){0};
+
 			PUS_8_unpack_msg(pus8_msg_received.data, &pus8_msg_unpacked);
 
 			PUS_8_perform_function(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header, &pus8_msg_unpacked);
 
 			PUS_1_send_succ_comp(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header);
+
+			pus8_msg_received = (PUS_8_msg){0};
 		}
 		osDelay(1);
 	}
   /* USER CODE END PUS_8_Service_Task */
+}
+
+/* USER CODE BEGIN Header_handle_UART_OUT_OBC */
+/**
+* @brief Function implementing the UART_OBC_OUT_Ta thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_handle_UART_OUT_OBC */
+void handle_UART_OUT_OBC(void const * argument)
+{
+  /* USER CODE BEGIN handle_UART_OUT_OBC */
+
+	UART_OUT_msg UART_OUT_msg_received;
+
+  /* Infinite loop */
+  for(;;)
+  {
+	  if (xQueueReceive(UART_OBC_Out_Queue, &UART_OUT_msg_received, portMAX_DELAY) == pdPASS)
+	  {
+//		    xQueueSend(UART_OBC_Out_Queue, &msg_to_send, portMAX_DELAY);
+		  Add_SPP_PUS_and_send_TM(&UART_OUT_msg_received);
+//		  HAL_UART_Transmit(&OBC_UART, data, data_len, 100);
+	  }
+	  osDelay(1);
+  }
+  /* USER CODE END handle_UART_OUT_OBC */
 }
 
 /**

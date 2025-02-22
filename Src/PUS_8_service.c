@@ -13,9 +13,12 @@
 #include "langmuir_probe_bias.h"
 #include "PUS_1_service.h"
 #include "PUS_8_service.h"
+#include "FRAM.h"
+
+extern QueueHandle_t UART_OBC_Out_Queue;
 
 // This queue is used to receive info from the UART handler task
-osMessageQId PUS_8_Queue;
+QueueHandle_t PUS_8_Queue;
 
 void PUS_8_unpack_msg(uint8_t* data, PUS_8_msg_unpacked* pus8_msg_unpacked)
 {
@@ -82,40 +85,35 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 											pus8_msg_unpacked->voltage_level);
 			}
 			break;
+
 		case FPGA_GET_SWT_VOL_LVL:
 			if(pus8_msg_unpacked->target == 1)
 			{
 				uint16_t step_voltage = read_sweep_table_value_FRAM(pus8_msg_unpacked->probe_ID,
 																	pus8_msg_unpacked->step_ID);
-				Add_SPP_PUS_and_send_TM(SPP_h->application_process_id,
-										1,
-										0,
-										PUS_TC_h->source_id,
-										FUNCTION_MANAGEMNET_ID,
-										FM_PERFORM_FUNCTION,
-										&step_voltage,
-										2);
+				UART_OUT_msg msg_to_send= {0};
+
+				msg_to_send.PUS_HEADER_PRESENT	= 1;
+				msg_to_send.PUS_SOURCE_ID 		= PUS_TC_h->source_id;
+				msg_to_send.SERVICE_ID			= FUNCTION_MANAGEMNET_ID;
+				msg_to_send.SUBTYPE_ID			= FM_PERFORM_FUNCTION;
+				msg_to_send.TM_data[0] = pus8_msg_unpacked->target;
+				msg_to_send.TM_data[1] = pus8_msg_unpacked->probe_ID;
+				msg_to_send.TM_data[2] = pus8_msg_unpacked->step_ID;
+				memcpy(msg_to_send.TM_data + 3*sizeof(uint8_t), &step_voltage, sizeof(uint16_t));
+				msg_to_send.TM_data_len			= 5;
+
+				xQueueSend(UART_OBC_Out_Queue, &msg_to_send, portMAX_DELAY);
 
 			}
 			break;
+
 		default:
 			break;
 	}
 
 	return SPP_OK;
 }
-
-//SPP_error save_sweep_table_value_FRAM(uint8_t table_id, uint8_t step_id, uint16_t value) {
-//    if (table_id > 7) { // Table IDs 0-7
-//        // TODO Add error generation here. (PUS1)
-//        return UNDEFINED_ERROR; // TODO Changes this to something unique.
-//    }
-//    uint16_t sweep_table_address = get_sweep_table_address(table_id);
-//    uint16_t FRAM_address = sweep_table_address + (step_id * 2); // step ID is 0x00 to 0xFF, but each value is 16 bits.
-//
-//    writeFRAM(FRAM_address, (uint8_t*) &value, 2);
-//    return SPP_OK;
-//};
 
 
 // Function Management PUS service 8

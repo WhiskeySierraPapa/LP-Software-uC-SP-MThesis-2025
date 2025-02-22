@@ -41,11 +41,11 @@ typedef struct {
 } PUS_8_msg_unpacked;
 
 typedef enum {
-    FPGA_EN_CB_MODE          = 0xCA,
-    FPGA_DIS_CB_MODE         = 0xC0,
+    FPGA_EN_CB_MODE          		= 0xCA,
+    FPGA_DIS_CB_MODE         		= 0xC0,
 
-    FPGA_SET_CB_VOL_LVL      = 0xCB,
-    FPGA_GET_CB_VOL_LVL      = 0xCC,
+    FPGA_SET_CB_VOL_LVL      		= 0xCB,
+    FPGA_GET_CB_VOL_LVL      		= 0xCC,
 
     FPGA_SWT_ACTIVATE_SWEEP         = 0xAA,
     FPGA_SET_SWT_VOL_LVL            = 0xAB,

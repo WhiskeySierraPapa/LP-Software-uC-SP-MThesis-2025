@@ -11,19 +11,14 @@
 #include "PUS_3_service.h"
 #include "PUS_8_service.h"
 #include "PUS_17_service.h"
+#include "cmsis_os.h"
 
+volatile uint8_t uart_tx_done = 1;
 
 extern uint16_t HK_SPP_APP_ID;
 extern uint16_t HK_PUS_SOURCE_ID;
 
-
-SPP_error UART_transmit(uint8_t* data, uint16_t data_len) {
-	*(data + data_len) = 0x00; // Adding sentinel value.
-	data_len++;
-    HAL_UART_Transmit(&DEBUG_UART, data, data_len, 100);
-    HAL_UART_Transmit(&OBC_UART, data, data_len, 100);
-    return SPP_OK;
-}
+QueueHandle_t UART_OBC_Out_Queue;
 
 void Prepare_full_msg(SPP_header_t* resp_SPP_header,
 						PUS_TM_header_t* resp_PUS_header,
@@ -52,7 +47,7 @@ void Prepare_full_msg(SPP_header_t* resp_SPP_header,
     *OUT_full_msg_len = current_pointer - OUT_full_msg;
 }
 
-SPP_error Send_TM(SPP_header_t* resp_SPP_header,
+void Send_TM(SPP_header_t* resp_SPP_header,
 				PUS_TM_header_t* resp_PUS_header,
 				uint8_t* data,
 				uint16_t data_len) {
@@ -71,45 +66,51 @@ SPP_error Send_TM(SPP_header_t* resp_SPP_header,
 												packet_total_len,
 												response_TM_packet_COBS);
 
+    while (!uart_tx_done)
+	{
+		osDelay(1);
+	}
+
+    uart_tx_done = 0;  // Mark as busy
+
     memcpy(UART_TxBuffer, response_TM_packet_COBS, cobs_packet_total_len);
-    UART_transmit(UART_TxBuffer, cobs_packet_total_len);
-    return SPP_OK;
+    UART_TxBuffer[cobs_packet_total_len] = 0x00; // Adding sentinel value.
+    cobs_packet_total_len +=1;
+
+	if (HAL_UART_Transmit_DMA(&DEBUG_UART, UART_TxBuffer, cobs_packet_total_len) != HAL_OK) {
+		//TO DO: move system in a critical state taht would try to fix the problem
+		HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+		uart_tx_done = 1;  // Reset flag on failure
+	}
 }
 
 
-void Add_SPP_PUS_and_send_TM(uint16_t SPP_APP_ID,
-								uint8_t PUS_HEADER_PRESENT,
-								uint16_t SEQUENCE_COUNT,
-								uint16_t PUS_SOURCE_ID,
-								uint8_t SERVICE_ID,
-								uint8_t SUBTYPE_ID,
-								uint8_t* TM_data,
-								uint16_t TM_data_len) {
+void Add_SPP_PUS_and_send_TM(UART_OUT_msg* UART_OUT_msg_received) {
 
         SPP_header_t TM_SPP_header = SPP_make_header(
-            SPP_VERSION,
-            SPP_PACKET_TYPE_TM,
-			PUS_HEADER_PRESENT,
-            SPP_APP_ID,
-            SPP_SEQUENCE_SEG_UNSEG,
-			SEQUENCE_COUNT,
-            SPP_PUS_TM_HEADER_LEN_WO_SPARE + TM_data_len + CRC_BYTE_LEN - 1
+			SPP_VERSION,
+			SPP_PACKET_TYPE_TM,
+			UART_OUT_msg_received->PUS_HEADER_PRESENT,
+			SPP_APP_ID,
+			SPP_SEQUENCE_SEG_UNSEG,
+			1,
+			SPP_PUS_TM_HEADER_LEN_WO_SPARE + UART_OUT_msg_received->TM_data_len + CRC_BYTE_LEN - 1
         );
 
-        if(PUS_HEADER_PRESENT == 1){
+        if(UART_OUT_msg_received->PUS_HEADER_PRESENT == 1){
 			PUS_TM_header_t TM_PUS_header  = PUS_make_TM_header(
 				PUS_VERSION,
 				0,
-				SERVICE_ID,
-				SUBTYPE_ID,
+				UART_OUT_msg_received->SERVICE_ID,
+				UART_OUT_msg_received->SUBTYPE_ID,
 				0,
-				PUS_SOURCE_ID,
+				UART_OUT_msg_received->PUS_SOURCE_ID,
 				0
 			);
-			Send_TM(&TM_SPP_header, &TM_PUS_header, TM_data, TM_data_len);
+			Send_TM(&TM_SPP_header, &TM_PUS_header, UART_OUT_msg_received->TM_data, UART_OUT_msg_received->TM_data_len);
         }
         else{
-        	Send_TM(&TM_SPP_header, NULL, TM_data, TM_data_len);
+        	Send_TM(&TM_SPP_header, NULL, UART_OUT_msg_received->TM_data, UART_OUT_msg_received->TM_data_len);
         }
 }
 

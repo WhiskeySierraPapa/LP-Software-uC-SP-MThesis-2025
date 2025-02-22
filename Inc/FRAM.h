@@ -1,3 +1,7 @@
+
+//#include "main.h"
+#include "Space_Packet_Protocol.h"
+
 #define FRAM_I2C_ADDR 0xA0
 #define FRAM_I2C_ADDR_READ 0xA1
 
@@ -25,12 +29,12 @@
 
 #define FRAM_FINAL_ADDRESS 0x1FFF
 
-
-#include "main.h"
-
 extern I2C_HandleTypeDef hi2c4;
 
 HAL_StatusTypeDef writeFRAM_DMA(uint16_t addr, uint8_t* data, uint32_t size);
 HAL_StatusTypeDef readFRAM_DMA(uint16_t addr, uint8_t* buf, uint32_t size);
 HAL_StatusTypeDef writeFRAM(uint16_t addr, uint8_t* data, uint32_t size);
 HAL_StatusTypeDef readFRAM(uint16_t addr, uint8_t* buf, uint32_t size);
+
+SPP_error save_sweep_table_value_FRAM(uint8_t table_id, uint8_t step_id, uint16_t value);
+uint16_t read_sweep_table_value_FRAM(uint8_t table_id, uint8_t step_id);
