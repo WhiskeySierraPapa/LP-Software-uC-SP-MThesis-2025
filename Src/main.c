@@ -66,7 +66,7 @@ UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart5;
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_uart4_tx;
-DMA_HandleTypeDef hdma_uart4_rx;
+DMA_HandleTypeDef hdma_uart5_tx;
 
 DMA_HandleTypeDef hdma_memtomem_dma2_stream1;
 SRAM_HandleTypeDef hsram1;
@@ -214,7 +214,7 @@ int main(void)
   PUS_3_TaskHandle = osThreadCreate(osThread(PUS_3_Task), NULL);
 
   /* definition and creation of UART_OBC_IN_Tas */
-  osThreadDef(UART_OBC_IN_Tas, handle_UART_IN_OBC, osPriorityNormal, 0, 1024);
+  osThreadDef(UART_OBC_IN_Tas, handle_UART_IN_OBC, osPriorityHigh, 0, 1024);
   UART_OBC_IN_TasHandle = osThreadCreate(osThread(UART_OBC_IN_Tas), NULL);
 
   /* definition and creation of PUS_8_Task */
@@ -504,15 +504,15 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
-  /* DMA1_Stream2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
   /* DMA1_Stream4_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
   /* DMA1_Stream5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+  /* DMA1_Stream7_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream7_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream7_IRQn);
 
 }
 /* FMC initialization function */
@@ -622,29 +622,6 @@ static void MX_GPIO_Init(void)
 void HAL_SRAM_DMA_XferCpltCallback(DMA_HandleTypeDef *hdma) {
 	FPGADMATransferCplt();
 }
-
-//bool msg_from_FPGA = false;
-//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-//	if (huart == &DEBUG_UART /*|| huart == &SPP_OBC_UART*/)
-//	{
-//		if(UART_RxBuffer.isProcessing == 0)
-//		{
-//			*(UART_RxBuffer.RxBuffer + UART_recv_count) = UART_recv_char;
-//			if (UART_recv_char == 0x00 || UART_recv_count == MAX_COBS_FRAME_LEN - 1)
-//			{
-//				UART_RxBuffer.frame_size = UART_recv_count + 1;
-//				UART_RxBuffer.isProcessing = 1;
-//				UART_recv_count = 0;
-//				osSignalSet(UART_OBC_IN_TasHandle, 0x01);
-//			}
-//			else
-//			{
-//				UART_recv_count++;
-//			}
-//		}
-//        HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1);
-//	}
-//}
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {

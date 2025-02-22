@@ -66,12 +66,14 @@ void Send_TM(SPP_header_t* resp_SPP_header,
 												packet_total_len,
 												response_TM_packet_COBS);
 
+    // Wait until the previous DMA transfer has finished
     while (!uart_tx_done)
 	{
 		osDelay(1);
 	}
 
-    uart_tx_done = 0;  // Mark as busy
+    // Mark the DMA pipeline busy
+    uart_tx_done = 0;
 
     memcpy(UART_TxBuffer, response_TM_packet_COBS, cobs_packet_total_len);
     UART_TxBuffer[cobs_packet_total_len] = 0x00; // Adding sentinel value.

@@ -43,8 +43,6 @@ void Prepare_full_msg(SPP_header_t* resp_SPP_header,
 						uint8_t* OUT_full_msg,
 						uint16_t* OUT_full_msg_len );
 
-void UART_transmit(uint8_t* data, uint16_t data_len);
-
 SPP_error Handle_incoming_TC();
 
 #endif /* GENERAL_FUNCTIONS_H_ */
