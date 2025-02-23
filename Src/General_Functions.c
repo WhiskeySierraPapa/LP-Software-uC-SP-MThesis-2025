@@ -13,10 +13,12 @@
 #include "PUS_17_service.h"
 #include "cmsis_os.h"
 
-volatile uint8_t uart_tx_done = 1;
+volatile uint8_t uart_tx_OBC_done = 1;
 
 extern uint16_t HK_SPP_APP_ID;
 extern uint16_t HK_PUS_SOURCE_ID;
+
+uint16_t SPP_SEQUENCE_COUNTER = 0;
 
 QueueHandle_t UART_OBC_Out_Queue;
 
@@ -67,13 +69,13 @@ void Send_TM(SPP_header_t* resp_SPP_header,
 												response_TM_packet_COBS);
 
     // Wait until the previous DMA transfer has finished
-    while (!uart_tx_done)
+    while (!uart_tx_OBC_done)
 	{
 		osDelay(1);
 	}
 
     // Mark the DMA pipeline busy
-    uart_tx_done = 0;
+    uart_tx_OBC_done = 0;
 
     memcpy(UART_TxBuffer, response_TM_packet_COBS, cobs_packet_total_len);
     UART_TxBuffer[cobs_packet_total_len] = 0x00; // Adding sentinel value.
@@ -82,12 +84,17 @@ void Send_TM(SPP_header_t* resp_SPP_header,
 	if (HAL_UART_Transmit_DMA(&DEBUG_UART, UART_TxBuffer, cobs_packet_total_len) != HAL_OK) {
 		//TO DO: move system in a critical state taht would try to fix the problem
 		HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
-		uart_tx_done = 1;  // Reset flag on failure
+		uart_tx_OBC_done = 1;  // Reset flag on failure
 	}
 }
 
 
 void Add_SPP_PUS_and_send_TM(UART_OUT_msg* UART_OUT_msg_received) {
+
+		if(SPP_SEQUENCE_COUNTER >= 65535)
+			SPP_SEQUENCE_COUNTER = 0;
+		else
+			SPP_SEQUENCE_COUNTER++;
 
         SPP_header_t TM_SPP_header = SPP_make_header(
 			SPP_VERSION,
@@ -95,7 +102,7 @@ void Add_SPP_PUS_and_send_TM(UART_OUT_msg* UART_OUT_msg_received) {
 			UART_OUT_msg_received->PUS_HEADER_PRESENT,
 			SPP_APP_ID,
 			SPP_SEQUENCE_SEG_UNSEG,
-			1,
+			SPP_SEQUENCE_COUNTER,
 			SPP_PUS_TM_HEADER_LEN_WO_SPARE + UART_OUT_msg_received->TM_data_len + CRC_BYTE_LEN - 1
         );
 

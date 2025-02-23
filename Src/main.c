@@ -67,6 +67,7 @@ UART_HandleTypeDef huart5;
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_uart4_tx;
 DMA_HandleTypeDef hdma_uart5_tx;
+DMA_HandleTypeDef hdma_uart5_rx;
 
 DMA_HandleTypeDef hdma_memtomem_dma2_stream1;
 SRAM_HandleTypeDef hsram1;
@@ -75,6 +76,7 @@ osThreadId PUS_3_TaskHandle;
 osThreadId UART_OBC_IN_TasHandle;
 osThreadId PUS_8_TaskHandle;
 osThreadId UART_OBC_OUT_TaHandle;
+osThreadId UART_FPGA_INHandle;
 /* USER CODE BEGIN PV */
 
 //FATFS FatFs;
@@ -119,7 +121,10 @@ extern QueueHandle_t UART_OBC_Out_Queue;
 extern QueueHandle_t PUS_3_Queue;
 extern QueueHandle_t PUS_8_Queue;
 
-extern volatile uint8_t uart_tx_done;
+extern volatile uint8_t uart_tx_OBC_done;
+extern volatile uint8_t uart_tx_FPGA_done;
+
+extern uint8_t UART_FPGA_Rx_Buffer[100];
 
 /* USER CODE END PV */
 
@@ -136,6 +141,7 @@ void PUS_3_Service_Task(void const * argument);
 void handle_UART_IN_OBC(void const * argument);
 void PUS_8_Service_Task(void const * argument);
 void handle_UART_OUT_OBC(void const * argument);
+void handle_UART_IN_FPGA(void const * argument);
 
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
@@ -224,6 +230,10 @@ int main(void)
   /* definition and creation of UART_OBC_OUT_Ta */
   osThreadDef(UART_OBC_OUT_Ta, handle_UART_OUT_OBC, osPriorityAboveNormal, 0, 1024);
   UART_OBC_OUT_TaHandle = osThreadCreate(osThread(UART_OBC_OUT_Ta), NULL);
+
+  /* definition and creation of UART_FPGA_IN */
+  osThreadDef(UART_FPGA_IN, handle_UART_IN_FPGA, osPriorityHigh, 0, 1024);
+  UART_FPGA_INHandle = osThreadCreate(osThread(UART_FPGA_IN), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
@@ -501,6 +511,9 @@ static void MX_DMA_Init(void)
   }
 
   /* DMA interrupt init */
+  /* DMA1_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
   /* DMA1_Stream1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
@@ -625,49 +638,49 @@ void HAL_SRAM_DMA_XferCpltCallback(DMA_HandleTypeDef *hdma) {
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-    if(huart == &DEBUG_UART)
+	if (huart == &huart5) {
+//		handle_scientific_data_packet();
+		osSignalSet(UART_FPGA_INHandle, 0x02);
+
+	}
+	else if(huart == &DEBUG_UART)
     {
+		// Store the received character in the buffer
+		UART_RxBuffer.RxBuffer[UART_recv_count] = UART_recv_char;
 
-        // Only process the received byte if we are not already processing a frame
-        if (UART_RxBuffer.isProcessing == 0)
-        {
-            // Store the received character in the buffer
-            UART_RxBuffer.RxBuffer[UART_recv_count] = UART_recv_char;
+		// Check if this is the end of frame (0x00 terminator) or the buffer is full
+		if (UART_recv_char == 0x00 || UART_recv_count >= MAX_COBS_FRAME_LEN - 1)
+		{
+			// Mark the frame size
+			UART_RxBuffer.frame_size = UART_recv_count + 1;
+			UART_recv_count = 0;
+			// Signal the task that a complete frame is ready to be processed
+			osSignalSet(UART_OBC_IN_TasHandle, 0x01);
 
-            // Check if this is the end of frame (0x00 terminator) or the buffer is full
-            if (UART_recv_char == 0x00 || UART_recv_count >= MAX_COBS_FRAME_LEN - 1)
-            {
-                // Mark the frame size and indicate that a complete frame is available for processing
-                UART_RxBuffer.frame_size = UART_recv_count + 1;
-                UART_RxBuffer.isProcessing = 1;
-                UART_recv_count = 0;
-                // Signal the task that a complete frame is ready to be processed
-                osSignalSet(UART_OBC_IN_TasHandle, 0x01);
-            }
-            else
-            {
-                // Continue accumulating characters
-                UART_recv_count++;
-            }
-        }
-        else
-        {
-            // Optionally, if a frame is being processed, you could drop the new byte or add error handling
-        }
+			// DO NOT RE-ARM THE ISR, it will be done after the task processes the buffer
+		}
+		else
+		{
+			// Continue accumulating characters
+			UART_recv_count++;
+			// Re-arm the ISR to read the next byte
+			if (HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1) != HAL_OK)
+			{
+				//TO DO: move system in a critical state that would try to fix the problem
+				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+			}
+		}
 
-        // Re-arm the UART receive interrupt to receive the next byte
-        if (HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1) != HAL_OK)
-        {
-        	//TO DO: move system in a critical state taht would try to fix the problem
-        	HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
-        }
     }
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
     if (huart == &DEBUG_UART) {
-        uart_tx_done = 1;  // Mark transmission as complete
+    	uart_tx_OBC_done = 1;  // Mark transmission as complete
     }
+    else if (huart == &huart5) {
+    	uart_tx_FPGA_done = 1;  // Mark transmission as complete
+	}
 }
 
 // Enables print() to terminal over SWD
@@ -767,17 +780,21 @@ void handle_UART_IN_OBC(void const * argument)
 		{
 			if (evt.value.signals & 0x01)
 			{
-//				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
-//				osDelay(1000);
 				Handle_incoming_TC();
-//				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_RESET);
-//				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
-//				HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1);
-//				osDelay(1000);
-//				UART_RxBuffer.RxBuffer = {0};
 				memset(UART_RxBuffer.RxBuffer, 0, sizeof(UART_RxBuffer.RxBuffer));
-				UART_RxBuffer.isProcessing = 0;
 
+				// Read out any pending data in the RX buffer that might have been received while ISR was disabled
+				while (__HAL_UART_GET_FLAG(&DEBUG_UART, UART_FLAG_RXNE)) {
+					volatile uint8_t dummy = (uint8_t)(DEBUG_UART.Instance->RDR);  // Read and discard
+					(void)dummy;  // Avoid compiler warnings
+				}
+
+				// Clear Overrun Error, Noise Error, and Framing Error flags
+				__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_ORE);
+				__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_NE);
+				__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_FE);
+
+				HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1);
 			}
 		}
 		osDelay(1);
@@ -841,13 +858,54 @@ void handle_UART_OUT_OBC(void const * argument)
   {
 	  if (xQueueReceive(UART_OBC_Out_Queue, &UART_OUT_msg_received, portMAX_DELAY) == pdPASS)
 	  {
-//		    xQueueSend(UART_OBC_Out_Queue, &msg_to_send, portMAX_DELAY);
 		  Add_SPP_PUS_and_send_TM(&UART_OUT_msg_received);
-//		  HAL_UART_Transmit(&OBC_UART, data, data_len, 100);
 	  }
 	  osDelay(1);
   }
   /* USER CODE END handle_UART_OUT_OBC */
+}
+
+/* USER CODE BEGIN Header_handle_UART_IN_FPGA */
+/**
+* @brief Function implementing the UART_FPGA_IN thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_handle_UART_IN_FPGA */
+void handle_UART_IN_FPGA(void const * argument)
+{
+  /* USER CODE BEGIN handle_UART_IN_FPGA */
+
+  /* Infinite loop */
+  for(;;)
+  {
+	osEvent evt = osSignalWait(0x02, osWaitForever);
+
+		if (evt.status == osEventSignal)
+		{
+			if (evt.value.signals & 0x02)
+			{
+				UART_OUT_msg msg_to_send= {0};
+
+				msg_to_send.PUS_HEADER_PRESENT	= 0;
+
+				if(UART_FPGA_Rx_Buffer[0] == FPGA_GET_CB_VOL_LVL)
+				{
+					memcpy(msg_to_send.TM_data, UART_FPGA_Rx_Buffer, 6);
+					msg_to_send.TM_data_len			= 6;
+				}
+				else if(UART_FPGA_Rx_Buffer[0] == FPGA_GET_SWT_VOL_LVL)
+				{
+					memcpy(msg_to_send.TM_data, UART_FPGA_Rx_Buffer, 7);
+					msg_to_send.TM_data_len			= 7;
+				}
+
+				xQueueSend(UART_OBC_Out_Queue, &msg_to_send, portMAX_DELAY);
+			}
+		}
+	osDelay(1);
+  }
+  /* USER CODE END handle_UART_IN_FPGA */
 }
 
 /**

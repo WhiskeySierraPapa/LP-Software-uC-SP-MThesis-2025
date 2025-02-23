@@ -15,10 +15,24 @@
 #include "PUS_8_service.h"
 #include "FRAM.h"
 
+#define FPGA_MSG_PREMABLE_0     0xB5
+#define FPGA_MSG_PREMABLE_1     0x43
+#define FPGA_MSG_POSTAMBLE      0x0A
+
+#define SCIENTIFIC_DATA_PREAMBLE        0x83
+#define SC_DATA_MAX_SIZE                10000
+#define SC_CB_PACKET_RAW_DATA_LEN       6 // 2 sequence counter bytes and 2 data bytes each probe.
+#define SC_CB_PACKET_FULL_DATA_LEN      1 + SC_CB_PACKET_RAW_DATA_LEN  // 1 byte header
+
 extern QueueHandle_t UART_OBC_Out_Queue;
+extern UART_HandleTypeDef huart5;
 
 // This queue is used to receive info from the UART handler task
 QueueHandle_t PUS_8_Queue;
+
+uint8_t UART_FPGA_Rx_Buffer[100];
+
+volatile uint8_t uart_tx_FPGA_done = 1;
 
 void PUS_8_unpack_msg(uint8_t* data, PUS_8_msg_unpacked* pus8_msg_unpacked)
 {
@@ -78,20 +92,50 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 	switch(pus8_msg_unpacked->func_id)
 	{
 		case FPGA_SET_SWT_VOL_LVL:
+		{
 			if(pus8_msg_unpacked->target == 1)
 			{
 				save_sweep_table_value_FRAM(pus8_msg_unpacked->probe_ID,
 											pus8_msg_unpacked->step_ID,
 											pus8_msg_unpacked->voltage_level);
 			}
+			else if (pus8_msg_unpacked->target == 0)
+			{
+				uint8_t msg[64] = {0};
+				uint8_t msg_cnt = 0;
+
+				msg[msg_cnt++] = FPGA_MSG_PREMABLE_0;
+				msg[msg_cnt++] = FPGA_MSG_PREMABLE_1;
+				msg[msg_cnt++] = FPGA_SET_SWT_VOL_LVL;
+				msg[msg_cnt++] = pus8_msg_unpacked->probe_ID;
+				msg[msg_cnt++] = pus8_msg_unpacked->step_ID;
+				msg[msg_cnt++] = ((uint8_t*)(&pus8_msg_unpacked->voltage_level))[0];
+				msg[msg_cnt++] = ((uint8_t*)(&pus8_msg_unpacked->voltage_level))[1];
+
+				msg[msg_cnt++] = FPGA_MSG_POSTAMBLE;
+
+				while (!uart_tx_FPGA_done)
+				{
+					osDelay(1);
+				}
+
+				uart_tx_FPGA_done = 0;
+
+				if (HAL_UART_Transmit_DMA(&huart5, msg, msg_cnt)!= HAL_OK) {
+					HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				}
+
+			}
 			break;
+		}
 
 		case FPGA_GET_SWT_VOL_LVL:
+		{
 			if(pus8_msg_unpacked->target == 1)
 			{
 				uint16_t step_voltage = read_sweep_table_value_FRAM(pus8_msg_unpacked->probe_ID,
 																	pus8_msg_unpacked->step_ID);
-				UART_OUT_msg msg_to_send= {0};
+				UART_OUT_msg msg_to_send = {0};
 
 				msg_to_send.PUS_HEADER_PRESENT	= 1;
 				msg_to_send.PUS_SOURCE_ID 		= PUS_TC_h->source_id;
@@ -100,13 +144,113 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 				msg_to_send.TM_data[0] = pus8_msg_unpacked->target;
 				msg_to_send.TM_data[1] = pus8_msg_unpacked->probe_ID;
 				msg_to_send.TM_data[2] = pus8_msg_unpacked->step_ID;
+
 				memcpy(msg_to_send.TM_data + 3*sizeof(uint8_t), &step_voltage, sizeof(uint16_t));
 				msg_to_send.TM_data_len			= 5;
 
 				xQueueSend(UART_OBC_Out_Queue, &msg_to_send, portMAX_DELAY);
+			}
+			else if(pus8_msg_unpacked->target == 0)
+			{
+				uint8_t msg[64] = {0};
+				uint8_t msg_cnt = 0;
 
+				msg[msg_cnt++] = FPGA_MSG_PREMABLE_0;
+				msg[msg_cnt++] = FPGA_MSG_PREMABLE_1;
+				msg[msg_cnt++] = FPGA_GET_SWT_VOL_LVL;
+				msg[msg_cnt++] = pus8_msg_unpacked->probe_ID;
+				msg[msg_cnt++] = pus8_msg_unpacked->step_ID;
+				msg[msg_cnt++] = FPGA_MSG_POSTAMBLE;
+
+//				memset(UART_FPGA_Rx_Buffer, 0, sizeof(UART_FPGA_Rx_Buffer));
+				UART_FPGA_Rx_Buffer[0] = FPGA_GET_SWT_VOL_LVL;
+				HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer + 1, 2 + 2 + 1);
+
+				while (!uart_tx_FPGA_done)
+				{
+					osDelay(1);
+				}
+
+				uart_tx_FPGA_done = 0;
+
+				if (HAL_UART_Transmit_DMA(&huart5, msg, msg_cnt)!= HAL_OK) {
+					HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				}
 			}
 			break;
+		}
+
+		case FPGA_EN_CB_MODE:
+		{
+			uint8_t msg[64] = {0};
+			uint8_t msg_cnt = 0;
+
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_0;
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_1;
+			msg[msg_cnt++] = FPGA_EN_CB_MODE;
+			msg[msg_cnt++] = FPGA_MSG_POSTAMBLE;
+
+			if (HAL_UART_Transmit_DMA(&huart5, msg, msg_cnt)!= HAL_OK) {
+				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+			}
+
+			break;
+		}
+
+		case FPGA_SET_CB_VOL_LVL:
+		{
+			uint8_t msg[64] = {0};
+			uint8_t msg_cnt = 0;
+
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_0;
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_1;
+			msg[msg_cnt++] = FPGA_SET_CB_VOL_LVL;
+			msg[msg_cnt++] = pus8_msg_unpacked->probe_ID;
+			msg[msg_cnt++] = ((uint8_t*)(&pus8_msg_unpacked->voltage_level))[0];
+			msg[msg_cnt++] = ((uint8_t*)(&pus8_msg_unpacked->voltage_level))[1];
+			msg[msg_cnt++] = FPGA_MSG_POSTAMBLE;
+
+			while (!uart_tx_FPGA_done)
+			{
+				osDelay(1);
+			}
+
+			uart_tx_FPGA_done = 0;
+
+			if (HAL_UART_Transmit_DMA(&huart5, msg, msg_cnt)!= HAL_OK) {
+				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+			}
+			break;
+		}
+
+		case FPGA_GET_CB_VOL_LVL:
+		{
+			uint8_t msg[64] = {0};
+			uint8_t msg_cnt = 0;
+
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_0;
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_1;
+			msg[msg_cnt++] = FPGA_GET_CB_VOL_LVL;
+			msg[msg_cnt++] = pus8_msg_unpacked->probe_ID;
+			msg[msg_cnt++] = FPGA_MSG_POSTAMBLE;
+
+			memset(UART_FPGA_Rx_Buffer, 0, sizeof(UART_FPGA_Rx_Buffer));
+			UART_FPGA_Rx_Buffer[0] = FPGA_GET_CB_VOL_LVL;
+			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer + 1, 2 + 2 + 1);
+
+			while (!uart_tx_FPGA_done)
+			{
+				osDelay(1);
+			}
+
+			uart_tx_FPGA_done = 0;
+
+			if (HAL_UART_Transmit_DMA(&huart5, msg, msg_cnt)!= HAL_OK) {
+				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+			}
+
+			break;
+		}
 
 		default:
 			break;
