@@ -66,7 +66,6 @@ UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart5;
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_uart4_tx;
-DMA_HandleTypeDef hdma_uart5_tx;
 DMA_HandleTypeDef hdma_uart5_rx;
 
 DMA_HandleTypeDef hdma_memtomem_dma2_stream1;
@@ -125,6 +124,7 @@ extern volatile uint8_t uart_tx_OBC_done;
 extern volatile uint8_t uart_tx_FPGA_done;
 
 extern uint8_t UART_FPGA_Rx_Buffer[100];
+extern uint8_t UART_FPGA_OBC_Tx_Buffer[100];
 
 /* USER CODE END PV */
 
@@ -523,9 +523,6 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
-  /* DMA1_Stream7_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream7_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream7_IRQn);
 
 }
 /* FMC initialization function */
@@ -889,15 +886,26 @@ void handle_UART_IN_FPGA(void const * argument)
 
 				msg_to_send.PUS_HEADER_PRESENT	= 0;
 
-				if(UART_FPGA_Rx_Buffer[0] == FPGA_GET_CB_VOL_LVL)
+				if(UART_FPGA_OBC_Tx_Buffer[0] == FPGA_GET_CB_VOL_LVL)
 				{
-					memcpy(msg_to_send.TM_data, UART_FPGA_Rx_Buffer, 6);
-					msg_to_send.TM_data_len			= 6;
+					if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 5))
+					{
+						UART_FPGA_OBC_Tx_Buffer[2] = UART_FPGA_Rx_Buffer[2];
+						UART_FPGA_OBC_Tx_Buffer[3] = UART_FPGA_Rx_Buffer[3];
+						memcpy(msg_to_send.TM_data, UART_FPGA_OBC_Tx_Buffer, 4);
+						msg_to_send.TM_data_len			= 4;
+					}
+
 				}
-				else if(UART_FPGA_Rx_Buffer[0] == FPGA_GET_SWT_VOL_LVL)
+				else if(UART_FPGA_OBC_Tx_Buffer[0] == FPGA_GET_SWT_VOL_LVL)
 				{
-					memcpy(msg_to_send.TM_data, UART_FPGA_Rx_Buffer, 7);
-					msg_to_send.TM_data_len			= 7;
+					if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 5))
+					{
+						UART_FPGA_OBC_Tx_Buffer[3] = UART_FPGA_Rx_Buffer[2];
+						UART_FPGA_OBC_Tx_Buffer[4] = UART_FPGA_Rx_Buffer[3];
+						memcpy(msg_to_send.TM_data, UART_FPGA_OBC_Tx_Buffer, 5);
+						msg_to_send.TM_data_len			= 5;
+					}
 				}
 
 				xQueueSend(UART_OBC_Out_Queue, &msg_to_send, portMAX_DELAY);

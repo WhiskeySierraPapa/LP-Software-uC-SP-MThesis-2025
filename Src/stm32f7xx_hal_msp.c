@@ -30,8 +30,6 @@ extern DMA_HandleTypeDef hdma_i2c4_tx;
 
 extern DMA_HandleTypeDef hdma_uart4_tx;
 
-extern DMA_HandleTypeDef hdma_uart5_tx;
-
 extern DMA_HandleTypeDef hdma_uart5_rx;
 
 /* Private typedef -----------------------------------------------------------*/
@@ -272,24 +270,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     /* UART5 DMA Init */
-    /* UART5_TX Init */
-    hdma_uart5_tx.Instance = DMA1_Stream7;
-    hdma_uart5_tx.Init.Channel = DMA_CHANNEL_4;
-    hdma_uart5_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
-    hdma_uart5_tx.Init.PeriphInc = DMA_PINC_DISABLE;
-    hdma_uart5_tx.Init.MemInc = DMA_MINC_ENABLE;
-    hdma_uart5_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-    hdma_uart5_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-    hdma_uart5_tx.Init.Mode = DMA_NORMAL;
-    hdma_uart5_tx.Init.Priority = DMA_PRIORITY_LOW;
-    hdma_uart5_tx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-    if (HAL_DMA_Init(&hdma_uart5_tx) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
-    __HAL_LINKDMA(huart,hdmatx,hdma_uart5_tx);
-
     /* UART5_RX Init */
     hdma_uart5_rx.Instance = DMA1_Stream0;
     hdma_uart5_rx.Init.Channel = DMA_CHANNEL_4;
@@ -391,7 +371,6 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_12|GPIO_PIN_13);
 
     /* UART5 DMA DeInit */
-    HAL_DMA_DeInit(huart->hdmatx);
     HAL_DMA_DeInit(huart->hdmarx);
 
     /* UART5 interrupt DeInit */
