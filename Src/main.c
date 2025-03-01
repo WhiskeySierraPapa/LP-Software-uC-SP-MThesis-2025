@@ -926,6 +926,16 @@ void handle_UART_IN_FPGA(void const * argument)
 						msg_to_send.TM_data_len			= 3;
 					}
 				}
+				else if(UART_FPGA_OBC_Tx_Buffer[0] == FPGA_GET_SWT_SAMPLE_SKIP)
+				{
+					if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 5))
+					{
+						UART_FPGA_OBC_Tx_Buffer[1] = UART_FPGA_Rx_Buffer[2];
+						UART_FPGA_OBC_Tx_Buffer[2] = UART_FPGA_Rx_Buffer[3];
+						memcpy(msg_to_send.TM_data, UART_FPGA_OBC_Tx_Buffer, 3);
+						msg_to_send.TM_data_len			= 3;
+					}
+				}
 
 				xQueueSend(UART_OBC_Out_Queue, &msg_to_send, portMAX_DELAY);
 			}
