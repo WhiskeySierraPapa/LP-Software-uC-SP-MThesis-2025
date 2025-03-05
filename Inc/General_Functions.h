@@ -26,10 +26,10 @@ typedef struct {
 	uint8_t SUBTYPE_ID;
 	uint8_t TM_data[SPP_MAX_PACKET_LEN];
 	uint16_t TM_data_len;
-} UART_OUT_msg;
+} UART_OUT_OBC_msg;
 
 
-void Add_SPP_PUS_and_send_TM(UART_OUT_msg* UART_OUT_msg_received);
+void Add_SPP_PUS_and_send_TM(UART_OUT_OBC_msg* UART_OUT_msg_received);
 
 void Send_TM(SPP_header_t* resp_SPP_header,
 				PUS_TM_header_t* resp_PUS_header,

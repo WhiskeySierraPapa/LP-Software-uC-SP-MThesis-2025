@@ -171,7 +171,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  UART_OBC_Out_Queue = xQueueCreate(1, sizeof(UART_OUT_msg));
+  UART_OBC_Out_Queue = xQueueCreate(1, sizeof(UART_OUT_OBC_msg));
   PUS_3_Queue = xQueueCreate(1, sizeof(PUS_3_msg));
   PUS_8_Queue = xQueueCreate(1, sizeof(PUS_8_msg));
   /* USER CODE END Init */
@@ -737,7 +737,7 @@ void PUS_3_Service_Task(void const * argument)
     	}
     	else
     	{
-    		if (xQueuePeek(PUS_3_Queue, &pus3_msg_received, 500) == pdPASS)
+    		if (xQueuePeek(PUS_3_Queue, &pus3_msg_received, 2000) == pdPASS)
     		{
     			periodic_report = 0;
     		}
@@ -848,7 +848,7 @@ void handle_UART_OUT_OBC(void const * argument)
 {
   /* USER CODE BEGIN handle_UART_OUT_OBC */
 
-	UART_OUT_msg UART_OUT_msg_received;
+	UART_OUT_OBC_msg UART_OUT_msg_received;
 
   /* Infinite loop */
   for(;;)
@@ -882,7 +882,7 @@ void handle_UART_IN_FPGA(void const * argument)
 		{
 			if (evt.value.signals & 0x02)
 			{
-				UART_OUT_msg msg_to_send= {0};
+				UART_OUT_OBC_msg msg_to_send= {0};
 
 				msg_to_send.PUS_HEADER_PRESENT	= 0;
 
@@ -937,6 +937,16 @@ void handle_UART_IN_FPGA(void const * argument)
 					}
 				}
 				else if(UART_FPGA_OBC_Tx_Buffer[0] == FPGA_GET_SWT_SAMPLES_PER_POINT)
+				{
+					if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 5))
+					{
+						UART_FPGA_OBC_Tx_Buffer[1] = UART_FPGA_Rx_Buffer[2];
+						UART_FPGA_OBC_Tx_Buffer[2] = UART_FPGA_Rx_Buffer[3];
+						memcpy(msg_to_send.TM_data, UART_FPGA_OBC_Tx_Buffer, 3);
+						msg_to_send.TM_data_len			= 3;
+					}
+				}
+				else if(UART_FPGA_OBC_Tx_Buffer[0] == FPGA_GET_SWT_NPOINTS)
 				{
 					if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 5))
 					{

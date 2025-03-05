@@ -28,7 +28,7 @@ static inline uint8_t succ_completion_req(PUS_TC_header_t* secondary_header) {
 void PUS_1_send_succ_acc(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
     if (succ_acceptence_req(PUS_h)) {
 
-    	UART_OUT_msg msg_to_send = {0};
+    	UART_OUT_OBC_msg msg_to_send = {0};
 
 		msg_to_send.PUS_HEADER_PRESENT	= 1;
     	msg_to_send.PUS_SOURCE_ID 		= PUS_h->source_id;
@@ -49,7 +49,7 @@ void PUS_1_send_fail_acc(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
 void PUS_1_send_succ_start(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
     if (succ_start_req(PUS_h)) {
 
-    	UART_OUT_msg msg_to_send = {0};
+    	UART_OUT_OBC_msg msg_to_send = {0};
 
 		msg_to_send.PUS_HEADER_PRESENT	= 1;
 		msg_to_send.PUS_SOURCE_ID 		= PUS_h->source_id;
@@ -70,7 +70,7 @@ void PUS_1_send_fail_start(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
 void PUS_1_send_succ_prog(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
     if (succ_progress_req(PUS_h)) {
 
-    	UART_OUT_msg msg_to_send = {0};
+    	UART_OUT_OBC_msg msg_to_send = {0};
 
 		msg_to_send.PUS_HEADER_PRESENT	= 1;
 		msg_to_send.PUS_SOURCE_ID 		= PUS_h->source_id;
@@ -91,7 +91,7 @@ void PUS_1_send_fail_prog(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
 void PUS_1_send_succ_comp(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
     if (succ_completion_req(PUS_h)) {
 
-    	UART_OUT_msg msg_to_send = {0};
+    	UART_OUT_OBC_msg msg_to_send = {0};
 
 		msg_to_send.PUS_HEADER_PRESENT	= 1;
 		msg_to_send.PUS_SOURCE_ID 		= PUS_h->source_id;

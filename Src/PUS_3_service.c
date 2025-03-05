@@ -114,7 +114,7 @@ void PUS_3_HK_send(PUS_3_msg* pus3_msg_received) {
 			current_uC_report_frequency = 0;
 		}
 
-		UART_OUT_msg msg_to_send_uC = {0};
+		UART_OUT_OBC_msg msg_to_send_uC = {0};
 
 		msg_to_send_uC.PUS_HEADER_PRESENT	= 1;
 		msg_to_send_uC.PUS_SOURCE_ID 		= pus3_msg_received->PUS_TC_header.source_id;
@@ -131,7 +131,7 @@ void PUS_3_HK_send(PUS_3_msg* pus3_msg_received) {
 			current_FPGA_report_frequency = 0;
 		}
 
-		UART_OUT_msg msg_to_send_FPGA = {0};
+		UART_OUT_OBC_msg msg_to_send_FPGA = {0};
 
 		msg_to_send_FPGA.PUS_HEADER_PRESENT	= 1;
 		msg_to_send_FPGA.PUS_SOURCE_ID 		= pus3_msg_received->PUS_TC_header.source_id;

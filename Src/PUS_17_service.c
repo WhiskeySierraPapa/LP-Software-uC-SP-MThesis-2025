@@ -28,7 +28,7 @@ SPP_error PUS_17_handle_TEST_TC(SPP_header_t* SPP_header, PUS_TC_header_t* PUS_T
         
         PUS_1_send_succ_prog(SPP_header, PUS_TC_header);
 
-		UART_OUT_msg msg_to_send = {0};
+        UART_OUT_OBC_msg msg_to_send = {0};
 
 		msg_to_send.PUS_HEADER_PRESENT	= 1;
 		msg_to_send.PUS_SOURCE_ID 		= PUS_TC_header->source_id;

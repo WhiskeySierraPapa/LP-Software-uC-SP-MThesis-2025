@@ -5,7 +5,7 @@
  *      Author: Rūdolfs Arvīds Kalniņš <rakal@kth.se>
  */
 
-
+#include "cmsis_os.h"
 #include "Space_Packet_Protocol.h"
 #include "PUS.h"
 #include "General_Functions.h"
@@ -97,10 +97,38 @@ void PUS_8_unpack_msg(uint8_t* data, PUS_8_msg_unpacked* pus8_msg_unpacked)
 				memcpy((uint8_t*)&pus8_msg_unpacked->N_samples_per_step, data_interator, sizeof(pus8_msg_unpacked->N_samples_per_step));
 				data_interator += sizeof(pus8_msg_unpacked->N_samples_per_step);
 				break;
+			case FRAM_TABLE_ID_ARG_ID:
+				memcpy((uint8_t*)&pus8_msg_unpacked->FRAM_Table_ID, data_interator, sizeof(pus8_msg_unpacked->FRAM_Table_ID));
+				data_interator += sizeof(pus8_msg_unpacked->FRAM_Table_ID);
+				break;
 			default:
 				break;
 		}
 	}
+}
+
+void PUS_8_copy_table_FRAM_to_FPGA(uint8_t fram_table_id, uint8_t fpga_table_id) {
+
+    uint8_t msg[64] = {0};
+	msg[0] = FPGA_MSG_PREMABLE_0;
+	msg[1] = FPGA_MSG_PREMABLE_1;
+	msg[2] = FPGA_SET_SWT_VOL_LVL;
+	msg[3] = fpga_table_id;
+	msg[7] = FPGA_MSG_POSTAMBLE;
+
+    for(int i = 0; i < 256; i++) {
+        uint8_t step_id = i;
+        uint16_t value = read_sweep_table_value_FRAM(fram_table_id, step_id);
+
+		msg[4] = step_id;
+		msg[5] = ((uint8_t*)(&value))[0];
+		msg[6] = ((uint8_t*)(&value))[1];
+
+		if (HAL_UART_Transmit(&huart5, msg, 8, 100)!= HAL_OK) {
+			HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+		}
+		osDelay(5);
+    }
 }
 
 
@@ -110,13 +138,13 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 	{
 		case FPGA_SET_SWT_VOL_LVL:
 		{
-			if(pus8_msg_unpacked->target == 1)
+			if(pus8_msg_unpacked->target == TARGET_uC)
 			{
 				save_sweep_table_value_FRAM(pus8_msg_unpacked->probe_ID,
 											pus8_msg_unpacked->step_ID,
 											pus8_msg_unpacked->voltage_level);
 			}
-			else if (pus8_msg_unpacked->target == 0)
+			else if (pus8_msg_unpacked->target == TARGET_FPGA)
 			{
 				uint8_t msg[64] = {0};
 				uint8_t msg_cnt = 0;
@@ -141,26 +169,26 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 
 		case FPGA_GET_SWT_VOL_LVL:
 		{
-			if(pus8_msg_unpacked->target == 1)
+			if(pus8_msg_unpacked->target == TARGET_uC)
 			{
 				uint16_t step_voltage = read_sweep_table_value_FRAM(pus8_msg_unpacked->probe_ID,
 																	pus8_msg_unpacked->step_ID);
-				UART_OUT_msg msg_to_send = {0};
+				UART_OUT_OBC_msg msg = {0};
 
-				msg_to_send.PUS_HEADER_PRESENT	= 1;
-				msg_to_send.PUS_SOURCE_ID 		= PUS_TC_h->source_id;
-				msg_to_send.SERVICE_ID			= FUNCTION_MANAGEMNET_ID;
-				msg_to_send.SUBTYPE_ID			= FM_PERFORM_FUNCTION;
-				msg_to_send.TM_data[0] = pus8_msg_unpacked->target;
-				msg_to_send.TM_data[1] = pus8_msg_unpacked->probe_ID;
-				msg_to_send.TM_data[2] = pus8_msg_unpacked->step_ID;
+				msg.PUS_HEADER_PRESENT	= 1;
+				msg.PUS_SOURCE_ID 		= PUS_TC_h->source_id;
+				msg.SERVICE_ID			= FUNCTION_MANAGEMNET_ID;
+				msg.SUBTYPE_ID			= FM_PERFORM_FUNCTION;
+				msg.TM_data[0] = pus8_msg_unpacked->target;
+				msg.TM_data[1] = pus8_msg_unpacked->probe_ID;
+				msg.TM_data[2] = pus8_msg_unpacked->step_ID;
 
-				memcpy(msg_to_send.TM_data + 3*sizeof(uint8_t), &step_voltage, sizeof(uint16_t));
-				msg_to_send.TM_data_len			= 5;
+				memcpy(msg.TM_data + 3*sizeof(uint8_t), &step_voltage, sizeof(uint16_t));
+				msg.TM_data_len			= 5;
 
-				xQueueSend(UART_OBC_Out_Queue, &msg_to_send, portMAX_DELAY);
+				xQueueSend(UART_OBC_Out_Queue, &msg, portMAX_DELAY);
 			}
-			else if(pus8_msg_unpacked->target == 0)
+			else if(pus8_msg_unpacked->target == TARGET_FPGA)
 			{
 				uint8_t msg[64] = {0};
 				uint8_t msg_cnt = 0;
@@ -419,6 +447,56 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
 			}
 
+			break;
+		}
+
+		case FPGA_SET_SWT_NPOINTS:
+		{
+			uint8_t msg[64] = {0};
+			uint8_t msg_cnt = 0;
+
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_0;
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_1;
+			msg[msg_cnt++] = FPGA_SET_SWT_NPOINTS;
+			msg[msg_cnt++] = ((uint8_t*)(&pus8_msg_unpacked->N_points))[0];
+			msg[msg_cnt++] = ((uint8_t*)(&pus8_msg_unpacked->N_points))[1];
+			msg[msg_cnt++] = FPGA_MSG_POSTAMBLE;
+
+			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
+				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+			}
+			break;
+		}
+
+		case FPGA_GET_SWT_NPOINTS:
+		{
+			uint8_t msg[64] = {0};
+			uint8_t msg_cnt = 0;
+
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_0;
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_1;
+			msg[msg_cnt++] = FPGA_GET_SWT_NPOINTS;
+			msg[msg_cnt++] = FPGA_MSG_POSTAMBLE;
+
+			memset(UART_FPGA_Rx_Buffer, 0, sizeof(UART_FPGA_Rx_Buffer));
+			memset(UART_FPGA_OBC_Tx_Buffer, 0, sizeof(UART_FPGA_OBC_Tx_Buffer));
+
+			UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_SWT_NPOINTS;
+
+			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 2 + 1); // receiving a 16 bit value for the voltage
+
+			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
+				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+			}
+
+			break;
+		}
+
+		case CPY_TABLE_FRAM_TO_FPGA:
+		{
+			uint8_t FRAM_Table_ID = pus8_msg_unpacked->FRAM_Table_ID;
+			uint8_t FPGA_Table_ID = pus8_msg_unpacked->probe_ID;
+			PUS_8_copy_table_FRAM_to_FPGA(FRAM_Table_ID, FPGA_Table_ID);
 			break;
 		}
 

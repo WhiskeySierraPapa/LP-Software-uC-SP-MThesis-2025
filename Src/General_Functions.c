@@ -89,7 +89,7 @@ void Send_TM(SPP_header_t* resp_SPP_header,
 }
 
 
-void Add_SPP_PUS_and_send_TM(UART_OUT_msg* UART_OUT_msg_received) {
+void Add_SPP_PUS_and_send_TM(UART_OUT_OBC_msg* UART_OUT_msg_received) {
 
 		if(SPP_SEQUENCE_COUNTER >= 65535)
 			SPP_SEQUENCE_COUNTER = 0;

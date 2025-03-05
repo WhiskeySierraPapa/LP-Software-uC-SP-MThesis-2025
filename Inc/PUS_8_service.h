@@ -11,7 +11,9 @@
 #ifndef PUS_8_SERVIE_H_
 #define PUS_8_SERVIE_H_
 
-#define PUS_8_MAX_DATA_LEN 20
+#define PUS_8_MAX_DATA_LEN 	20
+#define TARGET_uC 			1
+#define TARGET_FPGA 		0
 
 
 
@@ -38,6 +40,7 @@ typedef struct {
     uint16_t N_points;
     GS_Target_t  target;
     uint16_t N_samples_per_step;
+    uint8_t FRAM_Table_ID;
 } PUS_8_msg_unpacked;
 
 typedef enum {
@@ -62,12 +65,13 @@ typedef enum {
     FPGA_GET_SWT_SAMPLE_SKIP        = 0xA4,
     FPGA_GET_SWT_SAMPLES_PER_POINT  = 0xA5,
     FPGA_GET_SWT_NPOINTS            = 0xA6,
+	CPY_TABLE_FRAM_TO_FPGA	 		= 0xE0,
 
 } PUS_8_Func_ID;
 
-typedef enum {
-    CPY_TABLE_FRAM_TO_FPGA = 0xE0,
-} Aux_Func_ID_t;
+//typedef enum {
+//    CPY_TABLE_FRAM_TO_FPGA = 0xE0,
+//} Aux_Func_ID_t;
 
 /* PUS_8_service */
 bool PUS_8_check_FPGA_msg_format(uint8_t* msg, uint8_t msg_len);
