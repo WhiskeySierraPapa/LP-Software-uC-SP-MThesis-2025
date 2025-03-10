@@ -8,6 +8,7 @@
 #include "Space_Packet_Protocol.h"
 #include "PUS_1_service.h"
 #include "PUS_3_service.h"
+#include "Device_State.h"
 
 extern uint16_t temperature_i;
 extern uint16_t uc3v_i;

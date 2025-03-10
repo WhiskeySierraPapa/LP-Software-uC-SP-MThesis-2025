@@ -8,6 +8,7 @@
 #ifndef SPACE_PACKET_PROTOCOL_H_
 #define SPACE_PACKET_PROTOCOL_H_
 
+#include <Device_State.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -15,7 +16,6 @@
 #include <stdbool.h>
 #include "COBS.h"
 #include "main.h"
-#include "device_state.h"
 
 extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart2;

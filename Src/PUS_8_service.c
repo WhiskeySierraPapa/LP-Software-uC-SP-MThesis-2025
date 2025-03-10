@@ -5,12 +5,11 @@
  *      Author: Rūdolfs Arvīds Kalniņš <rakal@kth.se>
  */
 
+#include <Device_State.h>
 #include "cmsis_os.h"
 #include "Space_Packet_Protocol.h"
 #include "PUS.h"
 #include "General_Functions.h"
-#include "device_state.h"
-#include "langmuir_probe_bias.h"
 #include "PUS_1_service.h"
 #include "PUS_8_service.h"
 #include "FRAM.h"

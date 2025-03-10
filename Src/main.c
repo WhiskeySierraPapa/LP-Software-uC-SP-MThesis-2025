@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include <Device_State.h>
 #include "main.h"
 #include "cmsis_os.h"
 
@@ -26,9 +27,6 @@
 /* USER CODE BEGIN Includes */
 
 #include "FRAM.h"
-#include "FPGA_UART.h"
-#include "FPGA_Data_saving.h"
-#include "uC_Data_Saving.h"
 #include "COBS.h"
 #include "General_Functions.h"
 #include "Space_Packet_Protocol.h"
@@ -37,8 +35,7 @@
 #include "PUS_3_service.h"
 #include "PUS_8_service.h"
 #include "PUS_17_service.h"
-#include "langmuir_probe_bias.h"
-#include "device_state.h"
+#include "Device_State.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -78,26 +75,11 @@ osThreadId UART_OBC_OUT_TaHandle;
 osThreadId UART_FPGA_INHandle;
 /* USER CODE BEGIN PV */
 
-//FATFS FatFs;
-//FIL logFileFPGATx;
-//FIL logFileFPGARx;
-//FIL stateFile;
-
 #define UNIT_ID_CU 0x1A
 #define UNIT_ID_EMUCONTROL 0x1B
 #define UNIT_ID_EMUSCIENCE 0x1C
 #define UNIT_ID_SMILE 0x1D
-uint8_t unitID = 0;
-uint8_t ffuID = 0;
 
-//uint8_t SPP_OBC_message_received = 0;
-//uint8_t SPP_DEBUG_message_received = 0;
-//
-//uint8_t SPP_OBC_message_length = 0;
-//uint8_t SPP_DEBUG_message_length = 0;
-
-uint16_t ADCBuffer[11];		// Buffer for ADC values
-uint16_t ADCValues[11];		// Current ADC values
 float temperature = 0;
 float uc3v = 0;
 float fpga3v = 0;
@@ -125,6 +107,8 @@ extern volatile uint8_t uart_tx_FPGA_done;
 
 extern uint8_t UART_FPGA_Rx_Buffer[100];
 extern uint8_t UART_FPGA_OBC_Tx_Buffer[100];
+
+DeviceState Current_Global_Device_State = NORMAL_MODE;
 
 /* USER CODE END PV */
 
@@ -629,10 +613,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_SRAM_DMA_XferCpltCallback(DMA_HandleTypeDef *hdma) {
-	FPGADMATransferCplt();
-}
-
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if (huart == &huart5) {

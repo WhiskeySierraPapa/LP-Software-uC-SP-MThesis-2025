@@ -1,4 +1,5 @@
 #include "FRAM.h"
+#include "Device_State.h"
 
 HAL_StatusTypeDef writeFRAM_DMA(uint16_t addr, uint8_t* data, uint32_t size) {
 	return HAL_I2C_Mem_Write_DMA(&hi2c4, FRAM_I2C_ADDR, addr, 2, data, size);

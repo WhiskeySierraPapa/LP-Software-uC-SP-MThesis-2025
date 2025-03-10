@@ -6,7 +6,6 @@
  */
 #include "Space_Packet_Protocol.h"
 #include "PUS.h"
-#include "langmuir_probe_bias.h"
 
 #ifndef PUS_8_SERVIE_H_
 #define PUS_8_SERVIE_H_
@@ -27,6 +26,11 @@ typedef struct {
 	PUS_TC_header_t PUS_TC_header;
 	uint8_t data[PUS_8_MAX_DATA_LEN];
 } PUS_8_msg;
+
+typedef enum {
+    GS_FPGA_TARGET = 0,
+    GS_FRAM_TARGET = 1,
+} GS_Target_t;
 
 typedef struct {
 	uint8_t  func_id;
@@ -69,9 +73,18 @@ typedef enum {
 
 } PUS_8_Func_ID;
 
-//typedef enum {
-//    CPY_TABLE_FRAM_TO_FPGA = 0xE0,
-//} Aux_Func_ID_t;
+typedef enum {
+    PROBE_ID_ARG_ID             = 0x01,
+    STEP_ID_ARG_ID              = 0x02,
+    VOL_LVL_ARG_ID              = 0x03,
+    N_STEPS_ARG_ID              = 0x04,
+    N_SKIP_ARG_ID               = 0x05,
+    N_F_ARG_ID                  = 0x06,
+    N_POINTS_ARG_ID             = 0x07,
+    GS_TARGET_ARG_ID            = 0x08, // GS Target = Get Set Target
+    FRAM_TABLE_ID_ARG_ID        = 0x09,
+    N_SAMPLES_PER_STEP_ARG_ID   = 0x0A,
+} FPGA_Arg_ID_t;
 
 /* PUS_8_service */
 bool PUS_8_check_FPGA_msg_format(uint8_t* msg, uint8_t msg_len);

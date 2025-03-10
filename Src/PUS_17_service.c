@@ -8,6 +8,7 @@
 #include "General_Functions.h"
 #include "PUS_1_service.h"
 #include "PUS_17_service.h"
+#include "Device_State.h"
 
 extern QueueHandle_t UART_OBC_Out_Queue;
 
