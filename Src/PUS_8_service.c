@@ -225,6 +225,13 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 			msg[msg_cnt++] = FPGA_EN_CB_MODE;
 			msg[msg_cnt++] = FPGA_MSG_POSTAMBLE;
 
+			memset(UART_FPGA_Rx_Buffer, 0, sizeof(UART_FPGA_Rx_Buffer));
+			memset(UART_FPGA_OBC_Tx_Buffer, 0, sizeof(UART_FPGA_OBC_Tx_Buffer));
+
+			UART_FPGA_OBC_Tx_Buffer[0] = FPGA_EN_CB_MODE;
+
+			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 8 + 1);
+
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
 			}
@@ -233,7 +240,18 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 		}
 		case FPGA_DIS_CB_MODE:
 		{
-			// TO DO
+			uint8_t msg[64] = {0};
+			uint8_t msg_cnt = 0;
+
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_0;
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_1;
+			msg[msg_cnt++] = FPGA_DIS_CB_MODE;
+			msg[msg_cnt++] = FPGA_MSG_POSTAMBLE;
+
+			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
+				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+			}
+
 			break;
 		}
 

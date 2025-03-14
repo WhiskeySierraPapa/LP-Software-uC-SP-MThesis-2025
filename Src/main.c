@@ -19,7 +19,6 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include <Device_State.h>
 #include "main.h"
 #include "cmsis_os.h"
 
@@ -69,9 +68,9 @@ DMA_HandleTypeDef hdma_memtomem_dma2_stream1;
 SRAM_HandleTypeDef hsram1;
 
 osThreadId PUS_3_TaskHandle;
-osThreadId UART_OBC_IN_TasHandle;
+osThreadId UART_OBC_INHandle;
 osThreadId PUS_8_TaskHandle;
-osThreadId UART_OBC_OUT_TaHandle;
+osThreadId UART_OBC_OUTHandle;
 osThreadId UART_FPGA_INHandle;
 /* USER CODE BEGIN PV */
 
@@ -121,9 +120,9 @@ static void MX_USART2_UART_Init(void);
 static void MX_I2C4_Init(void);
 static void MX_UART4_Init(void);
 static void MX_UART5_Init(void);
-void PUS_3_Service_Task(void const * argument);
+void handle_PUS_3_Service(void const * argument);
 void handle_UART_IN_OBC(void const * argument);
-void PUS_8_Service_Task(void const * argument);
+void handle_PUS_8_Service(void const * argument);
 void handle_UART_OUT_OBC(void const * argument);
 void handle_UART_IN_FPGA(void const * argument);
 
@@ -200,20 +199,20 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of PUS_3_Task */
-  osThreadDef(PUS_3_Task, PUS_3_Service_Task, osPriorityNormal, 0, 1024);
+  osThreadDef(PUS_3_Task, handle_PUS_3_Service, osPriorityNormal, 0, 1024);
   PUS_3_TaskHandle = osThreadCreate(osThread(PUS_3_Task), NULL);
 
-  /* definition and creation of UART_OBC_IN_Tas */
-  osThreadDef(UART_OBC_IN_Tas, handle_UART_IN_OBC, osPriorityHigh, 0, 1024);
-  UART_OBC_IN_TasHandle = osThreadCreate(osThread(UART_OBC_IN_Tas), NULL);
+  /* definition and creation of UART_OBC_IN */
+  osThreadDef(UART_OBC_IN, handle_UART_IN_OBC, osPriorityHigh, 0, 1024);
+  UART_OBC_INHandle = osThreadCreate(osThread(UART_OBC_IN), NULL);
 
   /* definition and creation of PUS_8_Task */
-  osThreadDef(PUS_8_Task, PUS_8_Service_Task, osPriorityNormal, 0, 1024);
+  osThreadDef(PUS_8_Task, handle_PUS_8_Service, osPriorityNormal, 0, 1024);
   PUS_8_TaskHandle = osThreadCreate(osThread(PUS_8_Task), NULL);
 
-  /* definition and creation of UART_OBC_OUT_Ta */
-  osThreadDef(UART_OBC_OUT_Ta, handle_UART_OUT_OBC, osPriorityAboveNormal, 0, 1024);
-  UART_OBC_OUT_TaHandle = osThreadCreate(osThread(UART_OBC_OUT_Ta), NULL);
+  /* definition and creation of UART_OBC_OUT */
+  osThreadDef(UART_OBC_OUT, handle_UART_OUT_OBC, osPriorityAboveNormal, 0, 1024);
+  UART_OBC_OUTHandle = osThreadCreate(osThread(UART_OBC_OUT), NULL);
 
   /* definition and creation of UART_FPGA_IN */
   osThreadDef(UART_FPGA_IN, handle_UART_IN_FPGA, osPriorityHigh, 0, 1024);
@@ -632,7 +631,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			UART_RxBuffer.frame_size = UART_recv_count + 1;
 			UART_recv_count = 0;
 			// Signal the task that a complete frame is ready to be processed
-			osSignalSet(UART_OBC_IN_TasHandle, 0x01);
+			osSignalSet(UART_OBC_INHandle, 0x01);
 
 			// DO NOT RE-ARM THE ISR, it will be done after the task processes the buffer
 		}
@@ -673,14 +672,14 @@ int _write(int file, char *ptr, int len)
 
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_PUS_3_Service_Task */
+/* USER CODE BEGIN Header_handle_PUS_3_Service */
 /**
   * @brief  Function implementing the PUS_3_Task thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_PUS_3_Service_Task */
-void PUS_3_Service_Task(void const * argument)
+/* USER CODE END Header_handle_PUS_3_Service */
+void handle_PUS_3_Service(void const * argument)
 {
 
   /* USER CODE BEGIN 5 */
@@ -779,18 +778,17 @@ void handle_UART_IN_OBC(void const * argument)
   /* USER CODE END handle_UART_IN_OBC */
 }
 
-/* USER CODE BEGIN Header_PUS_8_Service_Task */
+/* USER CODE BEGIN Header_handle_PUS_8_Service */
 /**
 * @brief Function implementing the PUS_8_Task thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_PUS_8_Service_Task */
-void PUS_8_Service_Task(void const * argument)
+/* USER CODE END Header_handle_PUS_8_Service */
+void handle_PUS_8_Service(void const * argument)
 {
-  /* USER CODE BEGIN PUS_8_Service_Task */
+  /* USER CODE BEGIN handle_PUS_8_Service */
   /* Infinite loop */
-
 	PUS_8_msg pus8_msg_received;
 	PUS_8_msg_unpacked pus8_msg_unpacked;
 
@@ -814,7 +812,7 @@ void PUS_8_Service_Task(void const * argument)
 		}
 		osDelay(1);
 	}
-  /* USER CODE END PUS_8_Service_Task */
+  /* USER CODE END handle_PUS_8_Service */
 }
 
 /* USER CODE BEGIN Header_handle_UART_OUT_OBC */
@@ -934,6 +932,23 @@ void handle_UART_IN_FPGA(void const * argument)
 						UART_FPGA_OBC_Tx_Buffer[2] = UART_FPGA_Rx_Buffer[3];
 						memcpy(msg_to_send.TM_data, UART_FPGA_OBC_Tx_Buffer, 3);
 						msg_to_send.TM_data_len			= 3;
+					}
+				}
+				else if(UART_FPGA_OBC_Tx_Buffer[0] == FPGA_EN_CB_MODE)
+				{
+					if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 11))
+					{
+						UART_FPGA_OBC_Tx_Buffer[1] = UART_FPGA_Rx_Buffer[2];
+						UART_FPGA_OBC_Tx_Buffer[2] = UART_FPGA_Rx_Buffer[3];
+						UART_FPGA_OBC_Tx_Buffer[3] = UART_FPGA_Rx_Buffer[4];
+						UART_FPGA_OBC_Tx_Buffer[4] = UART_FPGA_Rx_Buffer[5];
+						UART_FPGA_OBC_Tx_Buffer[5] = UART_FPGA_Rx_Buffer[6];
+						UART_FPGA_OBC_Tx_Buffer[6] = UART_FPGA_Rx_Buffer[7];
+						UART_FPGA_OBC_Tx_Buffer[7] = UART_FPGA_Rx_Buffer[8];
+						UART_FPGA_OBC_Tx_Buffer[8] = UART_FPGA_Rx_Buffer[9];
+
+						memcpy(msg_to_send.TM_data, UART_FPGA_OBC_Tx_Buffer, 9);
+						msg_to_send.TM_data_len			= 9;
 					}
 				}
 
