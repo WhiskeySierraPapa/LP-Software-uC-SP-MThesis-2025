@@ -206,7 +206,7 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 				UART_FPGA_OBC_Tx_Buffer[1] = pus8_msg_unpacked->probe_ID;
 				UART_FPGA_OBC_Tx_Buffer[2] = pus8_msg_unpacked->step_ID;
 
-				HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 2 + 1); // receiving a 16 bit value for the voltage
+//				HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 9 + 1); // receiving a 16 bit value for the voltage
 
 				if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 					HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
@@ -230,7 +230,7 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 
 			UART_FPGA_OBC_Tx_Buffer[0] = FPGA_EN_CB_MODE;
 
-			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 8 + 1);
+//			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 9 + 1);
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
@@ -291,7 +291,7 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 			UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_CB_VOL_LVL;
 			UART_FPGA_OBC_Tx_Buffer[1] = pus8_msg_unpacked->probe_ID;
 
-			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 2 + 1); // receiving a 16 bit value for the voltage
+//			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 9 + 1); // receiving a 16 bit value for the voltage
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
@@ -332,7 +332,7 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 
 			UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_SWT_STEPS;
 
-			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 1 + 1); // receiving a 16 bit value for the voltage
+//			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 9 + 1); // receiving a 16 bit value for the voltage
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
@@ -374,7 +374,7 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 
 			UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_SWT_SAMPLES_PER_STEP;
 
-			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 2 + 1); // receiving a 16 bit value for the voltage
+//			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 9 + 1); // receiving a 16 bit value for the voltage
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
@@ -416,7 +416,7 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 
 			UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_SWT_SAMPLE_SKIP;
 
-			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 2 + 1); // receiving a 16 bit value for the voltage
+//			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 9 + 1); // receiving a 16 bit value for the voltage
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
@@ -458,7 +458,7 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 
 			UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_SWT_SAMPLES_PER_POINT;
 
-			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 2 + 1); // receiving a 16 bit value for the voltage
+//			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 9 + 1); // receiving a 16 bit value for the voltage
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
@@ -500,7 +500,7 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 
 			UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_SWT_NPOINTS;
 
-			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 2 + 1); // receiving a 16 bit value for the voltage
+//			HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 9 + 1); // receiving a 16 bit value for the voltage
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
