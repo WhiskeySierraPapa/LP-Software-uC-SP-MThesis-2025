@@ -14,6 +14,8 @@ typedef enum {
     IDLE_MODE   = 2,
     OFF_MODE    = 3,
     UPDATE_MODE = 4,
+	CB_MODE = 5,
+	SB_MODE = 6,
 } DeviceState;
 
 typedef enum {

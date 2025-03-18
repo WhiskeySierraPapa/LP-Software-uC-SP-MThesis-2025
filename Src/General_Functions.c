@@ -154,13 +154,23 @@ SPP_error Handle_incoming_TC() {
 		uint8_t* data = input_data + SPP_HEADER_LEN + PUS_TC_HEADER_LEN_WO_SPARE;
 
 		if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID) {
-			PUS_3_handle_HK_TC(&SPP_header, &PUS_TC_header, data);
+			if(Current_Global_Device_State == NORMAL_MODE)
+				PUS_3_handle_HK_TC(&SPP_header, &PUS_TC_header, data);
+			else
+				PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header);
 		}
 		else if (PUS_TC_header.service_type_id == FUNCTION_MANAGEMNET_ID) {
-			PUS_8_handle_FM_TC(&SPP_header, &PUS_TC_header, data);
+			if(Current_Global_Device_State == NORMAL_MODE ||
+				(Current_Global_Device_State == CB_MODE && *data == FPGA_DIS_CB_MODE))
+				PUS_8_handle_FM_TC(&SPP_header, &PUS_TC_header, data);
+			else
+				PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header);
 		}
 		else if (PUS_TC_header.service_type_id == TEST_SERVICE_ID) {
-			PUS_17_handle_TEST_TC(&SPP_header, &PUS_TC_header);
+			if(Current_Global_Device_State == NORMAL_MODE)
+				PUS_17_handle_TEST_TC(&SPP_header, &PUS_TC_header);
+			else
+				PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header);
 		} else {
 			PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header);
 			return SPP_UNHANDLED_PUS_ID;

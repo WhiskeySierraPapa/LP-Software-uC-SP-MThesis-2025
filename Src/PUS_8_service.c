@@ -30,6 +30,8 @@
 extern QueueHandle_t UART_OBC_Out_Queue;
 extern UART_HandleTypeDef huart5;
 
+extern osThreadId PUS_3_TaskHandle;
+
 // This queue is used to receive info from the UART handler task
 QueueHandle_t PUS_8_Queue;
 
@@ -217,6 +219,9 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 
 		case FPGA_EN_CB_MODE:
 		{
+			Current_Global_Device_State = CB_MODE;
+			vTaskSuspend(PUS_3_TaskHandle);
+
 			uint8_t msg[64] = {0};
 			uint8_t msg_cnt = 0;
 
@@ -240,6 +245,9 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 		}
 		case FPGA_DIS_CB_MODE:
 		{
+			Current_Global_Device_State = NORMAL_MODE;
+			vTaskResume(PUS_3_TaskHandle);
+
 			uint8_t msg[64] = {0};
 			uint8_t msg_cnt = 0;
 
@@ -528,7 +536,7 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 // Function Management PUS service 8
 SPP_error PUS_8_handle_FM_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_header, uint8_t* data) {
 
-	if (Current_Global_Device_State != NORMAL_MODE) {
+	if (Current_Global_Device_State != NORMAL_MODE && Current_Global_Device_State != CB_MODE) {
 		return UNDEFINED_ERROR;
 	}
 	if (SPP_header == NULL || PUS_TC_header == NULL) {
