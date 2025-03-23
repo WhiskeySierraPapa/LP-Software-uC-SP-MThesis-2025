@@ -32,6 +32,11 @@ extern UART_HandleTypeDef huart5;
 
 extern osThreadId PUS_3_TaskHandle;
 
+extern volatile uint8_t Sweep_Bias_Mode_Data[3072];
+extern volatile uint16_t Sweep_Bias_Data_counter;
+extern volatile uint16_t Old_Sweep_Bias_Data_counter;
+
+
 // This queue is used to receive info from the UART handler task
 QueueHandle_t PUS_8_Queue;
 
@@ -217,10 +222,34 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 			break;
 		}
 
+		case FPGA_SWT_ACTIVATE_SWEEP:
+		{
+//			Current_Global_Device_State = CB_MODE;
+			uint8_t msg[64] = {0};
+			uint8_t msg_cnt = 0;
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_0;
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_1;
+			msg[msg_cnt++] = FPGA_SWT_ACTIVATE_SWEEP;
+			msg[msg_cnt++] = FPGA_MSG_POSTAMBLE;
+
+			Sweep_Bias_Data_counter = 0;
+			Old_Sweep_Bias_Data_counter = 1;
+
+			memset(Sweep_Bias_Mode_Data, 0, sizeof(Sweep_Bias_Mode_Data));
+
+			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
+				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+			}
+			osDelay(5);
+			HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
+			break;
+		}
+
 		case FPGA_EN_CB_MODE:
 		{
 			Current_Global_Device_State = CB_MODE;
-			vTaskSuspend(PUS_3_TaskHandle);
+//			vTaskSuspend(PUS_3_TaskHandle);
 
 			uint8_t msg[64] = {0};
 			uint8_t msg_cnt = 0;
@@ -246,7 +275,7 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 		case FPGA_DIS_CB_MODE:
 		{
 			Current_Global_Device_State = NORMAL_MODE;
-			vTaskResume(PUS_3_TaskHandle);
+//			vTaskResume(PUS_3_TaskHandle);
 
 			uint8_t msg[64] = {0};
 			uint8_t msg_cnt = 0;

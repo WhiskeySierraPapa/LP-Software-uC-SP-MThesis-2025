@@ -79,6 +79,10 @@ osThreadId UART_FPGA_INHandle;
 #define UNIT_ID_EMUSCIENCE 0x1C
 #define UNIT_ID_SMILE 0x1D
 
+#define SWEEP_MODE_MEASUREMENT_BYTE_SIZE 8 // size in bytes of a measurement stored inside the FIFO
+#define SWEEP_MODE_ROWS_TO_READ 64 // nr of rows that have to be read when the AFULL interrupt is generated
+#define SWEEP_MODE_DATA_SIZE_TO_READ SWEEP_MODE_ROWS_TO_READ * SWEEP_MODE_MEASUREMENT_BYTE_SIZE * sizeof(uint8_t)
+
 float temperature = 0;
 float uc3v = 0;
 float fpga3v = 0;
@@ -108,6 +112,11 @@ extern uint8_t UART_FPGA_Rx_Buffer[100];
 extern uint8_t UART_FPGA_OBC_Tx_Buffer[100];
 
 DeviceState Current_Global_Device_State = NORMAL_MODE;
+
+volatile uint8_t Sweep_Bias_Mode_Data[3072];
+
+volatile uint16_t Sweep_Bias_Data_counter = 0;
+volatile uint16_t Old_Sweep_Bias_Data_counter = 0;
 
 /* USER CODE END PV */
 
@@ -146,6 +155,8 @@ int main(void)
 	UART_RxBuffer.frame_size = 0;
 	UART_RxBuffer.isProcessing = 0;
 
+	HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_RESET);
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -180,6 +191,8 @@ int main(void)
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
   HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_RESET);
+
+  hsram1.hdma = &hdma_memtomem_dma2_stream1;
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -305,9 +318,6 @@ void SystemClock_Config(void)
   */
 static void MX_NVIC_Init(void)
 {
-  /* EXTI9_5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
   /* DMA2_Stream1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
@@ -610,9 +620,42 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
+//  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
 }
 
 /* USER CODE BEGIN 4 */
+
+void HAL_SRAM_DMA_XferCpltCallback(DMA_HandleTypeDef *hdma)
+{
+    Sweep_Bias_Data_counter += SWEEP_MODE_DATA_SIZE_TO_READ;
+    HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if (GPIO_Pin == FPGA_BUF_INT_Pin && (Old_Sweep_Bias_Data_counter != Sweep_Bias_Data_counter))  // Adjust to your pin
+	{
+		Old_Sweep_Bias_Data_counter = Sweep_Bias_Data_counter;
+		HAL_GPIO_TogglePin(GPIOB, LED4_Pin | LED3_Pin);
+		if(Sweep_Bias_Data_counter <= sizeof(Sweep_Bias_Mode_Data) - SWEEP_MODE_DATA_SIZE_TO_READ)
+		{
+			HAL_SRAM_Read_DMA(&hsram1,
+					(uint32_t *)0x60000000,
+					(uint32_t *)(Sweep_Bias_Mode_Data + Sweep_Bias_Data_counter),
+					SWEEP_MODE_DATA_SIZE_TO_READ);
+			HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
+		}
+		else
+		{
+			HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
+		}
+	}
+}
+
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if (huart == &huart5) {
