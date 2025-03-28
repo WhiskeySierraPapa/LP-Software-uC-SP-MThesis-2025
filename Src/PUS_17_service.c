@@ -36,7 +36,7 @@ SPP_error PUS_17_handle_TEST_TC(SPP_header_t* SPP_header, PUS_TC_header_t* PUS_T
 		msg_to_send.SERVICE_ID			= TEST_SERVICE_ID;
 		msg_to_send.SUBTYPE_ID			= T_ARE_YOU_ALIVE_TEST_ID;
 		msg_to_send.TM_data[0] 			= 0;
-		msg_to_send.TM_data_len			= 1;
+		msg_to_send.TM_data_len			= 0;
 
 		xQueueSend(UART_OBC_Out_Queue, &msg_to_send, portMAX_DELAY);
 

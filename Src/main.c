@@ -113,7 +113,7 @@ extern uint8_t UART_FPGA_OBC_Tx_Buffer[100];
 
 DeviceState Current_Global_Device_State = NORMAL_MODE;
 
-volatile uint8_t Sweep_Bias_Mode_Data[3072];
+volatile uint8_t Sweep_Bias_Mode_Data[6174];
 
 volatile uint16_t Sweep_Bias_Data_counter = 0;
 volatile uint16_t Old_Sweep_Bias_Data_counter = 0;

@@ -241,6 +241,7 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
 			}
 
+			// VERY IMPORTANT TO CLEAR THE INTERRUPTS
 			__HAL_GPIO_EXTI_CLEAR_IT(FPGA_BUF_INT_Pin);
 			NVIC_ClearPendingIRQ(EXTI9_5_IRQn);
 
