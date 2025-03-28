@@ -240,7 +240,10 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
 			}
-			osDelay(5);
+
+			__HAL_GPIO_EXTI_CLEAR_IT(FPGA_BUF_INT_Pin);
+			NVIC_ClearPendingIRQ(EXTI9_5_IRQn);
+
 			HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
 			break;

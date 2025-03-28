@@ -631,7 +631,15 @@ static void MX_GPIO_Init(void)
 void HAL_SRAM_DMA_XferCpltCallback(DMA_HandleTypeDef *hdma)
 {
     Sweep_Bias_Data_counter += SWEEP_MODE_DATA_SIZE_TO_READ;
+    if (__HAL_GPIO_EXTI_GET_IT(FPGA_BUF_INT_Pin) != RESET)
+    {
+    	// VERY IMPORTANT TO CLEAR THE INTERRUPTS
+    	__HAL_GPIO_EXTI_CLEAR_IT(FPGA_BUF_INT_Pin);
+    	NVIC_ClearPendingIRQ(EXTI9_5_IRQn);
+    }
+
     HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
@@ -642,15 +650,20 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		HAL_GPIO_TogglePin(GPIOB, LED4_Pin | LED3_Pin);
 		if(Sweep_Bias_Data_counter <= sizeof(Sweep_Bias_Mode_Data) - SWEEP_MODE_DATA_SIZE_TO_READ)
 		{
+			HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
 			HAL_SRAM_Read_DMA(&hsram1,
 					(uint32_t *)0x60000000,
 					(uint32_t *)(Sweep_Bias_Mode_Data + Sweep_Bias_Data_counter),
 					SWEEP_MODE_DATA_SIZE_TO_READ);
-			HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
+
 		}
 		else
 		{
 			HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
+
+			// VERY IMPORTANT TO CLEAR THE INTERRUPTS
+			__HAL_GPIO_EXTI_CLEAR_IT(FPGA_BUF_INT_Pin);
+			NVIC_ClearPendingIRQ(EXTI9_5_IRQn);
 		}
 	}
 }
