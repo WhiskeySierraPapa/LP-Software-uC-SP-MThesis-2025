@@ -58,6 +58,8 @@ I2C_HandleTypeDef hi2c4;
 DMA_HandleTypeDef hdma_i2c4_rx;
 DMA_HandleTypeDef hdma_i2c4_tx;
 
+IWDG_HandleTypeDef hiwdg;
+
 UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart5;
 UART_HandleTypeDef huart2;
@@ -72,6 +74,7 @@ osThreadId UART_OBC_INHandle;
 osThreadId PUS_8_TaskHandle;
 osThreadId UART_OBC_OUTHandle;
 osThreadId UART_FPGA_INHandle;
+osThreadId Watchdog_TaskHandle;
 /* USER CODE BEGIN PV */
 
 #define UNIT_ID_CU 0x1A
@@ -129,11 +132,13 @@ static void MX_USART2_UART_Init(void);
 static void MX_I2C4_Init(void);
 static void MX_UART4_Init(void);
 static void MX_UART5_Init(void);
+static void MX_IWDG_Init(void);
 void handle_PUS_3_Service(void const * argument);
 void handle_UART_IN_OBC(void const * argument);
 void handle_PUS_8_Service(void const * argument);
 void handle_UART_OUT_OBC(void const * argument);
 void handle_UART_IN_FPGA(void const * argument);
+void handle_Watchdog(void const * argument);
 
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
@@ -165,6 +170,17 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+
+  // This condition checks if the system has reset because the IWDG was not refreshed in time
+  if (__HAL_RCC_GET_FLAG(RCC_FLAG_IWDGRST)) {
+      // Watchdog Reset Occurred!
+      __HAL_RCC_CLEAR_RESET_FLAGS();  // Clear reset flags
+  }
+
+  // This line is very IMPORTANT because it also pauses the hardware watchdog when in debug mode,
+  // thus allowing for a proper analysis of the system state (ex: science data buffer)
+  __HAL_DBGMCU_FREEZE_IWDG();
+
   UART_OBC_Out_Queue = xQueueCreate(1, sizeof(UART_OUT_OBC_msg));
   PUS_3_Queue = xQueueCreate(1, sizeof(PUS_3_msg));
   PUS_8_Queue = xQueueCreate(1, sizeof(PUS_8_msg));
@@ -186,10 +202,16 @@ int main(void)
   MX_I2C4_Init();
   MX_UART4_Init();
   MX_UART5_Init();
+  MX_IWDG_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
+
+// The external interrupt is disabled until the enable sweep msg is received from the OBC
+//  HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
+//  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
   HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_RESET);
 
   hsram1.hdma = &hdma_memtomem_dma2_stream1;
@@ -232,6 +254,10 @@ int main(void)
   osThreadDef(UART_FPGA_IN, handle_UART_IN_FPGA, osPriorityHigh, 0, 1024);
   UART_FPGA_INHandle = osThreadCreate(osThread(UART_FPGA_IN), NULL);
 
+  /* definition and creation of Watchdog_Task */
+  osThreadDef(Watchdog_Task, handle_Watchdog, osPriorityLow, 0, 128);
+  Watchdog_TaskHandle = osThreadCreate(osThread(Watchdog_Task), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -268,9 +294,10 @@ void SystemClock_Config(void)
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
   /** Initializes the CPU, AHB and APB busses clocks
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 8;
@@ -366,6 +393,35 @@ static void MX_I2C4_Init(void)
   /* USER CODE BEGIN I2C4_Init 2 */
 
   /* USER CODE END I2C4_Init 2 */
+
+}
+
+/**
+  * @brief IWDG Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_IWDG_Init(void)
+{
+
+  /* USER CODE BEGIN IWDG_Init 0 */
+
+  /* USER CODE END IWDG_Init 0 */
+
+  /* USER CODE BEGIN IWDG_Init 1 */
+
+  /* USER CODE END IWDG_Init 1 */
+  hiwdg.Instance = IWDG;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_64;
+  hiwdg.Init.Window = 4095;
+  hiwdg.Init.Reload = 4095;
+  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN IWDG_Init 2 */
+
+  /* USER CODE END IWDG_Init 2 */
 
 }
 
@@ -1042,6 +1098,26 @@ void handle_UART_IN_FPGA(void const * argument)
 	osDelay(1);
   }
   /* USER CODE END handle_UART_IN_FPGA */
+}
+
+/* USER CODE BEGIN Header_handle_Watchdog */
+/**
+* @brief Function implementing the Watchdog_Task thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_handle_Watchdog */
+void handle_Watchdog(void const * argument)
+{
+  /* USER CODE BEGIN handle_Watchdog */
+  /* Infinite loop */
+	for(;;)
+	{
+		// This task has the lowest priority and if available to run, will reset the internal hardware watchdog
+	  HAL_IWDG_Refresh(&hiwdg);  // Refresh watchdog
+	  osDelay(1000);
+	}
+  /* USER CODE END handle_Watchdog */
 }
 
 /**
