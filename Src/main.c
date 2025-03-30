@@ -114,6 +114,11 @@ extern volatile uint8_t uart_tx_FPGA_done;
 extern uint8_t UART_FPGA_Rx_Buffer[100];
 extern uint8_t UART_FPGA_OBC_Tx_Buffer[100];
 
+extern volatile UART_Rx_OBC_Msg UART_RxBuffer;
+extern volatile uint16_t UART_recv_count;
+extern volatile uint8_t UART_recv_char;
+extern volatile uint8_t UART_TxBuffer[MAX_COBS_FRAME_LEN];
+
 DeviceState Current_Global_Device_State = NORMAL_MODE;
 
 volatile uint8_t Sweep_Bias_Mode_Data[6174];
@@ -157,9 +162,6 @@ static void MX_NVIC_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	UART_RxBuffer.frame_size = 0;
-	UART_RxBuffer.isProcessing = 0;
-
 	HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_RESET);
 
   /* USER CODE END 1 */
@@ -173,7 +175,6 @@ int main(void)
 
   // This condition checks if the system has reset because the IWDG was not refreshed in time
   if (__HAL_RCC_GET_FLAG(RCC_FLAG_IWDGRST)) {
-      // Watchdog Reset Occurred!
       __HAL_RCC_CLEAR_RESET_FLAGS();  // Clear reset flags
   }
 
@@ -207,10 +208,6 @@ int main(void)
   /* Initialize interrupts */
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
-
-// The external interrupt is disabled until the enable sweep msg is received from the OBC
-//  HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
-//  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
   HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_RESET);
 
@@ -728,10 +725,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if (huart == &huart5) {
-//		handle_scientific_data_packet();
 		osSignalSet(UART_FPGA_INHandle, 0x02);
-
 	}
+
 	else if(huart == &DEBUG_UART)
     {
 		// Store the received character in the buffer
@@ -742,11 +738,15 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		{
 			// Mark the frame size
 			UART_RxBuffer.frame_size = UART_recv_count + 1;
+
 			UART_recv_count = 0;
+			UART_recv_char = 0xff;
+
 			// Signal the task that a complete frame is ready to be processed
 			osSignalSet(UART_OBC_INHandle, 0x01);
 
-			// DO NOT RE-ARM THE ISR, it will be done after the task processes the buffer
+			// DO NOT RE-ARM THE ISR, it will be done after the task processes the buffer,
+			// thus ensuring no race condition (the buffer is not modified while being used)
 		}
 		else
 		{
@@ -771,18 +771,6 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
     	uart_tx_FPGA_done = 1;  // Mark transmission as complete
 	}
 }
-
-// Enables print() to terminal over SWD
-int _write(int file, char *ptr, int len)
-{
-    int i=0;
-    for(i=0 ; i<len ; i++)
-        ITM_SendChar((*ptr++));
-    return len;
-}
-
-
-
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_handle_PUS_3_Service */
@@ -857,8 +845,13 @@ void handle_PUS_3_Service(void const * argument)
 void handle_UART_IN_OBC(void const * argument)
 {
   /* USER CODE BEGIN handle_UART_IN_OBC */
+
+	// Clear Overrun Error, Noise Error, and Framing Error flags
+	__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_ORE);
+	__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_NE);
+	__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_FE);
+
 	HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1);
-	//    HAL_UART_Receive_IT(&OBC_UART, &UART_recv_char, 1);
 
 	/* Infinite loop */
 	for(;;)
@@ -870,7 +863,8 @@ void handle_UART_IN_OBC(void const * argument)
 			if (evt.value.signals & 0x01)
 			{
 				Handle_incoming_TC();
-				memset(UART_RxBuffer.RxBuffer, 0, sizeof(UART_RxBuffer.RxBuffer));
+
+				memset((void*)UART_RxBuffer.RxBuffer, 0, sizeof(UART_RxBuffer.RxBuffer));
 
 				// Read out any pending data in the RX buffer that might have been received while ISR was disabled
 				while (__HAL_UART_GET_FLAG(&DEBUG_UART, UART_FLAG_RXNE)) {

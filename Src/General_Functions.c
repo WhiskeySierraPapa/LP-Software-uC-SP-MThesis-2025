@@ -18,6 +18,10 @@ volatile uint8_t uart_tx_OBC_done = 1;
 extern uint16_t HK_SPP_APP_ID;
 extern uint16_t HK_PUS_SOURCE_ID;
 
+extern UART_Rx_OBC_Msg UART_RxBuffer;
+extern uint8_t UART_TxBuffer[MAX_COBS_FRAME_LEN];
+
+
 uint16_t SPP_SEQUENCE_COUNTER = 0;
 
 QueueHandle_t UART_OBC_Out_Queue;
@@ -124,34 +128,49 @@ void Add_SPP_PUS_and_send_TM(UART_OUT_OBC_msg* UART_OUT_msg_received) {
 }
 
 
-// Function that processes incoming TC
+// Function that processes incoming Telecommands
 SPP_error Handle_incoming_TC() {
 
     // Decode COBS frame if valid
-    if(!COBS_is_valid(UART_RxBuffer.RxBuffer, UART_RxBuffer.frame_size)){
-		return UNDEFINED_ERROR;
+    if(!COBS_is_valid(UART_RxBuffer.RxBuffer, UART_RxBuffer.frame_size))
+    {
+		return 0;
     }
-    uint8_t input_data[UART_RxBuffer.frame_size];
-    COBS_decode(UART_RxBuffer.RxBuffer, UART_RxBuffer.frame_size, input_data);
+    uint8_t decoded_msg[UART_RxBuffer.frame_size];
+    uint8_t decoded_msg_size = UART_RxBuffer.frame_size;
+    COBS_decode(UART_RxBuffer.RxBuffer, UART_RxBuffer.frame_size, decoded_msg);
+
 
     // Decode SPP header and verify its checksum
     SPP_header_t 	SPP_header;
-    uint16_t  SPP_buffer_length;
-    SPP_decode_header(input_data, &SPP_header);
-    SPP_buffer_length = SPP_header.packet_data_length + SPP_HEADER_LEN + 1; // length = PUS + data + CRC
-	if (SPP_validate_checksum(input_data, SPP_buffer_length) != SPP_OK) {
-		return SPP_PACKET_CRC_MISMATCH;
+    if(!SPP_decode_header(decoded_msg, decoded_msg_size, &SPP_header))
+    {
+    	return 0;
+    }
+
+    uint16_t  decoded_msg_length;
+    decoded_msg_length = SPP_HEADER_LEN + SPP_header.packet_data_length + 2; // length = SPP + PUS + data + CRC
+	if (SPP_validate_checksum(decoded_msg, decoded_msg_length) != SPP_OK) {
+		return 0;
 	}
+
 
     // Decode PUS header if present
     if (SPP_header.secondary_header_flag) {
-    	uint8_t secondary_header_buffer[PUS_TC_HEADER_LEN_WO_SPARE];
-        memcpy(secondary_header_buffer, input_data + SPP_HEADER_LEN, PUS_TC_HEADER_LEN_WO_SPARE);
+
+    	if(SPP_header.packet_data_length < PUS_TC_HEADER_LEN_WO_SPARE)
+    	{
+    		// data length must be at least long enough to store a PUS header, if the secondary header flag is set
+    		return 0;
+    	}
 
         PUS_TC_header_t PUS_TC_header;
-        PUS_decode_TC_header(secondary_header_buffer, &PUS_TC_header);
+        if(!PUS_decode_TC_header(decoded_msg + SPP_HEADER_LEN, &PUS_TC_header))
+        {
+        	return 0;
+        }
 
-		uint8_t* data = input_data + SPP_HEADER_LEN + PUS_TC_HEADER_LEN_WO_SPARE;
+		uint8_t* data = decoded_msg + SPP_HEADER_LEN + PUS_TC_HEADER_LEN_WO_SPARE;
 
 		if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID) {
 			if(Current_Global_Device_State == NORMAL_MODE)

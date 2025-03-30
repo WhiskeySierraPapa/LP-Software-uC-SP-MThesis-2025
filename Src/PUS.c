@@ -8,13 +8,19 @@
 #include "PUS.h"
 
 SPP_error PUS_decode_TC_header(uint8_t* raw_header, PUS_TC_header_t* secondary_header) {
+
+	if (raw_header == NULL || secondary_header == NULL) {
+	        return 0;
+	}
+
     secondary_header->PUS_version_number = (raw_header[0] & 0xF0) >> 4;
     secondary_header->ACK_flags          = (raw_header[0] & 0x0F);
     secondary_header->service_type_id    =  raw_header[1];
     secondary_header->message_subtype_id =  raw_header[2];
     secondary_header->source_id          = (raw_header[3] << 8) | raw_header[4];
     secondary_header->spare              = 0; // Based on PUS message type I guess? (Optional)
-    return SPP_OK;
+
+    return 1;
 }
 
 // Technically this is not needed since, Langmuir Probe Payload will not send TCs.

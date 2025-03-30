@@ -27,14 +27,7 @@ extern uint8_t OBC_Space_Packet_Data_Buffer[1024];
 typedef struct {
 	uint8_t RxBuffer[MAX_COBS_FRAME_LEN];  	// Pointer to the data buffer
     uint16_t frame_size; 			// Number of valid bytes in the buffer
-    volatile uint8_t isProcessing; 		// Flag to indicate if data is being processed
-} UART_Rx_COBS_Frame;
-
-extern UART_Rx_COBS_Frame UART_RxBuffer;
-extern uint8_t UART_TxBuffer[MAX_COBS_FRAME_LEN];
-extern uint16_t UART_recv_count;
-extern uint8_t UART_recv_char;
-
+} UART_Rx_OBC_Msg;
 
 
 // Primary header is 6 bytes. From SPP standard.
@@ -101,7 +94,7 @@ typedef struct {
 /* SPP */
 SPP_error SPP_extract_packet_data(uint8_t* packet, uint8_t* data, uint16_t* ret_data_len, SPP_header_t* decoded_out_header);
 SPP_error SPP_encode_header(SPP_header_t* primary_header, uint8_t* result_buffer);
-SPP_error SPP_decode_header(uint8_t* raw_header, SPP_header_t* primary_header);
+SPP_error SPP_decode_header(uint8_t* input_msg, uint8_t input_msg_size, SPP_header_t* primary_header);
 SPP_error SPP_add_CRC_to_msg(uint8_t* packet, uint16_t length, uint8_t* output);
 SPP_error SPP_add_data_to_packet(uint8_t* data, uint16_t data_len, uint8_t* packet);
 SPP_error SPP_validate_checksum(uint8_t* packet, uint16_t packet_length);

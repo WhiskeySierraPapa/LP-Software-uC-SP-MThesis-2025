@@ -51,7 +51,7 @@ size_t COBS_encode(const void *data, size_t length, uint8_t *buffer) {
 	@note Stops decoding if delimiter byte is found
 */
 void COBS_decode(const uint8_t *buffer, size_t length, void *data) {
-	const uint8_t *p_input_byte = buffer; // Pointer to input byte
+	const uint8_t *p_input_byte = buffer; // Pointer to constant input byte
 	uint8_t *p_output = (uint8_t *)data; // Pointer to output buffer
 
 	uint8_t dist_next_zero = 0;
@@ -83,8 +83,16 @@ void COBS_decode(const uint8_t *buffer, size_t length, void *data) {
 */
 uint8_t COBS_is_valid(const uint8_t *buffer, size_t length)
 {
-	if (length < 2 || buffer[length - 1] != 0x00) {
-		return 0; // Must end with 0x00
+	if(!buffer)
+	{
+		return 0;
+	}
+
+	if (length < 2 || length > MAX_COBS_FRAME_LEN || buffer[length - 1] != 0x00) {
+		// Must be at least 2 bytes
+		// Must not exceed the maximum supported length of a COBS frame
+		// Must end with 0x00
+		return 0;
 	}
 
 	size_t index = 0;

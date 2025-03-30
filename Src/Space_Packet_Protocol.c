@@ -16,28 +16,10 @@
 uint8_t DEBUG_Space_Packet_Data_Buffer[256];
 uint8_t OBC_Space_Packet_Data_Buffer[1024];
 
-
-UART_Rx_COBS_Frame UART_RxBuffer;
-uint8_t UART_recv_char = 0xff;
-uint16_t UART_recv_count = 0;
+volatile UART_Rx_OBC_Msg UART_RxBuffer;
+volatile uint16_t UART_recv_count = 0;
+volatile uint8_t UART_recv_char = 0xff;
 uint8_t UART_TxBuffer[MAX_COBS_FRAME_LEN];
-
-//UART_Rx_COBS_Frame DEBUGRxBuffer;
-//uint8_t SPP_DEBUG_recv_char = 0xff;
-//uint16_t SPP_DEBUG_recv_count = 0;
-//uint8_t DEBUGTxBuffer[COBS_FRAME_LEN];
-//
-//
-//UART_Rx_COBS_Frame OBCRxBuffer;
-//uint8_t SPP_OBC_recv_char = 0xff;
-//uint16_t SPP_OBC_recv_count = 0;
-//uint8_t OBCTxBuffer[COBS_FRAME_LEN];
-
-
-//uint8_t OBCRxBuffer[COBS_FRAME_LEN];
-//uint8_t OBCTxBuffer[COBS_FRAME_LEN];
-//uint16_t SPP_OBC_recv_count = 0;
-//uint8_t SPP_OBC_recv_char = 0xff;
 
 
 // CRC16-CCITT
@@ -80,15 +62,21 @@ SPP_error SPP_validate_checksum(uint8_t* packet, uint16_t packet_length) {
 
 
 
-SPP_error SPP_decode_header(uint8_t* raw_header, SPP_header_t* primary_header) {
-	primary_header->packet_version_number	= (raw_header[0] & 0xE0) >> 5;
-	primary_header->packet_type 			= (raw_header[0] & 0x10) >> 4;
-	primary_header->secondary_header_flag	= (raw_header[0] & 0x08) >> 3;
-	primary_header->application_process_id	=((raw_header[0] & 0x03) << 8) | (raw_header[1]);
-	primary_header->sequence_flags			= (raw_header[2] & 0xC0) >> 6;
-	primary_header->packet_sequence_count	=((raw_header[2] & 0x3F) << 8) | (raw_header[3]);
-	primary_header->packet_data_length		= (raw_header[4] << 8) 		   | (raw_header[5]);
-    return SPP_OK;
+SPP_error SPP_decode_header(uint8_t* input_msg, uint8_t input_msg_size, SPP_header_t* primary_header) {
+
+	if (input_msg == NULL || primary_header == NULL || input_msg_size < 6) {
+	        return 0;
+	}
+
+	primary_header->packet_version_number	= (input_msg[0] & 0xE0) >> 5;
+	primary_header->packet_type 			= (input_msg[0] & 0x10) >> 4;
+	primary_header->secondary_header_flag	= (input_msg[0] & 0x08) >> 3;
+	primary_header->application_process_id	=((input_msg[0] & 0x03) << 8) | (input_msg[1]);
+	primary_header->sequence_flags			= (input_msg[2] & 0xC0) >> 6;
+	primary_header->packet_sequence_count	=((input_msg[2] & 0x3F) << 8) | (input_msg[3]);
+	primary_header->packet_data_length		= (input_msg[4] << 8) 		   | (input_msg[5]);
+
+    return 1;
 }
 
 
