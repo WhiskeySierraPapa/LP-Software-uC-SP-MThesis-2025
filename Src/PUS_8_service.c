@@ -567,12 +567,12 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 
 
 // Function Management PUS service 8
-SPP_error PUS_8_handle_FM_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_header, uint8_t* data) {
+SPP_error PUS_8_handle_FM_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_header, uint8_t* data, uint8_t data_size) {
 
 	if (Current_Global_Device_State != NORMAL_MODE && Current_Global_Device_State != CB_MODE) {
 		return UNDEFINED_ERROR;
 	}
-	if (SPP_header == NULL || PUS_TC_header == NULL) {
+	if (SPP_header == NULL || PUS_TC_header == NULL || data_size < 2) {
 		return UNDEFINED_ERROR;
 	}
 
@@ -588,7 +588,8 @@ SPP_error PUS_8_handle_FM_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_
 	PUS_8_msg pus8_msg_to_send;
 	pus8_msg_to_send.SPP_header = *SPP_header;
 	pus8_msg_to_send.PUS_TC_header = *PUS_TC_header;
-	memcpy(pus8_msg_to_send.data, data, PUS_8_MAX_DATA_LEN);
+	memcpy(pus8_msg_to_send.data, data, data_size);
+	pus8_msg_to_send.data_size = data_size;
 
 	if (xQueueSend(PUS_8_Queue, &pus8_msg_to_send, 0) != pdPASS) {
 		PUS_1_send_fail_start(SPP_header, PUS_TC_header);

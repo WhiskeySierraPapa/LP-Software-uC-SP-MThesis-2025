@@ -809,7 +809,7 @@ void handle_PUS_3_Service(void const * argument)
 
 				PUS_1_send_succ_comp(&pus3_msg_received.SPP_header, &pus3_msg_received.PUS_TC_header);
 
-				if(current_uC_report_frequency == 2 || current_FPGA_report_frequency ==2 )
+				if(current_uC_report_frequency == 2 || current_FPGA_report_frequency == 2)
 				{
 					periodic_report = 1;
 				}

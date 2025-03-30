@@ -54,12 +54,13 @@ typedef struct {
 	SPP_header_t 	SPP_header;
 	PUS_TC_header_t PUS_TC_header;
 	uint8_t data[PUS_3_MAX_DATA_LEN];
+	uint8_t data_size;
 	uint8_t new_report_frequency;
 } PUS_3_msg;
 
 /* PUS_3_service */
 void PUS_3_set_report_frequency(uint8_t* data, PUS_3_msg* pus3_msg_received);
-SPP_error PUS_3_handle_HK_TC(SPP_header_t* primary_header, PUS_TC_header_t* secondary_header, uint8_t* data);
+SPP_error PUS_3_handle_HK_TC(SPP_header_t* primary_header, PUS_TC_header_t* secondary_header, uint8_t* data, uint8_t data_size);
 void PUS_3_collect_HK_data(uint32_t current_ticks);
 void PUS_3_HK_send(PUS_3_msg* pus3_msg_received);
 

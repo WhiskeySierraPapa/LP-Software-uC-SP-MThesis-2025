@@ -153,7 +153,7 @@ void PUS_3_set_report_frequency(uint8_t* data, PUS_3_msg* pus3_msg_received) {
 
     data_iterator += sizeof(SID_num);
 
-    for(int i = 0; i < SID_num && data_iterator < data + (PUS_3_MAX_DATA_LEN * sizeof(uint8_t)); i++) {
+    for(int i = 0; i < SID_num && data_iterator < data + (pus3_msg_received->data_size * sizeof(uint8_t)); i++) {
         uint16_t SID = 0;
         memcpy(&SID, data_iterator, sizeof(SID));
         data_iterator += sizeof(SID);
@@ -173,12 +173,13 @@ void PUS_3_set_report_frequency(uint8_t* data, PUS_3_msg* pus3_msg_received) {
 
 
 // HK - Housekeeping PUS service 3
-SPP_error PUS_3_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_header, uint8_t* data) {
+SPP_error PUS_3_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_header, uint8_t* data, uint8_t data_size)
+{
 
 	if (Current_Global_Device_State != NORMAL_MODE) {
         return UNDEFINED_ERROR;
     }
-    if (SPP_header == NULL || PUS_TC_header == NULL) {
+    if (SPP_header == NULL || PUS_TC_header == NULL || data_size < 4) {
         return UNDEFINED_ERROR;
     }
 
@@ -205,7 +206,8 @@ SPP_error PUS_3_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_
 	PUS_3_msg pus3_msg_to_send;
 	pus3_msg_to_send.SPP_header = *SPP_header;
 	pus3_msg_to_send.PUS_TC_header = *PUS_TC_header;
-	memcpy(pus3_msg_to_send.data, data, PUS_3_MAX_DATA_LEN);
+	memcpy(pus3_msg_to_send.data, data, data_size);
+	pus3_msg_to_send.data_size = data_size;
 	pus3_msg_to_send.new_report_frequency = report_frequency;
 
     if (xQueueSend(PUS_3_Queue, &pus3_msg_to_send, 0) != pdPASS) {

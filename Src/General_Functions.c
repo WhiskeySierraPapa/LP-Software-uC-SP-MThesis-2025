@@ -137,12 +137,13 @@ SPP_error Handle_incoming_TC() {
 		return 0;
     }
     uint8_t decoded_msg[UART_RxBuffer.frame_size];
-    uint8_t decoded_msg_size = UART_RxBuffer.frame_size;
     COBS_decode(UART_RxBuffer.RxBuffer, UART_RxBuffer.frame_size, decoded_msg);
 
 
     // Decode SPP header and verify its checksum
     SPP_header_t 	SPP_header;
+    uint8_t decoded_msg_size = UART_RxBuffer.frame_size - 2; //After COBS decoding, the first and last byte are removed.
+
     if(!SPP_decode_header(decoded_msg, decoded_msg_size, &SPP_header))
     {
     	return 0;
@@ -150,6 +151,13 @@ SPP_error Handle_incoming_TC() {
 
     uint16_t  decoded_msg_length;
     decoded_msg_length = SPP_HEADER_LEN + SPP_header.packet_data_length + 2; // length = SPP + PUS + data + CRC
+
+    if(decoded_msg_size != decoded_msg_length)
+    {
+    	// The computed data length has to be the same as the length of the message received
+    	return 0;
+    }
+
 	if (SPP_validate_checksum(decoded_msg, decoded_msg_length) != SPP_OK) {
 		return 0;
 	}
@@ -171,17 +179,18 @@ SPP_error Handle_incoming_TC() {
         }
 
 		uint8_t* data = decoded_msg + SPP_HEADER_LEN + PUS_TC_HEADER_LEN_WO_SPARE;
+		uint8_t data_size = SPP_header.packet_data_length - PUS_TC_HEADER_LEN_WO_SPARE;
 
 		if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID) {
 			if(Current_Global_Device_State == NORMAL_MODE)
-				PUS_3_handle_HK_TC(&SPP_header, &PUS_TC_header, data);
+				PUS_3_handle_HK_TC(&SPP_header, &PUS_TC_header, data, data_size);
 			else
 				PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header);
 		}
 		else if (PUS_TC_header.service_type_id == FUNCTION_MANAGEMNET_ID) {
 			if(Current_Global_Device_State == NORMAL_MODE ||
 				(Current_Global_Device_State == CB_MODE && *data == FPGA_DIS_CB_MODE))
-				PUS_8_handle_FM_TC(&SPP_header, &PUS_TC_header, data);
+				PUS_8_handle_FM_TC(&SPP_header, &PUS_TC_header, data, data_size);
 			else
 				PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header);
 		}

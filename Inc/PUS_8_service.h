@@ -25,6 +25,7 @@ typedef struct {
 	SPP_header_t 	SPP_header;
 	PUS_TC_header_t PUS_TC_header;
 	uint8_t data[PUS_8_MAX_DATA_LEN];
+	uint8_t data_size;
 } PUS_8_msg;
 
 typedef enum {
@@ -90,6 +91,6 @@ typedef enum {
 bool PUS_8_check_FPGA_msg_format(uint8_t* msg, uint8_t msg_len);
 void PUS_8_unpack_msg(uint8_t* data, PUS_8_msg_unpacked* pus8_msg_unpacked);
 SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h , PUS_8_msg_unpacked* pus8_msg_unpacked);
-SPP_error PUS_8_handle_FM_TC(SPP_header_t* SPP_header , PUS_TC_header_t* secondary_header, uint8_t* data);
+SPP_error PUS_8_handle_FM_TC(SPP_header_t* SPP_header , PUS_TC_header_t* secondary_header, uint8_t* data, uint8_t data_size);
 
 #endif /* PUS_8_SERVIE_H_ */
