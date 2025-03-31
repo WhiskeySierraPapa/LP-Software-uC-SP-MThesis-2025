@@ -150,7 +150,7 @@ SPP_error Handle_incoming_TC() {
     }
 
     uint16_t  decoded_msg_length;
-    decoded_msg_length = SPP_HEADER_LEN + SPP_header.packet_data_length + 2; // length = SPP + PUS + data + CRC
+    decoded_msg_length = SPP_HEADER_LEN + SPP_header.packet_data_length + 1; // length = SPP + PUS + data + CRC
 
     if(decoded_msg_size != decoded_msg_length)
     {
