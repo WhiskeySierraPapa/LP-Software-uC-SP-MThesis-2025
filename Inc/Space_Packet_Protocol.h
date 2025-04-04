@@ -41,7 +41,7 @@ typedef struct {
 
 #define SPP_VERSION                       0
 
-#define SPP_APP_ID 23
+#define SPP_APP_ID 						22
 
 #define SPP_MAX_PACKET_LEN              256
 
