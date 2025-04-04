@@ -100,17 +100,17 @@ void Add_SPP_PUS_and_send_TM(UART_OUT_OBC_msg* UART_OUT_msg_received) {
 		else
 			SPP_SEQUENCE_COUNTER++;
 
-        SPP_header_t TM_SPP_header = SPP_make_header(
-			SPP_VERSION,
-			SPP_PACKET_TYPE_TM,
-			UART_OUT_msg_received->PUS_HEADER_PRESENT,
-			SPP_APP_ID,
-			SPP_SEQUENCE_SEG_UNSEG,
-			SPP_SEQUENCE_COUNTER,
-			SPP_PUS_TM_HEADER_LEN_WO_SPARE + UART_OUT_msg_received->TM_data_len + CRC_BYTE_LEN - 1
-        );
-
         if(UART_OUT_msg_received->PUS_HEADER_PRESENT == 1){
+        	SPP_header_t TM_SPP_header = SPP_make_header(
+        				SPP_VERSION,
+        				SPP_PACKET_TYPE_TM,
+        				UART_OUT_msg_received->PUS_HEADER_PRESENT,
+        				SPP_APP_ID,
+        				SPP_SEQUENCE_SEG_UNSEG,
+        				SPP_SEQUENCE_COUNTER,
+        				SPP_PUS_TM_HEADER_LEN_WO_SPARE + UART_OUT_msg_received->TM_data_len + CRC_BYTE_LEN - 1
+        	        );
+
 			PUS_TM_header_t TM_PUS_header  = PUS_make_TM_header(
 				PUS_VERSION,
 				0,
@@ -123,6 +123,16 @@ void Add_SPP_PUS_and_send_TM(UART_OUT_OBC_msg* UART_OUT_msg_received) {
 			Send_TM(&TM_SPP_header, &TM_PUS_header, UART_OUT_msg_received->TM_data, UART_OUT_msg_received->TM_data_len);
         }
         else{
+        	SPP_header_t TM_SPP_header = SPP_make_header(
+				SPP_VERSION,
+				SPP_PACKET_TYPE_TM,
+				UART_OUT_msg_received->PUS_HEADER_PRESENT,
+				SPP_APP_ID,
+				SPP_SEQUENCE_SEG_UNSEG,
+				SPP_SEQUENCE_COUNTER,
+				UART_OUT_msg_received->TM_data_len + CRC_BYTE_LEN - 1
+			);
+
         	Send_TM(&TM_SPP_header, NULL, UART_OUT_msg_received->TM_data, UART_OUT_msg_received->TM_data_len);
         }
 }
