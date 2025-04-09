@@ -190,15 +190,15 @@ SPP_error Handle_incoming_TC() {
         }
 
 		uint8_t* data = decoded_msg + SPP_HEADER_LEN + PUS_TC_HEADER_LEN_WO_SPARE;
-		uint8_t data_size = SPP_header.packet_data_length - PUS_TC_HEADER_LEN_WO_SPARE;
+		uint8_t data_size = SPP_header.packet_data_length - PUS_TC_HEADER_LEN_WO_SPARE - 1;
 
-		if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID) {
-			if(Current_Global_Device_State == NORMAL_MODE)
+		if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID && data_size > 0) {
+			if(Current_Global_Device_State == NORMAL_MODE )
 				PUS_3_handle_HK_TC(&SPP_header, &PUS_TC_header, data, data_size);
 			else
 				PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header);
 		}
-		else if (PUS_TC_header.service_type_id == FUNCTION_MANAGEMNET_ID) {
+		else if (PUS_TC_header.service_type_id == FUNCTION_MANAGEMNET_ID && data_size > 0) {
 			if(Current_Global_Device_State == NORMAL_MODE ||
 				(Current_Global_Device_State == CB_MODE && *data == FPGA_DIS_CB_MODE))
 				PUS_8_handle_FM_TC(&SPP_header, &PUS_TC_header, data, data_size);

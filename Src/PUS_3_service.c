@@ -153,7 +153,7 @@ void PUS_3_set_report_frequency(uint8_t* data, PUS_3_msg* pus3_msg_received) {
 
     data_iterator += sizeof(SID_num);
 
-    for(int i = 0; i < SID_num && data_iterator < data + (pus3_msg_received->data_size * sizeof(uint8_t)); i++) {
+    for(int i = 0; i < SID_num && data_iterator <= data + (pus3_msg_received->data_size * sizeof(uint8_t)) - 2; i++) {
         uint16_t SID = 0;
         memcpy(&SID, data_iterator, sizeof(SID));
         data_iterator += sizeof(SID);
