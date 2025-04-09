@@ -909,7 +909,7 @@ void handle_PUS_8_Service(void const * argument)
 
 			pus8_msg_unpacked = (PUS_8_msg_unpacked){0};
 
-			PUS_8_unpack_msg(pus8_msg_received.data, &pus8_msg_unpacked);
+			PUS_8_unpack_msg(&pus8_msg_received, &pus8_msg_unpacked);
 
 			PUS_8_perform_function(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header, &pus8_msg_unpacked);
 

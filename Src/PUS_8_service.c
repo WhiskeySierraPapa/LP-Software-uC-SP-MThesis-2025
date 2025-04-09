@@ -57,41 +57,68 @@ bool PUS_8_check_FPGA_msg_format(uint8_t* msg, uint8_t msg_len) {
     return result;
 }
 
-void PUS_8_unpack_msg(uint8_t* data, PUS_8_msg_unpacked* pus8_msg_unpacked)
+void PUS_8_unpack_msg(PUS_8_msg *pus8_msg_received, PUS_8_msg_unpacked* pus8_msg_unpacked)
 {
-	uint8_t* 	data_interator = data;
+	uint8_t* data_interator = pus8_msg_received->data;
+	uint8_t* data_end = pus8_msg_received->data + pus8_msg_received->data_size;
+
+	// Check at least 2 bytes available: func_id and N_args
+	if ((data_end - data_interator) < 2)
+		return;
+
 	pus8_msg_unpacked->func_id = *data_interator++;
 	pus8_msg_unpacked->N_args = *data_interator++;
 
 	for(int i = 0; i < pus8_msg_unpacked->N_args; i++) {
+
+		if ((data_end - data_interator) < 1)
+			return; // Need at least arg_ID
+
 		uint8_t arg_ID = *data_interator++;
+
 		switch(arg_ID) {
 			case PROBE_ID_ARG_ID:
+				if ((data_end - data_interator) < 1)
+					return;
 				pus8_msg_unpacked->probe_ID = *data_interator++;
 				break;
 			case STEP_ID_ARG_ID:
+				if ((data_end - data_interator) < 1)
+					return;
 				pus8_msg_unpacked->step_ID = *data_interator++;
 				break;
 			case VOL_LVL_ARG_ID:
+				if ((data_end - data_interator) < sizeof(pus8_msg_unpacked->voltage_level))
+					return;
 				memcpy((uint8_t*)&pus8_msg_unpacked->voltage_level, data_interator, sizeof(pus8_msg_unpacked->voltage_level));
 				data_interator += sizeof(pus8_msg_unpacked->voltage_level);
 				break;
 			case N_STEPS_ARG_ID:
+				if ((data_end - data_interator) < 1)
+					return;
 				pus8_msg_unpacked->N_steps = *data_interator++;
 				break;
 			case N_SKIP_ARG_ID:
+				if ((data_end - data_interator) < sizeof(pus8_msg_unpacked->N_skip))
+					return;
 				memcpy((uint8_t*)&pus8_msg_unpacked->N_skip, data_interator, sizeof(pus8_msg_unpacked->N_skip));
 				data_interator += sizeof(pus8_msg_unpacked->N_skip);
 				break;
 			case N_F_ARG_ID:
+				if ((data_end - data_interator) < sizeof(pus8_msg_unpacked->N_f))
+					return;
 				memcpy((uint8_t*)&pus8_msg_unpacked->N_f, data_interator, sizeof(pus8_msg_unpacked->N_f));
 				data_interator += sizeof(pus8_msg_unpacked->N_f);
 				break;
 			case N_POINTS_ARG_ID:
+				if ((data_end - data_interator) < sizeof(pus8_msg_unpacked->N_points))
+					return;
 				memcpy((uint8_t*)&pus8_msg_unpacked->N_points, data_interator, sizeof(pus8_msg_unpacked->N_points));
 				data_interator += sizeof(pus8_msg_unpacked->N_points);
 				break;
 			case GS_TARGET_ARG_ID:
+				if ((data_end - data_interator) < 1)
+					return;
 				// "sizeof" cannot be used here as .target is an enum type whose length cannot specified(at least in <C23).
 				// If "sizeof" is used, it returns 4, which is incorrect as the target is only a single byte value.
 				// This bug does not cause problems if the target argument is the last one in the message but would
@@ -100,10 +127,14 @@ void PUS_8_unpack_msg(uint8_t* data, PUS_8_msg_unpacked* pus8_msg_unpacked)
 				data_interator += 1;
 				break;
 			case N_SAMPLES_PER_STEP_ARG_ID:
+				if ((data_end - data_interator) < sizeof(pus8_msg_unpacked->N_samples_per_step))
+					return;
 				memcpy((uint8_t*)&pus8_msg_unpacked->N_samples_per_step, data_interator, sizeof(pus8_msg_unpacked->N_samples_per_step));
 				data_interator += sizeof(pus8_msg_unpacked->N_samples_per_step);
 				break;
 			case FRAM_TABLE_ID_ARG_ID:
+				if ((data_end - data_interator) < sizeof(pus8_msg_unpacked->FRAM_Table_ID))
+					return;
 				memcpy((uint8_t*)&pus8_msg_unpacked->FRAM_Table_ID, data_interator, sizeof(pus8_msg_unpacked->FRAM_Table_ID));
 				data_interator += sizeof(pus8_msg_unpacked->FRAM_Table_ID);
 				break;
@@ -146,12 +177,18 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 		{
 			if(pus8_msg_unpacked->target == TARGET_uC)
 			{
+				if(pus8_msg_unpacked->probe_ID < 0 || pus8_msg_unpacked->probe_ID > 7)
+					return SPP_PUS8_ERROR; // There are only 8 sweep tables available in the FRAM
+
 				save_sweep_table_value_FRAM(pus8_msg_unpacked->probe_ID,
 											pus8_msg_unpacked->step_ID,
 											pus8_msg_unpacked->voltage_level);
 			}
 			else if (pus8_msg_unpacked->target == TARGET_FPGA)
 			{
+				if(pus8_msg_unpacked->probe_ID < 0 || pus8_msg_unpacked->probe_ID > 1)
+					return SPP_PUS8_ERROR; // There are only 2 sweep tables available in the FPGA RAM
+
 				uint8_t msg[64] = {0};
 				uint8_t msg_cnt = 0;
 
@@ -177,6 +214,9 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 		{
 			if(pus8_msg_unpacked->target == TARGET_uC)
 			{
+				if(pus8_msg_unpacked->probe_ID < 0 || pus8_msg_unpacked->probe_ID > 7)
+					return SPP_PUS8_ERROR; // There are only 8 sweep tables available in the FRAM
+
 				uint16_t step_voltage = read_sweep_table_value_FRAM(pus8_msg_unpacked->probe_ID,
 																	pus8_msg_unpacked->step_ID);
 				UART_OUT_OBC_msg msg = {0};
@@ -196,6 +236,10 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 			}
 			else if(pus8_msg_unpacked->target == TARGET_FPGA)
 			{
+				if(pus8_msg_unpacked->probe_ID < 0 || pus8_msg_unpacked->probe_ID > 1)
+					return SPP_PUS8_ERROR; // There are only 2 sweep tables available in the FPGA RAM
+
+
 				uint8_t msg[64] = {0};
 				uint8_t msg_cnt = 0;
 
@@ -298,6 +342,9 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 
 		case FPGA_SET_CB_VOL_LVL:
 		{
+			if(pus8_msg_unpacked->probe_ID < 0 || pus8_msg_unpacked->probe_ID > 1)
+				return SPP_PUS8_ERROR; // There are only 2 sweep tables available in the FPGA RAM
+
 			uint8_t msg[64] = {0};
 			uint8_t msg_cnt = 0;
 
@@ -317,6 +364,9 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 
 		case FPGA_GET_CB_VOL_LVL:
 		{
+			if(pus8_msg_unpacked->probe_ID < 0 || pus8_msg_unpacked->probe_ID > 1)
+				return SPP_PUS8_ERROR; // There are only 2 sweep tables available in the FPGA RAM
+
 			uint8_t msg[64] = {0};
 			uint8_t msg_cnt = 0;
 
@@ -552,6 +602,12 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 
 		case CPY_TABLE_FRAM_TO_FPGA:
 		{
+			if(pus8_msg_unpacked->probe_ID < 0 || pus8_msg_unpacked->probe_ID > 7)
+				return SPP_PUS8_ERROR; // There are only 8 sweep tables available in the FRAM
+
+			if(pus8_msg_unpacked->probe_ID < 0 || pus8_msg_unpacked->probe_ID > 1)
+				return SPP_PUS8_ERROR; // There are only 2 sweep tables available in the FPGA RAM
+
 			uint8_t FRAM_Table_ID = pus8_msg_unpacked->FRAM_Table_ID;
 			uint8_t FPGA_Table_ID = pus8_msg_unpacked->probe_ID;
 			PUS_8_copy_table_FRAM_to_FPGA(FRAM_Table_ID, FPGA_Table_ID);
