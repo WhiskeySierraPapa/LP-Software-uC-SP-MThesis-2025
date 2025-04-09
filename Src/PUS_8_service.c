@@ -602,7 +602,7 @@ SPP_error PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC_h 
 
 		case CPY_TABLE_FRAM_TO_FPGA:
 		{
-			if(pus8_msg_unpacked->probe_ID < 0 || pus8_msg_unpacked->probe_ID > 7)
+			if(pus8_msg_unpacked->FRAM_Table_ID < 0 || pus8_msg_unpacked->FRAM_Table_ID > 7)
 				return SPP_PUS8_ERROR; // There are only 8 sweep tables available in the FRAM
 
 			if(pus8_msg_unpacked->probe_ID < 0 || pus8_msg_unpacked->probe_ID > 1)
