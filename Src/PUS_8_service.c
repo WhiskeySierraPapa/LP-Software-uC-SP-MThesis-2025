@@ -637,7 +637,7 @@ SPP_error PUS_8_handle_FM_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_
 			PUS_1_send_succ_acc(SPP_header, PUS_TC_header);
 			break;
 		default:
-			PUS_1_send_fail_acc(SPP_header, PUS_TC_header);
+			PUS_1_send_fail_acc(SPP_header, PUS_TC_header, UNSUPPORTED_SUBSERVICE_ID);
 			return SPP_UNHANDLED_PUS_ID;  // Invalid message subtype
 	}
 
@@ -648,7 +648,7 @@ SPP_error PUS_8_handle_FM_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_
 	pus8_msg_to_send.data_size = data_size;
 
 	if (xQueueSend(PUS_8_Queue, &pus8_msg_to_send, 0) != pdPASS) {
-		PUS_1_send_fail_start(SPP_header, PUS_TC_header);
+		PUS_1_send_fail_start(SPP_header, PUS_TC_header, PUS_PROCESS_BUSY);
 	}
 
     return SPP_OK;

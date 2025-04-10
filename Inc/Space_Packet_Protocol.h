@@ -78,6 +78,15 @@ typedef enum {
     UNDEFINED_ERROR                         = -127,
 } SPP_error;
 
+typedef enum {
+	UNSUPPORTED_SERIVCE_ID 					= 1,
+	UNSUPPORTED_SUBSERVICE_ID 				= 2,
+	CRC_ERROR								= 3,
+	COBS_ERROR 								= 4,
+	DATA_LENGTH_MISMATCH_ERROR 				= 5,
+	PUS_PROCESS_BUSY						= 6,
+} TM_Err_Codes;
+
 
 // Actual bit widths added as comments. Using bitmaps and just memcpy didnt work. Idk why.
 typedef struct {
