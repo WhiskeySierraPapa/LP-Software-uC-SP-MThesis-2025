@@ -7,9 +7,10 @@
 #include "Space_Packet_Protocol.h"
 #include "PUS.h"
 
-SPP_error PUS_decode_TC_header(uint8_t* raw_header, PUS_TC_header_t* secondary_header) {
+SPP_error PUS_decode_TC_header(uint8_t* raw_header, PUS_TC_header_t* secondary_header, uint8_t available_data_size) {
 
-	if (raw_header == NULL || secondary_header == NULL) {
+	// data length must be at least long enough to store a PUS header, if the secondary header flag is set
+	if (raw_header == NULL || secondary_header == NULL || available_data_size < PUS_TC_HEADER_LEN_WO_SPARE) {
 	        return 0;
 	}
 

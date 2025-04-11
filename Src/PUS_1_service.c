@@ -42,7 +42,7 @@ void PUS_1_send_succ_acc(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h) {
     	xQueueSend(UART_OBC_Out_Queue, &msg_to_send, portMAX_DELAY);
     }
 }
-void PUS_1_send_fail_acc(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h, uint16_t err_code)
+void PUS_1_send_fail_acc(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h, PUS_1_Fail_Acc_Data_t* PUS_1_Fail_Acc_Data, uint16_t err_code)
 {
     if (succ_acceptence_req(PUS_h)) {
     	UART_OUT_OBC_msg msg_to_send = {0};
@@ -55,15 +55,23 @@ void PUS_1_send_fail_acc(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h, uint16_t e
     	// -> 4 bytes = the SPP header of the incoming request (without the data length field)
     	SPP_encode_header(SPP_h, msg_to_send.TM_data);
 
-    	// -> 4 bytes = information about the failure
+    	// -> 12 bytes = information about the failure
     	// here we overwrite the last 2 bytes written before because they store the data length
     	// of the SPP packet and that should not be included
-    	msg_to_send.TM_data[SPP_HEADER_LEN - 2] 	= (err_code >> 8) & 0xFF;
-		msg_to_send.TM_data[SPP_HEADER_LEN - 2 + 1] = err_code & 0xFF;
-		msg_to_send.TM_data[SPP_HEADER_LEN - 2 + 2] = PUS_h->service_type_id;
-		msg_to_send.TM_data[SPP_HEADER_LEN - 2 + 3] = PUS_h->message_subtype_id;
+    	msg_to_send.TM_data[SPP_HEADER_LEN - 2 + 0] 	= (err_code >> 8) & 0xFF;
+		msg_to_send.TM_data[SPP_HEADER_LEN - 2 + 1] 	= err_code & 0xFF;
+		msg_to_send.TM_data[SPP_HEADER_LEN - 2 + 2] 	= PUS_h->service_type_id;
+		msg_to_send.TM_data[SPP_HEADER_LEN - 2 + 3] 	= PUS_h->message_subtype_id;
+		msg_to_send.TM_data[SPP_HEADER_LEN - 2 + 4] 	= (PUS_1_Fail_Acc_Data->TC_Pcklen >> 8)& 0xFF;
+		msg_to_send.TM_data[SPP_HEADER_LEN - 2 + 5] 	= PUS_1_Fail_Acc_Data->TC_Pcklen & 0xFF;
+		msg_to_send.TM_data[SPP_HEADER_LEN - 2 + 6] 	= (PUS_1_Fail_Acc_Data->TC_ReceivedBytes >> 8)& 0xFF;
+		msg_to_send.TM_data[SPP_HEADER_LEN - 2 + 7] 	= PUS_1_Fail_Acc_Data->TC_ReceivedBytes & 0xFF;
+		msg_to_send.TM_data[SPP_HEADER_LEN - 2 + 8] 	= (PUS_1_Fail_Acc_Data->TC_ReceivedCRC >> 8)& 0xFF;
+		msg_to_send.TM_data[SPP_HEADER_LEN - 2 + 9] 	= PUS_1_Fail_Acc_Data->TC_ReceivedCRC & 0xFF;
+		msg_to_send.TM_data[SPP_HEADER_LEN - 2 + 10] 	= (PUS_1_Fail_Acc_Data->TC_CalcCRC >> 8)& 0xFF;
+		msg_to_send.TM_data[SPP_HEADER_LEN - 2 + 11] 	= PUS_1_Fail_Acc_Data->TC_CalcCRC & 0xFF;
 
-		msg_to_send.TM_data_len			= SPP_HEADER_LEN - 2 + 4;
+		msg_to_send.TM_data_len			= SPP_HEADER_LEN - 2 + 12;
 
     	xQueueSend(UART_OBC_Out_Queue, &msg_to_send, portMAX_DELAY);
     }
@@ -97,7 +105,7 @@ void PUS_1_send_fail_start(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_h, uint16_t
     	// -> 4 bytes = the SPP header of the incoming request (without the data length field)
     	SPP_encode_header(SPP_h, msg_to_send.TM_data);
 
-    	// -> 11 bytes = information about the failure
+    	// -> 4 bytes = information about the failure
     	// here we overwrite the last 2 bytes written before because they store the data length
     	// of the SPP packet and that should not be included
     	msg_to_send.TM_data[SPP_HEADER_LEN - 2] 	= (err_code >> 8) & 0xFF;

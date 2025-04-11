@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include "COBS.h"
 #include "main.h"
+//#include "PUS_1_service.h"
 
 extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart2;
@@ -85,6 +86,12 @@ typedef enum {
 	COBS_ERROR 								= 4,
 	DATA_LENGTH_MISMATCH_ERROR 				= 5,
 	PUS_PROCESS_BUSY						= 6,
+	SPP_DECODE_ERROR 						= 7,
+	PUS_DECODE_ERROR 						= 8,
+	WRONG_SYSTEM_STATE 						= 9,
+	NULL_POINTER_DEREFERENCING				= 10,
+	NO_ERROR								= 11,
+
 } TM_Err_Codes;
 
 
@@ -106,7 +113,7 @@ SPP_error SPP_encode_header(SPP_header_t* primary_header, uint8_t* result_buffer
 SPP_error SPP_decode_header(uint8_t* input_msg, uint8_t input_msg_size, SPP_header_t* primary_header);
 SPP_error SPP_add_CRC_to_msg(uint8_t* packet, uint16_t length, uint8_t* output);
 SPP_error SPP_add_data_to_packet(uint8_t* data, uint16_t data_len, uint8_t* packet);
-SPP_error SPP_validate_checksum(uint8_t* packet, uint16_t packet_length);
+SPP_error SPP_validate_checksum(uint8_t* packet, uint16_t packet_length, void* PUS_1_Fail_Acc_Data_ptr);
 
 void SPP_Callback();
 

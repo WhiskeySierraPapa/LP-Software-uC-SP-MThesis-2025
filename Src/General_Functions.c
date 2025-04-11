@@ -26,6 +26,12 @@ uint16_t SPP_SEQUENCE_COUNTER = 0;
 
 QueueHandle_t UART_OBC_Out_Queue;
 
+// These are used as empty header for when calling the PUS_1_send_fail_acc,
+// as the system might not have ones from the actual message (ex: COBS fail, CRC fail, etc)
+SPP_header_t Error_SPP_Header;
+PUS_TC_header_t Error_PUS_TC_Header;
+PUS_1_Fail_Acc_Data_t PUS_1_Fail_Acc_Data;
+
 void Prepare_full_msg(SPP_header_t* resp_SPP_header,
 						PUS_TM_header_t* resp_PUS_header,
 						uint8_t* data,
@@ -141,35 +147,43 @@ void Add_SPP_PUS_and_send_TM(UART_OUT_OBC_msg* UART_OUT_msg_received) {
 // Function that processes incoming Telecommands
 SPP_error Handle_incoming_TC() {
 
+	memset(&Error_SPP_Header, 0, sizeof(Error_SPP_Header));
+	memset(&Error_PUS_TC_Header, 0, sizeof(Error_PUS_TC_Header));
+	memset(&PUS_1_Fail_Acc_Data, 0, sizeof(PUS_1_Fail_Acc_Data));
+
     // Decode COBS frame if valid
     if(!COBS_is_valid(UART_RxBuffer.RxBuffer, UART_RxBuffer.frame_size))
     {
+    	PUS_1_send_fail_acc(&Error_SPP_Header, &Error_PUS_TC_Header, &PUS_1_Fail_Acc_Data, COBS_ERROR);
 		return 0;
     }
-    uint8_t decoded_msg[UART_RxBuffer.frame_size];
+    uint8_t 		decoded_msg[UART_RxBuffer.frame_size];
     COBS_decode(UART_RxBuffer.RxBuffer, UART_RxBuffer.frame_size, decoded_msg);
 
-
-    // Decode SPP header and verify its checksum
+    // Decode SPP header if possible and verify its checksum
     SPP_header_t 	SPP_header;
-    uint8_t decoded_msg_size = UART_RxBuffer.frame_size - 2; //After COBS decoding, the first and last byte are removed.
+    uint8_t 		decoded_msg_size = UART_RxBuffer.frame_size - 2; //After COBS decoding, the first and last byte are removed.
+    PUS_1_Fail_Acc_Data.TC_ReceivedBytes = decoded_msg_size;
 
     if(!SPP_decode_header(decoded_msg, decoded_msg_size, &SPP_header))
     {
+    	PUS_1_send_fail_acc(&Error_SPP_Header, &Error_PUS_TC_Header, &PUS_1_Fail_Acc_Data, SPP_DECODE_ERROR);
     	return 0;
     }
 
-    uint16_t  decoded_msg_length;
     // CCSDS SPP defines the packet data length as the number of octets - 1 of the packet data field (including the CRC)
-    decoded_msg_length = SPP_HEADER_LEN + SPP_header.packet_data_length + 1; // length = SPP + PUS + data + CRC
+    uint16_t  		decoded_msg_expected_size = SPP_HEADER_LEN + SPP_header.packet_data_length + 1; // length = SPP + PUS + data + CRC;
+    PUS_1_Fail_Acc_Data.TC_Pcklen = decoded_msg_expected_size;
 
-    if(decoded_msg_size != decoded_msg_length)
+    // The computed data length has to be the same as the length of the message received
+    if(decoded_msg_size != decoded_msg_expected_size)
     {
-    	// The computed data length has to be the same as the length of the message received
+    	PUS_1_send_fail_acc(&SPP_header, &Error_PUS_TC_Header, &PUS_1_Fail_Acc_Data, DATA_LENGTH_MISMATCH_ERROR);
     	return 0;
     }
 
-	if (SPP_validate_checksum(decoded_msg, decoded_msg_length) != SPP_OK) {
+	if (SPP_validate_checksum(decoded_msg, decoded_msg_size, &PUS_1_Fail_Acc_Data) != SPP_OK) {
+		PUS_1_send_fail_acc(&SPP_header, &Error_PUS_TC_Header, &PUS_1_Fail_Acc_Data, CRC_ERROR);
 		return 0;
 	}
 
@@ -177,42 +191,38 @@ SPP_error Handle_incoming_TC() {
     // Decode PUS header if present
     if (SPP_header.secondary_header_flag) {
 
-    	if(SPP_header.packet_data_length < PUS_TC_HEADER_LEN_WO_SPARE)
-    	{
-    		// data length must be at least long enough to store a PUS header, if the secondary header flag is set
-    		return 0;
-    	}
-
         PUS_TC_header_t PUS_TC_header;
-        if(!PUS_decode_TC_header(decoded_msg + SPP_HEADER_LEN, &PUS_TC_header))
+
+        if(!PUS_decode_TC_header(decoded_msg + SPP_HEADER_LEN, &PUS_TC_header, SPP_header.packet_data_length - 1))
         {
+        	PUS_1_send_fail_acc(&SPP_header, &Error_PUS_TC_Header, &PUS_1_Fail_Acc_Data, PUS_DECODE_ERROR);
         	return 0;
         }
 
 		uint8_t* data = decoded_msg + SPP_HEADER_LEN + PUS_TC_HEADER_LEN_WO_SPARE;
 		uint8_t data_size = SPP_header.packet_data_length - PUS_TC_HEADER_LEN_WO_SPARE - 1;
 
+		uint8_t result = NO_ERROR;
+
 		if (PUS_TC_header.service_type_id == HOUSEKEEPING_SERVICE_ID && data_size > 0) {
 			if(Current_Global_Device_State == NORMAL_MODE )
 				PUS_3_handle_HK_TC(&SPP_header, &PUS_TC_header, data, data_size);
 			else
-				PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header, UNSUPPORTED_SUBSERVICE_ID);
+				PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header, &PUS_1_Fail_Acc_Data, UNSUPPORTED_SUBSERVICE_ID);
 		}
 		else if (PUS_TC_header.service_type_id == FUNCTION_MANAGEMNET_ID && data_size > 0) {
 			if(Current_Global_Device_State == NORMAL_MODE ||
 				(Current_Global_Device_State == CB_MODE && *data == FPGA_DIS_CB_MODE))
 				PUS_8_handle_FM_TC(&SPP_header, &PUS_TC_header, data, data_size);
 			else
-				PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header, UNSUPPORTED_SUBSERVICE_ID);
+				PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header, &PUS_1_Fail_Acc_Data, UNSUPPORTED_SUBSERVICE_ID);
 		}
 		else if (PUS_TC_header.service_type_id == TEST_SERVICE_ID) {
-			if(Current_Global_Device_State == NORMAL_MODE)
-				PUS_17_handle_TEST_TC(&SPP_header, &PUS_TC_header);
-			else
-				PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header, UNSUPPORTED_SUBSERVICE_ID);
+			result = PUS_17_handle_TEST_TC(&SPP_header, &PUS_TC_header);
+			if(result != NO_ERROR)
+				PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header, &PUS_1_Fail_Acc_Data, result);
 		} else {
-			PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header, UNSUPPORTED_SERIVCE_ID);
-			return SPP_UNHANDLED_PUS_ID;
+			PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header, &PUS_1_Fail_Acc_Data, UNSUPPORTED_SERIVCE_ID);
 		}
     }
     return SPP_OK;

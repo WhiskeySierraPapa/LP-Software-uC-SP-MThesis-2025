@@ -12,13 +12,13 @@
 
 extern QueueHandle_t UART_OBC_Out_Queue;
 
-SPP_error PUS_17_handle_TEST_TC(SPP_header_t* SPP_header, PUS_TC_header_t* PUS_TC_header) {
+TM_Err_Codes PUS_17_handle_TEST_TC(SPP_header_t* SPP_header, PUS_TC_header_t* PUS_TC_header) {
 
 	if (Current_Global_Device_State != NORMAL_MODE) {
-        return UNDEFINED_ERROR;
+        return WRONG_SYSTEM_STATE;
     }
     if (SPP_header == NULL || PUS_TC_header == NULL) {
-        return UNDEFINED_ERROR;
+        return NULL_POINTER_DEREFERENCING;
     }
 
     if (PUS_TC_header->message_subtype_id == T_ARE_YOU_ALIVE_TEST_ID) {
@@ -42,8 +42,12 @@ SPP_error PUS_17_handle_TEST_TC(SPP_header_t* SPP_header, PUS_TC_header_t* PUS_T
 
 		PUS_1_send_succ_comp(SPP_header, PUS_TC_header);
     }
+    else
+    {
+    	return UNSUPPORTED_SUBSERVICE_ID;
+    }
 
-    return SPP_OK;
+    return NO_ERROR;
 }
 
 

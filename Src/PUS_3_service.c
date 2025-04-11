@@ -197,7 +197,7 @@ SPP_error PUS_3_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_
             report_frequency = 0;
             break;
         default:
-        	PUS_1_send_fail_acc(SPP_header, PUS_TC_header, UNSUPPORTED_SUBSERVICE_ID);
+//        	PUS_1_send_fail_acc(SPP_header, PUS_TC_header, UNSUPPORTED_SUBSERVICE_ID);
             return UNDEFINED_ERROR;  // Invalid message subtype
     }
 

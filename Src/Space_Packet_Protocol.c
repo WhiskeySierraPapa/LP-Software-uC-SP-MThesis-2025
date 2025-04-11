@@ -49,10 +49,16 @@ static uint16_t SPP_calc_CRC16(uint8_t* data, uint16_t length) {
 
 
 // CRC is calculated over all of the packet. The last two bytes are the received CRC.
-SPP_error SPP_validate_checksum(uint8_t* packet, uint16_t packet_length) {
+SPP_error SPP_validate_checksum(uint8_t* packet, uint16_t packet_length, void* PUS_1_Fail_Acc_Data_ptr) {
     uint16_t received_CRC = 0x0000;
     received_CRC |= (packet[packet_length - 2] << 8) | packet[packet_length - 1];
+
     uint16_t calculated_CRC = SPP_calc_CRC16(packet, packet_length - 2);
+
+    PUS_1_Fail_Acc_Data_t* PUS_1_Fail_Acc_Data = (PUS_1_Fail_Acc_Data_t*) PUS_1_Fail_Acc_Data_ptr;
+    PUS_1_Fail_Acc_Data->TC_ReceivedCRC = received_CRC;
+    PUS_1_Fail_Acc_Data->TC_CalcCRC 	= calculated_CRC;
+
     if (received_CRC != calculated_CRC) {
         return SPP_PACKET_CRC_MISMATCH;
     } else {
