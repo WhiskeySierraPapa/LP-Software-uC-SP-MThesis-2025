@@ -146,15 +146,19 @@ void PUS_3_HK_send(PUS_3_msg* pus3_msg_received) {
 }
 
 
-void PUS_3_set_report_frequency(uint8_t* data, PUS_3_msg* pus3_msg_received) {
+TM_Err_Codes PUS_3_set_report_frequency(uint8_t* data, PUS_3_msg* pus3_msg_received) {
     uint8_t* data_iterator = data;
 	uint16_t SID_num = 0;
+	uint16_t SID = 0;
     memcpy(&SID_num, data_iterator, sizeof(SID_num));
 
     data_iterator += sizeof(SID_num);
 
-    for(int i = 0; i < SID_num && data_iterator <= data + (pus3_msg_received->data_size * sizeof(uint8_t)) - 2; i++) {
-        uint16_t SID = 0;
+    for(int i = 0; i < SID_num; i++) {
+    	if(data_iterator > data + (pus3_msg_received->data_size * sizeof(uint8_t)) - 2)
+    		return NOT_ENOUGH_DATA_ERROR;
+
+    	SID = 0;
         memcpy(&SID, data_iterator, sizeof(SID));
         data_iterator += sizeof(SID);
 
@@ -167,20 +171,26 @@ void PUS_3_set_report_frequency(uint8_t* data, PUS_3_msg* pus3_msg_received) {
             	// update the report frequency for FPGA
             	current_FPGA_report_frequency = pus3_msg_received->new_report_frequency;
                 break;
+            default:
+            	return UNSUPPORTED_ARGUMENT_ERROR;
         }
     }
+    return NO_ERROR;
 }
 
 
 // HK - Housekeeping PUS service 3
-SPP_error PUS_3_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_header, uint8_t* data, uint8_t data_size)
+TM_Err_Codes PUS_3_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_header, uint8_t* data, uint8_t data_size)
 {
-
+    if(data_size < 4)
+	{
+		return NOT_ENOUGH_DATA_ERROR;
+	}
 	if (Current_Global_Device_State != NORMAL_MODE) {
-        return UNDEFINED_ERROR;
+        return WRONG_SYSTEM_STATE_ERROR;
     }
-    if (SPP_header == NULL || PUS_TC_header == NULL || data_size < 4) {
-        return UNDEFINED_ERROR;
+    if (SPP_header == NULL || PUS_TC_header == NULL) {
+        return NULL_POINTER_DEREFERENCING_ERROR;
     }
 
     // Define report frequency and handle different message subtypes
@@ -197,8 +207,7 @@ SPP_error PUS_3_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_
             report_frequency = 0;
             break;
         default:
-//        	PUS_1_send_fail_acc(SPP_header, PUS_TC_header, UNSUPPORTED_SUBSERVICE_ID);
-            return UNDEFINED_ERROR;  // Invalid message subtype
+            return UNSUPPORTED_SUBSERVICE_ID_ERROR;  // Invalid message subtype
     }
 
     PUS_1_send_succ_acc(SPP_header, PUS_TC_header);
@@ -211,7 +220,8 @@ SPP_error PUS_3_handle_HK_TC(SPP_header_t* SPP_header , PUS_TC_header_t* PUS_TC_
 	pus3_msg_to_send.new_report_frequency = report_frequency;
 
     if (xQueueSend(PUS_3_Queue, &pus3_msg_to_send, 0) != pdPASS) {
-    	PUS_1_send_fail_start(SPP_header, PUS_TC_header,PUS_PROCESS_BUSY);
+    	PUS_1_send_fail_comp(SPP_header, PUS_TC_header, PUS_PROCESS_BUSY_ERROR);
     }
-    return SPP_OK;
+
+    return NO_ERROR;
 }

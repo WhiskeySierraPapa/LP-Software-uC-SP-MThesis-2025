@@ -19,6 +19,23 @@
 #include "queue.h"
 #include "main.h"
 
+typedef enum {
+	NO_ERROR								= 1,
+	COBS_ERROR								= 2,
+	SPP_DECODE_ERROR 						= 3,
+	DATA_LENGTH_MISMATCH_ERROR 				= 4,
+	CRC_MISMATCH_ERROR						= 5,
+	PUS_DECODE_ERROR 						= 6,
+	UNSUPPORTED_SERIVCE_ID_ERROR			= 7,
+	UNSUPPORTED_SUBSERVICE_ID_ERROR			= 8,
+	PUS_PROCESS_BUSY_ERROR					= 9,
+	WRONG_SYSTEM_STATE_ERROR				= 10,
+	NULL_POINTER_DEREFERENCING_ERROR		= 11,
+	NOT_ENOUGH_DATA_ERROR					= 12,
+	UNSUPPORTED_ARGUMENT_ERROR 				= 13,
+	UNSUPPORTED_INDEX_ERROR 				= 14,
+} TM_Err_Codes;
+
 typedef struct {
 	uint8_t PUS_HEADER_PRESENT;
 	uint16_t PUS_SOURCE_ID;
@@ -43,6 +60,6 @@ void Prepare_full_msg(SPP_header_t* resp_SPP_header,
 						uint8_t* OUT_full_msg,
 						uint16_t* OUT_full_msg_len );
 
-SPP_error Handle_incoming_TC();
+void Handle_incoming_TC();
 
 #endif /* GENERAL_FUNCTIONS_H_ */

@@ -79,22 +79,6 @@ typedef enum {
     UNDEFINED_ERROR                         = -127,
 } SPP_error;
 
-typedef enum {
-	UNSUPPORTED_SERIVCE_ID 					= 1,
-	UNSUPPORTED_SUBSERVICE_ID 				= 2,
-	CRC_ERROR								= 3,
-	COBS_ERROR 								= 4,
-	DATA_LENGTH_MISMATCH_ERROR 				= 5,
-	PUS_PROCESS_BUSY						= 6,
-	SPP_DECODE_ERROR 						= 7,
-	PUS_DECODE_ERROR 						= 8,
-	WRONG_SYSTEM_STATE 						= 9,
-	NULL_POINTER_DEREFERENCING				= 10,
-	NO_ERROR								= 11,
-
-} TM_Err_Codes;
-
-
 // Actual bit widths added as comments. Using bitmaps and just memcpy didnt work. Idk why.
 typedef struct {
 	uint8_t  packet_version_number; // 3

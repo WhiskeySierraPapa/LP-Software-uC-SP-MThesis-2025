@@ -6,6 +6,7 @@
  */
 #include "Space_Packet_Protocol.h"
 #include "PUS.h"
+#include "General_Functions.h"
 #include "PUS_1_service.h"
 
 #ifndef PUS_3_SERVICE_H_
@@ -59,8 +60,8 @@ typedef struct {
 } PUS_3_msg;
 
 /* PUS_3_service */
-void PUS_3_set_report_frequency(uint8_t* data, PUS_3_msg* pus3_msg_received);
-SPP_error PUS_3_handle_HK_TC(SPP_header_t* primary_header, PUS_TC_header_t* secondary_header, uint8_t* data, uint8_t data_size);
+TM_Err_Codes PUS_3_set_report_frequency(uint8_t* data, PUS_3_msg* pus3_msg_received);
+TM_Err_Codes PUS_3_handle_HK_TC(SPP_header_t* primary_header, PUS_TC_header_t* secondary_header, uint8_t* data, uint8_t data_size);
 void PUS_3_collect_HK_data(uint32_t current_ticks);
 void PUS_3_HK_send(PUS_3_msg* pus3_msg_received);
 

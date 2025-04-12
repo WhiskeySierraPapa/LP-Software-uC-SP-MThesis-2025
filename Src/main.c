@@ -788,6 +788,7 @@ void handle_PUS_3_Service(void const * argument)
     uint32_t current_ticks = 0;
     uint8_t periodic_report = 0;
     PUS_3_msg pus3_msg_received;
+    uint8_t result = NO_ERROR;
 
     /* Infinite loop */
     for(;;)
@@ -796,23 +797,26 @@ void handle_PUS_3_Service(void const * argument)
     	{
     		if (xQueueReceive(PUS_3_Queue, &pus3_msg_received, portMAX_DELAY) == pdPASS)
     		{
-    			PUS_1_send_succ_start(&pus3_msg_received.SPP_header, &pus3_msg_received.PUS_TC_header);
+    			result = PUS_3_set_report_frequency(pus3_msg_received.data, &pus3_msg_received);
 
-    			PUS_3_set_report_frequency(pus3_msg_received.data, &pus3_msg_received);
+    			if(result == NO_ERROR)
+    			{
+    				current_ticks = xTaskGetTickCount();
+					PUS_3_collect_HK_data(current_ticks);
 
-				current_ticks = xTaskGetTickCount();
-				PUS_3_collect_HK_data(current_ticks);
+					PUS_3_HK_send(&pus3_msg_received);
 
-				PUS_1_send_succ_prog(&pus3_msg_received.SPP_header, &pus3_msg_received.PUS_TC_header);
+					PUS_1_send_succ_comp(&pus3_msg_received.SPP_header, &pus3_msg_received.PUS_TC_header);
 
-				PUS_3_HK_send(&pus3_msg_received);
-
-				PUS_1_send_succ_comp(&pus3_msg_received.SPP_header, &pus3_msg_received.PUS_TC_header);
-
-				if(current_uC_report_frequency == 2 || current_FPGA_report_frequency == 2)
-				{
-					periodic_report = 1;
-				}
+					if(current_uC_report_frequency == 2 || current_FPGA_report_frequency == 2)
+					{
+						periodic_report = 1;
+					}
+    			}
+    			else
+    			{
+    				PUS_1_send_fail_comp(&pus3_msg_received.SPP_header, &pus3_msg_received.PUS_TC_header, result);
+    			}
     		}
     	}
     	else
@@ -898,22 +902,33 @@ void handle_PUS_8_Service(void const * argument)
   /* Infinite loop */
 	PUS_8_msg pus8_msg_received;
 	PUS_8_msg_unpacked pus8_msg_unpacked;
+	uint8_t result;
 
 	for(;;)
 	{
 		if (xQueueReceive(PUS_8_Queue, &pus8_msg_received, portMAX_DELAY) == pdPASS)
 		{
-			PUS_1_send_succ_start(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header);
-
-			PUS_1_send_succ_prog(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header);
-
 			pus8_msg_unpacked = (PUS_8_msg_unpacked){0};
 
-			PUS_8_unpack_msg(&pus8_msg_received, &pus8_msg_unpacked);
+			result = PUS_8_unpack_msg(&pus8_msg_received, &pus8_msg_unpacked);
 
-			PUS_8_perform_function(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header, &pus8_msg_unpacked);
+			if(result == NO_ERROR)
+			{
+				result = PUS_8_perform_function(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header, &pus8_msg_unpacked);
 
-			PUS_1_send_succ_comp(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header);
+				if(result == NO_ERROR)
+				{
+					PUS_1_send_succ_comp(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header);
+				}
+				else
+				{
+					PUS_1_send_fail_comp(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header, result);
+				}
+			}
+			else
+			{
+				PUS_1_send_fail_comp(&pus8_msg_received.SPP_header, &pus8_msg_received.PUS_TC_header, result);
+			}
 
 			pus8_msg_received = (PUS_8_msg){0};
 		}
