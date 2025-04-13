@@ -725,6 +725,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	}
 }
 
+void Clear_UART_Errors(UART_HandleTypeDef *huart)
+{
+	// Clear Overrun Error, Noise Error, and Framing Error flags
+	__HAL_UART_CLEAR_FLAG(huart, UART_FLAG_ORE);
+	__HAL_UART_CLEAR_FLAG(huart, UART_FLAG_NE);
+	__HAL_UART_CLEAR_FLAG(huart, UART_FLAG_FE);
+}
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
@@ -757,16 +764,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			// Continue accumulating characters
 			UART_recv_count++;
 
-			// Read out any pending data in the RX buffer that might have been received while ISR was disabled
-			while (__HAL_UART_GET_FLAG(&DEBUG_UART, UART_FLAG_RXNE)) {
-				volatile uint8_t dummy = (uint8_t)(DEBUG_UART.Instance->RDR);  // Read and discard
-				(void)dummy;  // Avoid compiler warnings
-			}
-
-			// Clear Overrun Error, Noise Error, and Framing Error flags
-			__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_ORE);
-			__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_NE);
-			__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_FE);
+			Clear_UART_Errors(&DEBUG_UART);
 
 			if (HAL_UART_Receive_IT(&DEBUG_UART,(uint8_t*) &UART_recv_char, 1) != HAL_OK)
 			{
@@ -776,15 +774,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 				HAL_StatusTypeDef uart_status;
 
 				do {
-					while (__HAL_UART_GET_FLAG(&DEBUG_UART, UART_FLAG_RXNE)) {
-						volatile uint8_t dummy = (uint8_t)(DEBUG_UART.Instance->RDR);  // Read and discard
-						(void)dummy;  // Avoid compiler warnings
-					}
-
-					// Clear Overrun Error, Noise Error, and Framing Error flags
-					__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_ORE);
-					__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_NE);
-					__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_FE);
+					Clear_UART_Errors(&DEBUG_UART);
 
 					uart_status = HAL_UART_Receive_IT(&DEBUG_UART,(uint8_t*) &UART_recv_char, 1);
 					retry_count++;
@@ -891,9 +881,7 @@ void handle_UART_IN_OBC(void const * argument)
   /* USER CODE BEGIN handle_UART_IN_OBC */
 
 	// Clear Overrun Error, Noise Error, and Framing Error flags
-	__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_ORE);
-	__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_NE);
-	__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_FE);
+	Clear_UART_Errors(&DEBUG_UART);
 
 	HAL_UART_Receive_IT(&DEBUG_UART,(uint8_t*) &UART_recv_char, 1);
 
@@ -916,10 +904,7 @@ void handle_UART_IN_OBC(void const * argument)
 					(void)dummy;  // Avoid compiler warnings
 				}
 
-				// Clear Overrun Error, Noise Error, and Framing Error flags
-				__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_ORE);
-				__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_NE);
-				__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_FE);
+				Clear_UART_Errors(&DEBUG_UART);
 
 				if (HAL_UART_Receive_IT(&DEBUG_UART,(uint8_t*) &UART_recv_char, 1) != HAL_OK)
 				{
@@ -930,6 +915,8 @@ void handle_UART_IN_OBC(void const * argument)
 					HAL_StatusTypeDef uart_status;
 
 					do {
+						Clear_UART_Errors(&DEBUG_UART);
+
 					    uart_status = HAL_UART_Receive_IT(&DEBUG_UART, (uint8_t*)&UART_recv_char, 1);
 					    retry_count++;
 

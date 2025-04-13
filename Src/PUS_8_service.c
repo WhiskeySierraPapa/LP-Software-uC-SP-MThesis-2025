@@ -31,6 +31,7 @@ extern QueueHandle_t UART_OBC_Out_Queue;
 extern UART_HandleTypeDef huart5;
 
 extern osThreadId PUS_3_TaskHandle;
+extern osThreadId Watchdog_TaskHandle;
 
 extern volatile uint8_t Sweep_Bias_Mode_Data[3072];
 extern volatile uint16_t Sweep_Bias_Data_counter;
@@ -206,6 +207,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 				if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 					HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+					return FPGA_MESSAGE_ERROR;
 				}
 
 			}
@@ -260,6 +262,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 				if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 					HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+					return FPGA_MESSAGE_ERROR;
 				}
 			}
 			break;
@@ -282,6 +285,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
 			}
 
 			// VERY IMPORTANT TO CLEAR THE INTERRUPTS
@@ -296,7 +300,6 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 		case FPGA_EN_CB_MODE:
 		{
 			Current_Global_Device_State = CB_MODE;
-//			vTaskSuspend(PUS_3_TaskHandle);
 
 			uint8_t msg[64] = {0};
 			uint8_t msg_cnt = 0;
@@ -313,6 +316,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
 			}
 
 			break;
@@ -320,7 +324,6 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 		case FPGA_DIS_CB_MODE:
 		{
 			Current_Global_Device_State = NORMAL_MODE;
-//			vTaskResume(PUS_3_TaskHandle);
 
 			uint8_t msg[64] = {0};
 			uint8_t msg_cnt = 0;
@@ -332,6 +335,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
 			}
 
 			break;
@@ -355,6 +359,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
 			}
 			break;
 		}
@@ -381,6 +386,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
 			}
 
 			break;
@@ -399,6 +405,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
 			}
 			break;
 		}
@@ -420,6 +427,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
 			}
 
 			break;
@@ -439,6 +447,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
 			}
 			break;
 		}
@@ -460,6 +469,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
 			}
 
 			break;
@@ -479,6 +489,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
 			}
 			break;
 		}
@@ -500,6 +511,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
 			}
 
 			break;
@@ -519,6 +531,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
 			}
 			break;
 		}
@@ -540,6 +553,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
 			}
 
 			break;
@@ -559,6 +573,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
 			}
 			break;
 		}
@@ -580,6 +595,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
 			}
 
 			break;
@@ -596,6 +612,11 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 			uint8_t FRAM_Table_ID = pus8_msg_unpacked->FRAM_Table_ID;
 			uint8_t FPGA_Table_ID = pus8_msg_unpacked->probe_ID;
 			PUS_8_copy_table_FRAM_to_FPGA(FRAM_Table_ID, FPGA_Table_ID);
+			break;
+		}
+		case REBOOT_DEVICE:
+		{
+			vTaskSuspend(Watchdog_TaskHandle);
 			break;
 		}
 

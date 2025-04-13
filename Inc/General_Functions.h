@@ -34,6 +34,7 @@ typedef enum {
 	NOT_ENOUGH_DATA_ERROR					= 12,
 	UNSUPPORTED_ARGUMENT_ERROR 				= 13,
 	UNSUPPORTED_INDEX_ERROR 				= 14,
+	FPGA_MESSAGE_ERROR						= 15,
 } TM_Err_Codes;
 
 typedef struct {

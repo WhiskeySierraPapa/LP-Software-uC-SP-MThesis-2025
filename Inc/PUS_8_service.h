@@ -73,6 +73,8 @@ typedef enum {
     FPGA_GET_SWT_NPOINTS            = 0xA6,
 	CPY_TABLE_FRAM_TO_FPGA	 		= 0xE0,
 
+	REBOOT_DEVICE 					= 0xF3,
+
 } PUS_8_Func_ID;
 
 typedef enum {
