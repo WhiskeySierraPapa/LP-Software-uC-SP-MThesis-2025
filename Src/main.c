@@ -86,11 +86,15 @@ osThreadId Watchdog_TaskHandle;
 #define SWEEP_MODE_ROWS_TO_READ 64 // nr of rows that have to be read when the AFULL interrupt is generated
 #define SWEEP_MODE_DATA_SIZE_TO_READ SWEEP_MODE_ROWS_TO_READ * SWEEP_MODE_MEASUREMENT_BYTE_SIZE * sizeof(uint8_t)
 
+#define UART_MAX_RETRIES 3
+
 float temperature = 0;
 float uc3v = 0;
 float fpga3v = 0;
 float fpga1p5v = 0;
 float vbat = 0;
+
+volatile int a = 0;
 
 uint16_t vbat_i = 1;
 uint16_t temperature_i = 2;
@@ -752,11 +756,47 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		{
 			// Continue accumulating characters
 			UART_recv_count++;
-			// Re-arm the ISR to read the next byte
-			if (HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1) != HAL_OK)
+
+			// Read out any pending data in the RX buffer that might have been received while ISR was disabled
+			while (__HAL_UART_GET_FLAG(&DEBUG_UART, UART_FLAG_RXNE)) {
+				volatile uint8_t dummy = (uint8_t)(DEBUG_UART.Instance->RDR);  // Read and discard
+				(void)dummy;  // Avoid compiler warnings
+			}
+
+			// Clear Overrun Error, Noise Error, and Framing Error flags
+			__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_ORE);
+			__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_NE);
+			__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_FE);
+
+			if (HAL_UART_Receive_IT(&DEBUG_UART,(uint8_t*) &UART_recv_char, 1) != HAL_OK)
 			{
-				//TO DO: move system in a critical state that would try to fix the problem
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+
+				int retry_count = 0;
+				HAL_StatusTypeDef uart_status;
+
+				do {
+					while (__HAL_UART_GET_FLAG(&DEBUG_UART, UART_FLAG_RXNE)) {
+						volatile uint8_t dummy = (uint8_t)(DEBUG_UART.Instance->RDR);  // Read and discard
+						(void)dummy;  // Avoid compiler warnings
+					}
+
+					// Clear Overrun Error, Noise Error, and Framing Error flags
+					__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_ORE);
+					__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_NE);
+					__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_FE);
+
+					uart_status = HAL_UART_Receive_IT(&DEBUG_UART,(uint8_t*) &UART_recv_char, 1);
+					retry_count++;
+
+					if (uart_status != HAL_OK) {
+						osDelay(10); // Small delay between retries
+					}
+				} while (uart_status != HAL_OK && retry_count < UART_MAX_RETRIES);
+
+				if (uart_status != HAL_OK) {
+					vTaskSuspend(Watchdog_TaskHandle);  // Let watchdog trigger reset
+				}
 			}
 		}
 
@@ -855,7 +895,7 @@ void handle_UART_IN_OBC(void const * argument)
 	__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_NE);
 	__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_FE);
 
-	HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1);
+	HAL_UART_Receive_IT(&DEBUG_UART,(uint8_t*) &UART_recv_char, 1);
 
 	/* Infinite loop */
 	for(;;)
@@ -881,7 +921,27 @@ void handle_UART_IN_OBC(void const * argument)
 				__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_NE);
 				__HAL_UART_CLEAR_FLAG(&DEBUG_UART, UART_FLAG_FE);
 
-				HAL_UART_Receive_IT(&DEBUG_UART, &UART_recv_char, 1);
+				if (HAL_UART_Receive_IT(&DEBUG_UART,(uint8_t*) &UART_recv_char, 1) != HAL_OK)
+				{
+					// if rearming fails, try several times
+					HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+
+					int retry_count = 0;
+					HAL_StatusTypeDef uart_status;
+
+					do {
+					    uart_status = HAL_UART_Receive_IT(&DEBUG_UART, (uint8_t*)&UART_recv_char, 1);
+					    retry_count++;
+
+					    if (uart_status != HAL_OK) {
+					        osDelay(10); // Small delay between retries
+					    }
+					} while (uart_status != HAL_OK && retry_count < UART_MAX_RETRIES);
+
+					if (uart_status != HAL_OK) {
+					    vTaskSuspend(Watchdog_TaskHandle);  // Let watchdog trigger reset
+					}
+				}
 			}
 		}
 		osDelay(1);

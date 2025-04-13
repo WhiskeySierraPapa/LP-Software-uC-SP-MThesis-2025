@@ -21,6 +21,8 @@ extern uint16_t HK_PUS_SOURCE_ID;
 extern UART_Rx_OBC_Msg UART_RxBuffer;
 extern uint8_t UART_TxBuffer[MAX_COBS_FRAME_LEN];
 
+extern osThreadId Watchdog_TaskHandle;
+
 
 uint16_t SPP_SEQUENCE_COUNTER = 0;
 
@@ -92,9 +94,9 @@ void Send_TM(SPP_header_t* resp_SPP_header,
     cobs_packet_total_len +=1;
 
 	if (HAL_UART_Transmit_DMA(&DEBUG_UART, UART_TxBuffer, cobs_packet_total_len) != HAL_OK) {
-		//TO DO: move system in a critical state taht would try to fix the problem
 		HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
 		uart_tx_OBC_done = 1;  // Reset flag on failure
+		vTaskSuspend(Watchdog_TaskHandle);
 	}
 }
 
