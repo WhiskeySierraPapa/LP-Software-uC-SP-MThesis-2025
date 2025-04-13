@@ -28,8 +28,8 @@ uint16_t SPP_SEQUENCE_COUNTER = 0;
 
 QueueHandle_t UART_OBC_Out_Queue;
 
-// These are used as empty header for when calling the PUS_1_send_fail_acc,
-// as the system might not have ones from the actual message (ex: COBS fail, CRC fail, etc)
+// These are used as empty headers for when calling the PUS_1_send_fail_acc,
+// as the system might not have the ones from the actual message (ex: COBS fail, CRC fail, etc)
 SPP_header_t Error_SPP_Header;
 PUS_TC_header_t Error_PUS_TC_Header;
 PUS_1_Fail_Acc_Data_t PUS_1_Fail_Acc_Data;

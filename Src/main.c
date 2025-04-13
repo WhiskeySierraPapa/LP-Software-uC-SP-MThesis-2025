@@ -87,6 +87,7 @@ osThreadId Watchdog_TaskHandle;
 #define SWEEP_MODE_DATA_SIZE_TO_READ SWEEP_MODE_ROWS_TO_READ * SWEEP_MODE_MEASUREMENT_BYTE_SIZE * sizeof(uint8_t)
 
 #define UART_MAX_RETRIES 3
+#define CB_MODE_BUFFERED_MEASUREMENTS 4
 
 float temperature = 0;
 float uc3v = 0;
@@ -126,6 +127,10 @@ extern volatile uint8_t UART_TxBuffer[MAX_COBS_FRAME_LEN];
 DeviceState Current_Global_Device_State = NORMAL_MODE;
 
 volatile uint8_t Sweep_Bias_Mode_Data[6174];
+uint8_t Constant_Bias_Mode_Buffer[2][CB_MODE_BUFFERED_MEASUREMENTS*8];
+uint8_t Buffer_Index = 0;
+uint8_t Measurement_Index = 0;
+uint8_t send_buffered_data;
 
 volatile uint16_t Sweep_Bias_Data_counter = 0;
 volatile uint16_t Old_Sweep_Bias_Data_counter = 0;
@@ -1124,21 +1129,30 @@ void handle_UART_IN_FPGA(void const * argument)
 
 					case FPGA_EN_CB_MODE:
 					{
+						send_buffered_data = 0;
+
 						if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 12))
 						{
-							UART_FPGA_OBC_Tx_Buffer[1] = UART_FPGA_Rx_Buffer[3];
-							UART_FPGA_OBC_Tx_Buffer[2] = UART_FPGA_Rx_Buffer[4];
-							UART_FPGA_OBC_Tx_Buffer[3] = UART_FPGA_Rx_Buffer[5];
-							UART_FPGA_OBC_Tx_Buffer[4] = UART_FPGA_Rx_Buffer[6];
-							UART_FPGA_OBC_Tx_Buffer[5] = UART_FPGA_Rx_Buffer[7];
-							UART_FPGA_OBC_Tx_Buffer[6] = UART_FPGA_Rx_Buffer[8];
-							UART_FPGA_OBC_Tx_Buffer[7] = UART_FPGA_Rx_Buffer[9];
-							UART_FPGA_OBC_Tx_Buffer[8] = UART_FPGA_Rx_Buffer[10];
+							memcpy(Constant_Bias_Mode_Buffer[Buffer_Index] + Measurement_Index * 8,
+									UART_FPGA_Rx_Buffer + 3, 8);
+							Measurement_Index++;
 
-							memcpy(msg_to_send.TM_data, UART_FPGA_OBC_Tx_Buffer, 9);
-							msg_to_send.TM_data_len			= 9;
+							if(Measurement_Index == CB_MODE_BUFFERED_MEASUREMENTS)
+							{
+								msg_to_send.TM_data[0] = FPGA_EN_CB_MODE;
+								memcpy(msg_to_send.TM_data + 1, Constant_Bias_Mode_Buffer[Buffer_Index], 8 * CB_MODE_BUFFERED_MEASUREMENTS);
+								msg_to_send.TM_data_len	= 8 * CB_MODE_BUFFERED_MEASUREMENTS + 1;
+
+								send_buffered_data = 1;
+
+								Measurement_Index = 0;
+
+								if(Buffer_Index == 0)
+									Buffer_Index = 1;
+								else if(Buffer_Index == 1)
+									Buffer_Index = 0;
+							}
 						}
-
 						break;
 					}
 
@@ -1146,8 +1160,11 @@ void handle_UART_IN_FPGA(void const * argument)
 						break;
 				}
 
-				xQueueSend(UART_OBC_Out_Queue, &msg_to_send, portMAX_DELAY);
-
+				if(UART_FPGA_Rx_Buffer[2] != FPGA_EN_CB_MODE ||
+					(UART_FPGA_Rx_Buffer[2] == FPGA_EN_CB_MODE && send_buffered_data == 1))
+				{
+					xQueueSend(UART_OBC_Out_Queue, &msg_to_send, portMAX_DELAY);
+				}
 				HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 9 + 1);
 			}
 		}
