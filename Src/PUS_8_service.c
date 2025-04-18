@@ -627,6 +627,14 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 			void (*app_reset_handler)(void);
 			uint32_t app_stack;
 
+			// Set MSP and PC
+			app_stack = *(volatile uint32_t*)(NEW_APP_ADDRESS);
+			app_reset_handler = (void (*)(void)) (*(volatile uint32_t*)(NEW_APP_ADDRESS + 4));
+
+			PUS_1_send_succ_comp(SPP_h, PUS_TC_h);
+
+			// wait for all other task to finish, to make sure no peripherals are in use
+			// TO DO: here the system should enter an ,,Jump to new image,, state
 			osDelay(10);
 
 			// Deinit and cleanup
@@ -637,10 +645,6 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 			__disable_irq();
 			NVIC->ICER[0] = 0xFFFFFFFF;
 			NVIC->ICPR[0] = 0xFFFFFFFF;
-
-			// Set MSP and PC
-			app_stack = *(volatile uint32_t*)(NEW_APP_ADDRESS);
-			app_reset_handler = (void (*)(void)) (*(volatile uint32_t*)(NEW_APP_ADDRESS + 4));
 
 			__set_MSP(app_stack);  // Set main stack pointer
 			app_reset_handler();   // Jump to application
