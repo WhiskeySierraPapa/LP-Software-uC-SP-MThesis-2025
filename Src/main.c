@@ -126,7 +126,7 @@ extern volatile uint8_t UART_TxBuffer[MAX_COBS_FRAME_LEN];
 
 DeviceState Current_Global_Device_State = NORMAL_MODE;
 
-volatile uint8_t Sweep_Bias_Mode_Data[6174];
+volatile uint8_t Sweep_Bias_Mode_Data[3072];
 uint8_t Constant_Bias_Mode_Buffer[2][CB_MODE_BUFFERED_MEASUREMENTS*8];
 uint8_t Buffer_Index = 0;
 uint8_t Measurement_Index = 0;
@@ -1133,24 +1133,22 @@ void handle_UART_IN_FPGA(void const * argument)
 
 						if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 12))
 						{
-							memcpy(Constant_Bias_Mode_Buffer[Buffer_Index] + Measurement_Index * 8,
-									UART_FPGA_Rx_Buffer + 3, 8);
+							uint8_t *dest = Constant_Bias_Mode_Buffer[Buffer_Index] + Measurement_Index * 8;
+							memcpy(dest, UART_FPGA_Rx_Buffer + 3, 8);
 							Measurement_Index++;
 
 							if(Measurement_Index == CB_MODE_BUFFERED_MEASUREMENTS)
 							{
 								msg_to_send.TM_data[0] = FPGA_EN_CB_MODE;
-								memcpy(msg_to_send.TM_data + 1, Constant_Bias_Mode_Buffer[Buffer_Index], 8 * CB_MODE_BUFFERED_MEASUREMENTS);
+								memcpy(msg_to_send.TM_data + 1,
+										Constant_Bias_Mode_Buffer[Buffer_Index],
+										8 * CB_MODE_BUFFERED_MEASUREMENTS
+								);
 								msg_to_send.TM_data_len	= 8 * CB_MODE_BUFFERED_MEASUREMENTS + 1;
 
 								send_buffered_data = 1;
-
 								Measurement_Index = 0;
-
-								if(Buffer_Index == 0)
-									Buffer_Index = 1;
-								else if(Buffer_Index == 1)
-									Buffer_Index = 0;
+								Buffer_Index ^= 1;
 							}
 						}
 						break;

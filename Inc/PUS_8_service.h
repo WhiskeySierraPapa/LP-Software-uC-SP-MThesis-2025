@@ -74,6 +74,7 @@ typedef enum {
 	CPY_TABLE_FRAM_TO_FPGA	 		= 0xE0,
 
 	REBOOT_DEVICE 					= 0xF3,
+	JUMP_TO_IMAGE					= 0xF4,
 
 } PUS_8_Func_ID;
 

@@ -27,6 +27,8 @@
 #define SC_CB_PACKET_RAW_DATA_LEN       6 // 2 sequence counter bytes and 2 data bytes each probe.
 #define SC_CB_PACKET_FULL_DATA_LEN      1 + SC_CB_PACKET_RAW_DATA_LEN  // 1 byte header
 
+#define NEW_APP_ADDRESS 0x08010000
+
 extern QueueHandle_t UART_OBC_Out_Queue;
 extern UART_HandleTypeDef huart5;
 
@@ -617,6 +619,31 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 		case REBOOT_DEVICE:
 		{
 			vTaskSuspend(Watchdog_TaskHandle);
+			break;
+		}
+
+		case JUMP_TO_IMAGE:
+		{
+			void (*app_reset_handler)(void);
+			uint32_t app_stack;
+
+			osDelay(10);
+
+			// Deinit and cleanup
+			HAL_DeInit();
+			SysTick->CTRL = 0;
+			SysTick->LOAD = 0;
+			SysTick->VAL  = 0;
+			__disable_irq();
+			NVIC->ICER[0] = 0xFFFFFFFF;
+			NVIC->ICPR[0] = 0xFFFFFFFF;
+
+			// Set MSP and PC
+			app_stack = *(volatile uint32_t*)(NEW_APP_ADDRESS);
+			app_reset_handler = (void (*)(void)) (*(volatile uint32_t*)(NEW_APP_ADDRESS + 4));
+
+			__set_MSP(app_stack);  // Set main stack pointer
+			app_reset_handler();   // Jump to application
 			break;
 		}
 
