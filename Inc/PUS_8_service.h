@@ -47,6 +47,7 @@ typedef struct {
     GS_Target_t  target;
     uint16_t N_samples_per_step;
     uint8_t FRAM_Table_ID;
+    uint8_t Image_Index; // 1 - golden image, 2 - new image, 3 - new image, etc
 } PUS_8_msg_unpacked;
 
 typedef enum {
@@ -89,6 +90,7 @@ typedef enum {
     GS_TARGET_ARG_ID            = 0x08, // GS Target = Get Set Target
     FRAM_TABLE_ID_ARG_ID        = 0x09,
     N_SAMPLES_PER_STEP_ARG_ID   = 0x0A,
+	IMAGE_INDEX 				= 0x0B,
 } FPGA_Arg_ID_t;
 
 /* PUS_8_service */

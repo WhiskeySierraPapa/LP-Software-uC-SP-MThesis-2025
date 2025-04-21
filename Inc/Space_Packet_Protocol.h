@@ -54,10 +54,16 @@ typedef struct {
 #define SPP_SEQUENCE_SEG_LAST             2
 #define SPP_SEQUENCE_SEG_UNSEG            3
 
-#define DEBUG_UART                  huart4
-#define OBC_UART					huart2
+#define DEBUG_UART                  	huart4
+#define OBC_UART						huart2
 
+#define METADATA_ADDRESS 				0x08008000
 
+typedef enum {
+	BOOT_NEXT_FROM_HERE = 0,
+	TRYING_TO_BOOT = 1,
+	BOOTED_SUCCESFULLY = 2
+} Boot_Feedback;
 
 typedef enum {
     OBC_TC                            = 0,

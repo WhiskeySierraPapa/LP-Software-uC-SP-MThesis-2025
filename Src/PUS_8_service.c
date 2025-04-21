@@ -27,8 +27,6 @@
 #define SC_CB_PACKET_RAW_DATA_LEN       6 // 2 sequence counter bytes and 2 data bytes each probe.
 #define SC_CB_PACKET_FULL_DATA_LEN      1 + SC_CB_PACKET_RAW_DATA_LEN  // 1 byte header
 
-#define NEW_APP_ADDRESS 0x08010000
-
 extern QueueHandle_t UART_OBC_Out_Queue;
 extern UART_HandleTypeDef huart5;
 
@@ -140,6 +138,12 @@ TM_Err_Codes PUS_8_unpack_msg(PUS_8_msg *pus8_msg_received, PUS_8_msg_unpacked* 
 					return NOT_ENOUGH_DATA_ERROR;
 				memcpy((uint8_t*)&pus8_msg_unpacked->FRAM_Table_ID, data_interator, sizeof(pus8_msg_unpacked->FRAM_Table_ID));
 				data_interator += sizeof(pus8_msg_unpacked->FRAM_Table_ID);
+				break;
+			case IMAGE_INDEX:
+				if ((data_end - data_interator) < sizeof(pus8_msg_unpacked->Image_Index))
+					return NOT_ENOUGH_DATA_ERROR;
+				memcpy((uint8_t*)&pus8_msg_unpacked->Image_Index, data_interator, sizeof(pus8_msg_unpacked->Image_Index));
+				data_interator += sizeof(pus8_msg_unpacked->Image_Index);
 				break;
 			default:
 				return UNSUPPORTED_ARGUMENT_ERROR;
@@ -618,36 +622,47 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 		}
 		case REBOOT_DEVICE:
 		{
-			vTaskSuspend(Watchdog_TaskHandle);
+			NVIC_SystemReset();
 			break;
 		}
 
 		case JUMP_TO_IMAGE:
 		{
-			void (*app_reset_handler)(void);
-			uint32_t app_stack;
+			// write to the flash metadata so that the bootloader knows what image to boot from
+			HAL_FLASH_Unlock();
 
-			// Set MSP and PC
-			app_stack = *(volatile uint32_t*)(NEW_APP_ADDRESS);
-			app_reset_handler = (void (*)(void)) (*(volatile uint32_t*)(NEW_APP_ADDRESS + 4));
+			FLASH_EraseInitTypeDef eraseInitStruct;
+			uint32_t pageError = 0;
+
+			eraseInitStruct.TypeErase = FLASH_TYPEERASE_SECTORS;     // or FLASH_TYPEERASE_PAGES (depends on family)
+			eraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;    // depends on your supply voltage
+			eraseInitStruct.Sector = FLASH_SECTOR_1;                 // sector you want to erase
+			eraseInitStruct.NbSectors = 1;
+
+			HAL_FLASHEx_Erase(&eraseInitStruct, &pageError);
+
+			uint8_t magic_nubmer = 22;
+
+			// the 3rd byte of the metadata represents the following things:
+			// -> 0 = the system has to boot from this new image for the first time (set when a JUMP_TO_IMAGE command was received
+			// -> 1 = the bootloader jumped to this new image, and waits to see if it can successfully boot
+			// -> 2 = the system booted successfully
+
+			HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, METADATA_ADDRESS, magic_nubmer);
+			HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, METADATA_ADDRESS+1, pus8_msg_unpacked->Image_Index);
+			HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, METADATA_ADDRESS+2, BOOT_NEXT_FROM_HERE);
+
+			HAL_FLASH_Lock();
+
 
 			PUS_1_send_succ_comp(SPP_h, PUS_TC_h);
 
 			// wait for all other task to finish, to make sure no peripherals are in use
 			// TO DO: here the system should enter an ,,Jump to new image,, state
-			osDelay(10);
+			osDelay(2000);
 
-			// Deinit and cleanup
-			HAL_DeInit();
-			SysTick->CTRL = 0;
-			SysTick->LOAD = 0;
-			SysTick->VAL  = 0;
-			__disable_irq();
-			NVIC->ICER[0] = 0xFFFFFFFF;
-			NVIC->ICPR[0] = 0xFFFFFFFF;
+			NVIC_SystemReset();
 
-			__set_MSP(app_stack);  // Set main stack pointer
-			app_reset_handler();   // Jump to application
 			break;
 		}
 
