@@ -1,9 +1,123 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36" version="26.2.12">
   <diagram name="Pagină-1" id="K7ZkN5vFVRDfCoLSblhW">
-    <mxGraphModel>
+    <mxGraphModel dx="1795" dy="815" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+        <mxCell id="Bkob230-6VRAGTBJh4gk-1" value="Incoming UART message" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="68" y="34" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-2" value="COBS Validation &amp;amp; Decoding" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="68" y="146" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-3" value="SPP Header Decoding" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="68" y="256" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-4" value="Correct Length of received message" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="68" y="357" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-5" value="Checksum Check" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="68" y="454" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-6" value="PUS Decode" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="68" y="548" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-10" value="TEMPLATE" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FF6666;" vertex="1" parent="1">
+          <mxGeometry x="633" y="47" width="162" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-11" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="552" y="76.5" as="sourcePoint" />
+            <mxPoint x="633" y="76.5" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-13" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="205" y="182" as="sourcePoint" />
+            <mxPoint x="286" y="182" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-14" value="FAIL ACC&lt;div&gt;COBS_ERROR&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FF6666;" vertex="1" parent="1">
+          <mxGeometry x="286" y="149" width="162" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-15" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="205" y="288" as="sourcePoint" />
+            <mxPoint x="286" y="288" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-16" value="FAIL ACC&lt;div&gt;SPP_DECODE_ERROR&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FF6666;" vertex="1" parent="1">
+          <mxGeometry x="286" y="256" width="162" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-17" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="205" y="386.5" as="sourcePoint" />
+            <mxPoint x="286" y="386.5" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-18" value="FAIL ACC&lt;div&gt;DATA_LENGTH_MISMATCH_ERROR&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FF6666;" vertex="1" parent="1">
+          <mxGeometry x="286" y="357" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-19" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="202" y="483.5" as="sourcePoint" />
+            <mxPoint x="283" y="483.5" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-20" value="FAIL ACC&lt;div&gt;CRC_MISMATCH_ERROR&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FF6666;" vertex="1" parent="1">
+          <mxGeometry x="286" y="454" width="163" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-21" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="205" y="577.5" as="sourcePoint" />
+            <mxPoint x="286" y="577.5" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-22" value="FAIL ACC&lt;div&gt;PUS_DECODE_ERROR&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FF6666;" vertex="1" parent="1">
+          <mxGeometry x="286" y="546" width="162" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-24" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="Bkob230-6VRAGTBJh4gk-1" target="Bkob230-6VRAGTBJh4gk-2">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="388" y="445" as="sourcePoint" />
+            <mxPoint x="438" y="395" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-25" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="Bkob230-6VRAGTBJh4gk-4" target="Bkob230-6VRAGTBJh4gk-5">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="242" y="414" as="sourcePoint" />
+            <mxPoint x="242" y="466" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-26" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="Bkob230-6VRAGTBJh4gk-3" target="Bkob230-6VRAGTBJh4gk-4">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="128" y="318" as="sourcePoint" />
+            <mxPoint x="137" y="342" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-27" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="127.5" y="206" as="sourcePoint" />
+            <mxPoint x="127.5" y="258" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-29" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="Bkob230-6VRAGTBJh4gk-5" target="Bkob230-6VRAGTBJh4gk-6">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="168" y="134" as="sourcePoint" />
+            <mxPoint x="168" y="186" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-30" value="PUS Service Supported" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="68" y="656" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-31" value="FAIL ACC&lt;div&gt;UNSUPPORTED_SERVICE_ID_ERROR&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FF6666;" vertex="1" parent="1">
+          <mxGeometry x="287" y="656" width="234" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Bkob230-6VRAGTBJh4gk-32" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="206" y="685.5" as="sourcePoint" />
+            <mxPoint x="287" y="685.5" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
