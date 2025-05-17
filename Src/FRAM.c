@@ -26,12 +26,11 @@ static uint16_t get_sweep_table_address(uint8_t save_id) {
     if (save_id == 4) {addr = FRAM_SWEEP_TABLE_4;}
     if (save_id == 5) {addr = FRAM_SWEEP_TABLE_5;}
     if (save_id == 6) {addr = FRAM_SWEEP_TABLE_6;}
-    if (save_id == 7) {addr = FRAM_SWEEP_TABLE_7;}
     return addr;
 }
 
 SPP_error save_sweep_table_value_FRAM(uint8_t table_id, uint8_t step_id, uint16_t value) {
-    if (table_id > 7) { // Table IDs 0-7
+    if (table_id > 6) { // Table IDs 0-7
         // TODO Add error generation here. (PUS1)
         return UNDEFINED_ERROR; // TODO Changes this to something unique.
     }
@@ -44,7 +43,7 @@ SPP_error save_sweep_table_value_FRAM(uint8_t table_id, uint8_t step_id, uint16_
 
 
 uint16_t read_sweep_table_value_FRAM(uint8_t table_id, uint8_t step_id) {
-    if (table_id > 7) { // Table IDs 0-7
+    if (table_id > 6) { // Table IDs 0-7
         // TODO Add error generation here. (PUS1)
         return 0xFFFF;
     }

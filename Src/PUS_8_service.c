@@ -186,7 +186,7 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 		{
 			if(pus8_msg_unpacked->target == TARGET_uC)
 			{
-				if(pus8_msg_unpacked->probe_ID < 0 || pus8_msg_unpacked->probe_ID > 7)
+				if(pus8_msg_unpacked->probe_ID < 0 || pus8_msg_unpacked->probe_ID > 6)
 					return UNSUPPORTED_INDEX_ERROR; // There are only 8 sweep tables available in the FRAM
 
 				save_sweep_table_value_FRAM(pus8_msg_unpacked->probe_ID,
