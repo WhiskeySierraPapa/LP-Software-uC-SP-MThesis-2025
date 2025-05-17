@@ -57,7 +57,7 @@ typedef struct {
 #define DEBUG_UART                  	huart4
 #define OBC_UART						huart2
 
-#define METADATA_ADDRESS 				0x08008000
+#define METADATA_ADDRESS 				FRAM_SWEEP_TABLE_SECTION_START
 
 typedef enum {
 	BOOT_NEXT_FROM_HERE = 0,

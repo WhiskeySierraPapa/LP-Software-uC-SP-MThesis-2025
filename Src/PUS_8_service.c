@@ -628,31 +628,37 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 
 		case JUMP_TO_IMAGE:
 		{
-			// write to the flash metadata so that the bootloader knows what image to boot from
-			HAL_FLASH_Unlock();
+			// // write to the flash metadata so that the bootloader knows what image to boot from
+			// HAL_FLASH_Unlock();
 
-			FLASH_EraseInitTypeDef eraseInitStruct;
-			uint32_t pageError = 0;
+			// FLASH_EraseInitTypeDef eraseInitStruct;
+			// uint32_t pageError = 0;
 
-			eraseInitStruct.TypeErase = FLASH_TYPEERASE_SECTORS;     // or FLASH_TYPEERASE_PAGES (depends on family)
-			eraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;    // depends on your supply voltage
-			eraseInitStruct.Sector = FLASH_SECTOR_1;                 // sector you want to erase
-			eraseInitStruct.NbSectors = 1;
+			// eraseInitStruct.TypeErase = FLASH_TYPEERASE_SECTORS;     // or FLASH_TYPEERASE_PAGES (depends on family)
+			// eraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;    // depends on your supply voltage
+			// eraseInitStruct.Sector = FLASH_SECTOR_1;                 // sector you want to erase
+			// eraseInitStruct.NbSectors = 1;
 
-			HAL_FLASHEx_Erase(&eraseInitStruct, &pageError);
+			// HAL_FLASHEx_Erase(&eraseInitStruct, &pageError);
 
-			uint8_t magic_nubmer = 22;
+			// uint8_t magic_nubmer = 22;
 
-			// the 3rd byte of the metadata represents the following things:
-			// -> 0 = the system has to boot from this new image for the first time (set when a JUMP_TO_IMAGE command was received
-			// -> 1 = the bootloader jumped to this new image, and waits to see if it can successfully boot
-			// -> 2 = the system booted successfully
+			// // the 3rd byte of the metadata represents the following things:
+			// // -> 0 = the system has to boot from this new image for the first time (set when a JUMP_TO_IMAGE command was received
+			// // -> 1 = the bootloader jumped to this new image, and waits to see if it can successfully boot
+			// // -> 2 = the system booted successfully
 
-			HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, METADATA_ADDRESS, magic_nubmer);
-			HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, METADATA_ADDRESS+1, pus8_msg_unpacked->Image_Index);
-			HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, METADATA_ADDRESS+2, BOOT_NEXT_FROM_HERE);
+			// HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, METADATA_ADDRESS, magic_nubmer);
+			// HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, METADATA_ADDRESS+1, pus8_msg_unpacked->Image_Index);
+			// HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, METADATA_ADDRESS+2, BOOT_NEXT_FROM_HERE);
 
-			HAL_FLASH_Lock();
+			// HAL_FLASH_Lock();
+
+			uint16_t addr = METADATA_ADDRESS;
+			uint8_t magic_number = 22;
+
+			writeFRAM(addr, (uint8_t *)&magic_number, 1);
+			writeFRAM(addr+1, (uint8_t *)&pus8_msg_unpacked->Image_Index, 1);
 
 
 			PUS_1_send_succ_comp(SPP_h, PUS_TC_h);
