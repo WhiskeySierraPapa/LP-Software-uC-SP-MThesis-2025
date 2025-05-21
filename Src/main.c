@@ -219,7 +219,10 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   hsram1.hdma = &hdma_memtomem_dma2_stream1;
-	HAL_GPIO_WritePin(GPIOB, LED4_Pin, SET);
+  HAL_GPIO_WritePin(GPIOB, LED4_Pin, SET);
+
+  confirm_succesfull_boot();
+
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -688,40 +691,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
-void confirm_correct_boot()
-{
-	HAL_FLASH_Unlock();
-
-	uint8_t magic_number = (uint8_t)(METADATA_ADDRESS);
-	uint8_t image_index = (uint8_t)(METADATA_ADDRESS+1);
-	uint8_t boot_feedback = (uint8_t)(METADATA_ADDRESS+2);
-
-	// the 3rd byte of the metadata represents the following things:
-	// -> 0 = the system has to boot from this new image for the first time (set when a JUMP_TO_IMAGE command was received
-	// -> 1 = the bootloader jumped to this new image, and waits to see if it can successfully boot
-	// -> 2 = the system booted successfully
-
-	if(boot_feedback == TRYING_TO_BOOT || magic_number != 22)
-	{
-		FLASH_EraseInitTypeDef eraseInitStruct;
-		uint32_t pageError = 0;
-
-		eraseInitStruct.TypeErase = FLASH_TYPEERASE_SECTORS;     // or FLASH_TYPEERASE_PAGES (depends on family)
-		eraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;    // depends on your supply voltage
-		eraseInitStruct.Sector = FLASH_SECTOR_1;                 // sector you want to erase
-		eraseInitStruct.NbSectors = 1;
-
-		HAL_FLASHEx_Erase(&eraseInitStruct, &pageError);
-
-		HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, METADATA_ADDRESS, 22);
-		HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, METADATA_ADDRESS+1, image_index);
-
-		HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, METADATA_ADDRESS+2, BOOTED_SUCCESFULLY);
-
-		HAL_FLASH_Lock();
-	}
-}
 
 void HAL_SRAM_DMA_XferCpltCallback(DMA_HandleTypeDef *hdma)
 {

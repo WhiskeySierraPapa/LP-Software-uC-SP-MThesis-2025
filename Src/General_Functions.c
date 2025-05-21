@@ -12,6 +12,7 @@
 #include "PUS_8_service.h"
 #include "PUS_17_service.h"
 #include "cmsis_os.h"
+#include "FRAM.h"
 
 volatile uint8_t uart_tx_OBC_done = 1;
 
@@ -224,5 +225,28 @@ void Handle_incoming_TC() {
 			PUS_1_send_fail_acc(&SPP_header, &PUS_TC_header, &PUS_1_Fail_Acc_Data, UNSUPPORTED_SERIVCE_ID_ERROR);
 		}
     }
+}
+
+void confirm_succesfull_boot()
+{
+	uint16_t Computed_CRC;
+	uint8_t metadata_raw[7] = {0};
+	Metadata_Struct metadata;
+
+	readFRAM(METADATA_ADDRESS, (uint8_t *)&metadata_raw, METADATA_SIZE);
+
+	unpack_metadata(&metadata, metadata_raw);
+
+	metadata.boot_feedback = BOOTED_OK;
+	metadata.boot_counter = 3;
+	metadata.error_code = NO_ERROR;
+
+	pack_metadata(&metadata, metadata_raw);
+
+	Computed_CRC = Calc_CRC16(metadata_raw + 2, METADATA_SIZE - 2);
+	metadata_raw[0] = (Computed_CRC >> 8) & 0xFF;  // MSB
+	metadata_raw[1] = Computed_CRC & 0xFF;         // LSB
+
+	writeFRAM(METADATA_ADDRESS, (uint8_t *)&metadata_raw, METADATA_SIZE);
 }
 

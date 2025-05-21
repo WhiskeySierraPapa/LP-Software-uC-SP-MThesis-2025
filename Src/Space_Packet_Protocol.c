@@ -23,7 +23,7 @@ uint8_t UART_TxBuffer[MAX_COBS_FRAME_LEN];
 
 
 // CRC16-CCITT
-static uint16_t SPP_CRC16_byte(uint16_t crcValue, uint8_t newByte) {
+static uint16_t CRC16_byte(uint16_t crcValue, uint8_t newByte) {
 	uint8_t i;
 
 	for (i = 0; i < 8; i++) {
@@ -38,10 +38,10 @@ static uint16_t SPP_CRC16_byte(uint16_t crcValue, uint8_t newByte) {
 	return crcValue;
 }
 
-static uint16_t SPP_calc_CRC16(uint8_t* data, uint16_t length) {
+uint16_t Calc_CRC16(uint8_t* data, uint16_t length) {
     uint16_t CRCvalue = 0xFFFF;
     for(uint16_t i = 0; i < length; i++) {
-        CRCvalue = SPP_CRC16_byte(CRCvalue, data[i]);
+        CRCvalue = CRC16_byte(CRCvalue, data[i]);
     }
    
     return CRCvalue;
@@ -53,7 +53,7 @@ SPP_error SPP_validate_checksum(uint8_t* packet, uint16_t packet_length, void* P
     uint16_t received_CRC = 0x0000;
     received_CRC |= (packet[packet_length - 2] << 8) | packet[packet_length - 1];
 
-    uint16_t calculated_CRC = SPP_calc_CRC16(packet, packet_length - 2);
+    uint16_t calculated_CRC = Calc_CRC16(packet, packet_length - 2);
 
     PUS_1_Fail_Acc_Data_t* PUS_1_Fail_Acc_Data = (PUS_1_Fail_Acc_Data_t*) PUS_1_Fail_Acc_Data_ptr;
     PUS_1_Fail_Acc_Data->TC_ReceivedCRC = received_CRC;
@@ -127,7 +127,7 @@ static inline uint16_t byte_swap16(uint16_t value) {
 
 
 SPP_error SPP_add_CRC_to_msg(uint8_t* packet, uint16_t length, uint8_t* output) {
-    uint16_t calculated_CRC = SPP_calc_CRC16(packet, length);
+    uint16_t calculated_CRC = Calc_CRC16(packet, length);
     uint16_t bs_CRC = byte_swap16(calculated_CRC); // (byteswapped CRC) - memcpy copies starting from LSB thus we swap.
     memcpy(output, &bs_CRC, CRC_BYTE_LEN);
     return SPP_OK;

@@ -54,7 +54,6 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-void confirm_correct_boot();
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

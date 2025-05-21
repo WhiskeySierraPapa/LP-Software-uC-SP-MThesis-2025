@@ -63,4 +63,6 @@ void Prepare_full_msg(SPP_header_t* resp_SPP_header,
 
 void Handle_incoming_TC();
 
+void confirm_succesfull_boot();
+
 #endif /* GENERAL_FUNCTIONS_H_ */

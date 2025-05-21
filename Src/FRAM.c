@@ -55,3 +55,22 @@ uint16_t read_sweep_table_value_FRAM(uint8_t table_id, uint8_t step_id) {
 
     return value;
 }
+
+void unpack_metadata(Metadata_Struct* metadata, uint8_t* metadata_raw)
+{
+	metadata->crc = ((uint16_t)metadata_raw[0] << 8) | metadata_raw[1];
+	metadata->new_metadata = metadata_raw[2];
+	metadata->boot_feedback = metadata_raw[3];
+	metadata->image_index = metadata_raw[4];
+	metadata->boot_counter = metadata_raw[5];
+	metadata->error_code = metadata_raw[6];
+}
+
+void pack_metadata(Metadata_Struct* metadata, uint8_t* metadata_raw)
+{
+    metadata_raw[2] = metadata->new_metadata;
+    metadata_raw[3] = metadata->boot_feedback;
+    metadata_raw[4] = metadata->image_index;
+    metadata_raw[5] = metadata->boot_counter;
+    metadata_raw[6] = metadata->error_code;
+}
