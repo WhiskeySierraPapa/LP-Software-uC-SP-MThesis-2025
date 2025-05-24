@@ -76,6 +76,7 @@ typedef enum {
 
 	REBOOT_DEVICE 					= 0xF3,
 	JUMP_TO_IMAGE					= 0xF4,
+	LOAD_NEW_IMAGE					= 0xF5,
 
 } PUS_8_Func_ID;
 

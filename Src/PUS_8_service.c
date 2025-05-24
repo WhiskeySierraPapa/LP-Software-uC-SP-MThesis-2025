@@ -46,6 +46,12 @@ uint8_t UART_FPGA_OBC_Tx_Buffer[100];
 
 volatile uint8_t uart_tx_FPGA_done = 1;
 
+
+#define FLASH_READ_ADDRESS 0x08080000  // Change this to your actual Flash address
+#define FLASH_TARGET_ADDRESS 0x08040000 // The flash address of the sector that is storing the 3rd image
+#define DATA_LENGTH 50000 // Usually the images have around 40-45 KB, but I used 50 KB just to be sure
+uint8_t NEW_FIRMWARE_BUFFER[DATA_LENGTH] = {0}; // The buffer that will store the received imaged
+
 bool PUS_8_check_FPGA_msg_format(uint8_t* msg, uint8_t msg_len) {
     bool result = false;
     if (msg[0] == LANGMUIR_READBACK_PREMABLE_0) {
@@ -662,7 +668,42 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 			break;
 		}
 
+		case LOAD_NEW_IMAGE:
+		{
+			memcpy(NEW_FIRMWARE_BUFFER, (uint8_t*)FLASH_READ_ADDRESS, DATA_LENGTH);
+
+			HAL_FLASH_Unlock();
+
+			FLASH_EraseInitTypeDef eraseInitStruct;
+			uint32_t pageError = 0;
+
+			eraseInitStruct.TypeErase = FLASH_TYPEERASE_SECTORS;     // or FLASH_TYPEERASE_PAGES (depends on family)
+			eraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;    // depends on your supply voltage
+			eraseInitStruct.Sector = FLASH_SECTOR_5;                 // sector you want to erase
+			eraseInitStruct.NbSectors = 1;
+
+			HAL_FLASHEx_Erase(&eraseInitStruct, &pageError);
+
+			for(uint32_t i = 0; i < DATA_LENGTH; i +=4)
+			{
+			    uint32_t word =  (NEW_FIRMWARE_BUFFER[i + 0]      ) |
+			                    (NEW_FIRMWARE_BUFFER[i + 1] << 8 ) |
+			                    (NEW_FIRMWARE_BUFFER[i + 2] << 16) |
+			                    (NEW_FIRMWARE_BUFFER[i + 3] << 24);
+
+				if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_TARGET_ADDRESS + i, word) != HAL_OK) {
+					break;
+				}
+				osDelay(1);
+			}
+
+			HAL_FLASH_Lock();
+
+			break;
+		}
+
 		default:
+			return UNSUPPORTED_ARGUMENT_ERROR;
 			break;
 	}
 
