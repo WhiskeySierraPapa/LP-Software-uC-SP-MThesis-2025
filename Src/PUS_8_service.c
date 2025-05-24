@@ -651,6 +651,29 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 			break;
 		}
 
+		case FPGA_GET_SENSOR_DATA:
+		{
+			uint8_t msg[64] = {0};
+			uint8_t msg_cnt = 0;
+
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_0;
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_1;
+			msg[msg_cnt++] = FPGA_GET_SENSOR_DATA;
+			msg[msg_cnt++] = FPGA_MSG_POSTAMBLE;
+
+			memset(UART_FPGA_Rx_Buffer, 0, sizeof(UART_FPGA_Rx_Buffer));
+			memset(UART_FPGA_OBC_Tx_Buffer, 0, sizeof(UART_FPGA_OBC_Tx_Buffer));
+
+			UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_SENSOR_DATA;
+
+			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
+				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
+			}
+
+			break;
+		}
+
 		default:
 			break;
 	}
