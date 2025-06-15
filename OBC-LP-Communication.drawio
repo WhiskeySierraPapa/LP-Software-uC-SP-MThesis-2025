@@ -1,9 +1,82 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" version="27.0.6">
   <diagram name="Pagină-1" id="kIderAgIn-AGA73k-i0u">
-    <mxGraphModel>
+    <mxGraphModel dx="951" dy="443" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-1" value="" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="79" y="204" width="513" height="242" as="geometry" />
+        </mxCell>
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-2" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;&lt;b&gt;ROMEO Satellite&lt;/b&gt;&lt;/font&gt;" style="text;strokeColor=none;align=center;fillColor=none;html=1;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="250.5" y="400" width="170" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-3" value="" style="shape=mxgraph.networks2.icon;aspect=fixed;fillColor=#EDEDED;strokeColor=#000000;gradientColor=#5B6163;network2IconShadow=1;network2bgFillColor=none;network2Icon=mxgraph.networks2.antenna;network2IconYOffset=0.0004;network2IconW=0.508;network2IconH=0.9997;" vertex="1" parent="1">
+          <mxGeometry x="720.5" y="254.1" width="62.4" height="122.8" as="geometry" />
+        </mxCell>
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-4" value="Ground Station" style="text;strokeColor=none;align=center;fillColor=none;html=1;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="713.5500000000001" y="387" width="76.3" height="43" as="geometry" />
+        </mxCell>
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-6" value="S Band&amp;nbsp;&lt;div&gt;Antenna&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="501" y="279" width="82" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-7" value="X Band&amp;nbsp;&lt;div&gt;Antenna&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="501" y="336" width="82" height="43" as="geometry" />
+        </mxCell>
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-8" value="On Board Computer&lt;div&gt;(OBC)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="356" y="302" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-9" value="Langmuir Probe" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="99" y="302" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-10" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="q50Y98KBsP1yQuECq8LZ-9" target="q50Y98KBsP1yQuECq8LZ-8">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="389" y="427" as="sourcePoint" />
+            <mxPoint x="439" y="377" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-12" value="UART" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="224" y="307" width="124" height="17" as="geometry" />
+        </mxCell>
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-13" value="COBS" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="232.13" y="291" width="107.75" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-14" value="SPP" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="239.88" y="273" width="92.25" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-15" value="PUS" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="245.32" y="253" width="81.37" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-16" value="" style="shape=flexArrow;endArrow=classic;startArrow=classic;html=1;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="100" height="100" relative="1" as="geometry">
+            <mxPoint x="608" y="332.03" as="sourcePoint" />
+            <mxPoint x="720.5" y="331.7120303383898" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="666" y="332.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-17" value="Payload" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="251.63" y="231.9" width="68.75" height="21.1" as="geometry" />
+        </mxCell>
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-18" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="q50Y98KBsP1yQuECq8LZ-8" target="q50Y98KBsP1yQuECq8LZ-6">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="303" y="348" as="sourcePoint" />
+            <mxPoint x="353" y="298" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="489" y="332" />
+              <mxPoint x="489" y="304" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="q50Y98KBsP1yQuECq8LZ-20" value="" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" target="q50Y98KBsP1yQuECq8LZ-7">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="489" y="332" as="sourcePoint" />
+            <mxPoint x="353" y="298" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="489" y="358" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
