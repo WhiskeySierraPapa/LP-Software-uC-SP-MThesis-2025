@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" version="27.1.5">
   <diagram name="Pagină-1" id="AlbnnbYDQnQ_gWphFV6F">
-    <mxGraphModel dx="1148" dy="534" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="951" dy="443" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -10,7 +10,7 @@
         <mxCell id="YGKviiNA-sGsijqutrV_-3" value="OBC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;" vertex="1" parent="1">
           <mxGeometry x="122" y="296" width="52" height="194" as="geometry" />
         </mxCell>
-        <mxCell id="YGKviiNA-sGsijqutrV_-4" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="YGKviiNA-sGsijqutrV_-3" target="YGKviiNA-sGsijqutrV_-2">
+        <mxCell id="YGKviiNA-sGsijqutrV_-4" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="YGKviiNA-sGsijqutrV_-3" target="YGKviiNA-sGsijqutrV_-8">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
             <mxPoint x="153" y="397" as="sourcePoint" />
             <mxPoint x="203" y="347" as="targetPoint" />
@@ -101,6 +101,12 @@
         </mxCell>
         <mxCell id="YGKviiNA-sGsijqutrV_-29" value="Langmuir&lt;div&gt;Probes&lt;/div&gt;" style="text;strokeColor=none;align=center;fillColor=none;html=1;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
           <mxGeometry x="735" y="384" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="YGKviiNA-sGsijqutrV_-30" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="YGKviiNA-sGsijqutrV_-8" target="YGKviiNA-sGsijqutrV_-9">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="421" y="450" as="sourcePoint" />
+            <mxPoint x="364" y="395" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
