@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" version="27.1.5">
   <diagram name="Pagină-1" id="tPUtxfRcci7yQtmyHBNP">
-    <mxGraphModel dx="1388" dy="646" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="759" dy="369" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -93,6 +93,123 @@
             <mxPoint x="629" y="310" as="sourcePoint" />
             <mxPoint x="610" y="311" as="targetPoint" />
           </mxGeometry>
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-36" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#80FF00;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="325" y="90" as="sourcePoint" />
+            <mxPoint x="295" y="90" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-38" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#FF0000;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="455" y="90" as="sourcePoint" />
+            <mxPoint x="485" y="90" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-39" value="FPGA -&amp;gt; MCU-&amp;gt; OBC" style="text;strokeColor=none;align=center;fillColor=none;html=1;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="240" y="70" width="140" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-40" value="OBC-&amp;gt;MCU-&amp;gt;FPGA" style="text;strokeColor=none;align=center;fillColor=none;html=1;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="400" y="70" width="140" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-42" value="OBC" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="550" width="60" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-43" value="" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="170" y="550" width="440" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-44" value="FPGA" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="670" y="550" width="80" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-45" value="MCU" style="text;strokeColor=none;align=center;fillColor=none;html=1;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="350" y="560" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-47" value="UART&amp;nbsp;&lt;div&gt;Controller 2&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="190" y="595" width="60" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-48" value="UART&amp;nbsp;&lt;div&gt;Controller&amp;nbsp;&lt;/div&gt;&lt;div&gt;1&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="530" y="595" width="60" height="205" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-51" value="UART_IN_FPGA&lt;div&gt;Task&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="394" y="736" width="110" height="52.5" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-52" value="UART_OUT_OBC&lt;div&gt;Task&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="268" y="736" width="110" height="52.5" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-54" value="" style="endArrow=classic;html=1;rounded=0;entryX=0.993;entryY=0.669;entryDx=0;entryDy=0;entryPerimeter=0;strokeColor=#80FF00;" edge="1" parent="1" target="e-eenU64WSXm0HByO18V-42">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="190" y="744" as="sourcePoint" />
+            <mxPoint x="320" y="690" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-58" value="" style="endArrow=classic;html=1;rounded=0;entryX=1.013;entryY=0.838;entryDx=0;entryDy=0;entryPerimeter=0;strokeColor=#80FF00;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="e-eenU64WSXm0HByO18V-52" target="e-eenU64WSXm0HByO18V-47">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="230" y="740" as="sourcePoint" />
+            <mxPoint x="150" y="740" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-60" value="" style="endArrow=classic;html=1;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#80FF00;exitX=0.017;exitY=0.816;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" target="e-eenU64WSXm0HByO18V-51" source="e-eenU64WSXm0HByO18V-48">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="530" y="755.75" as="sourcePoint" />
+            <mxPoint x="511" y="756.75" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-61" value="" style="endArrow=classic;html=1;rounded=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;strokeColor=#80FF00;exitX=0.013;exitY=0.682;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="e-eenU64WSXm0HByO18V-44" target="e-eenU64WSXm0HByO18V-48">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="639" y="730" as="sourcePoint" />
+            <mxPoint x="620" y="731" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-62" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#80FF00;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="405" y="520" as="sourcePoint" />
+            <mxPoint x="375" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-64" value="FPGA -&amp;gt; MCU-&amp;gt; OBC" style="text;strokeColor=none;align=center;fillColor=none;html=1;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="320" y="500" width="140" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-66" value="&lt;div&gt;&lt;br&gt;&lt;/div&gt;Buffer&lt;div&gt;1&lt;/div&gt;" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.database;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="320" y="621" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-73" value="&lt;div&gt;&lt;br&gt;&lt;/div&gt;Buffer&lt;div&gt;2&lt;/div&gt;" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.database;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="394" y="621" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-76" value="" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=https://cdn4.iconfinder.com/data/icons/arrow-332/64/icon_Curved_Returing_Arrow_--128.png;direction=south;" vertex="1" parent="1">
+          <mxGeometry x="372" y="672" width="25" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-77" value="" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=https://cdn4.iconfinder.com/data/icons/arrow-332/64/icon_Curved_Returing_Arrow_--128.png;direction=north;" vertex="1" parent="1">
+          <mxGeometry x="375" y="610" width="25" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-78" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.75;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;strokeColor=#80FF00;" edge="1" parent="1" source="e-eenU64WSXm0HByO18V-51" target="e-eenU64WSXm0HByO18V-73">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="361" y="686" as="sourcePoint" />
+            <mxPoint x="411" y="636" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="477" y="651" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-79" value="" style="endArrow=classic;html=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;strokeColor=#80FF00;" edge="1" parent="1" source="e-eenU64WSXm0HByO18V-66" target="e-eenU64WSXm0HByO18V-52">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="361" y="686" as="sourcePoint" />
+            <mxPoint x="411" y="636" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="294" y="651" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-82" value="Preamble&lt;div&gt;2 bytes&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="931" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-83" value="Msg ID&lt;div&gt;1 byte&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="931" width="50" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-84" value="Measurement Data&lt;div&gt;8 bytes&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="190" y="931" width="400" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e-eenU64WSXm0HByO18V-85" value="Postamble&lt;div&gt;1 byte&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="590" y="931" width="59" height="50" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
