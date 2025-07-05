@@ -1046,6 +1046,9 @@ void handle_UART_IN_FPGA(void const * argument)
 					{
 						if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 12))
 						{
+							UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_CB_VOL_LVL;
+							// UART_FPGA_OBC_Tx_Buffer[0] is set when first sending the msg to the FPGA
+							// TO DO: change FPGA implementation to also send the probe ID
 							UART_FPGA_OBC_Tx_Buffer[2] = UART_FPGA_Rx_Buffer[3];
 							UART_FPGA_OBC_Tx_Buffer[3] = UART_FPGA_Rx_Buffer[4];
 							memcpy(msg_to_send.TM_data, UART_FPGA_OBC_Tx_Buffer, 4);
@@ -1058,6 +1061,9 @@ void handle_UART_IN_FPGA(void const * argument)
 					{
 						if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 12))
 						{
+							UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_SWT_VOL_LVL;
+							// UART_FPGA_OBC_Tx_Buffer[0] & [1] are set when first sending the msg to the FPGA
+							// TO DO: change FPGA implementation to also send the probe ID and step ID back with the voltage level
 							UART_FPGA_OBC_Tx_Buffer[3] = UART_FPGA_Rx_Buffer[3];
 							UART_FPGA_OBC_Tx_Buffer[4] = UART_FPGA_Rx_Buffer[4];
 							memcpy(msg_to_send.TM_data, UART_FPGA_OBC_Tx_Buffer, 5);
@@ -1070,6 +1076,7 @@ void handle_UART_IN_FPGA(void const * argument)
 					{
 						if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 12))
 						{
+							UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_SWT_STEPS;
 							UART_FPGA_OBC_Tx_Buffer[1] = UART_FPGA_Rx_Buffer[3];
 							memcpy(msg_to_send.TM_data, UART_FPGA_OBC_Tx_Buffer, 2);
 							msg_to_send.TM_data_len			= 2;
@@ -1081,6 +1088,7 @@ void handle_UART_IN_FPGA(void const * argument)
 					{
 						if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 12))
 						{
+							UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_SWT_SAMPLES_PER_STEP;
 							UART_FPGA_OBC_Tx_Buffer[1] = UART_FPGA_Rx_Buffer[3];
 							UART_FPGA_OBC_Tx_Buffer[2] = UART_FPGA_Rx_Buffer[4];
 							memcpy(msg_to_send.TM_data, UART_FPGA_OBC_Tx_Buffer, 3);
@@ -1094,6 +1102,7 @@ void handle_UART_IN_FPGA(void const * argument)
 					{
 						if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 12))
 						{
+							UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_SWT_SAMPLE_SKIP;
 							UART_FPGA_OBC_Tx_Buffer[1] = UART_FPGA_Rx_Buffer[3];
 							UART_FPGA_OBC_Tx_Buffer[2] = UART_FPGA_Rx_Buffer[4];
 							memcpy(msg_to_send.TM_data, UART_FPGA_OBC_Tx_Buffer, 3);
@@ -1106,6 +1115,7 @@ void handle_UART_IN_FPGA(void const * argument)
 					{
 						if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 12))
 						{
+							UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_SWT_SAMPLES_PER_POINT;
 							UART_FPGA_OBC_Tx_Buffer[1] = UART_FPGA_Rx_Buffer[3];
 							UART_FPGA_OBC_Tx_Buffer[2] = UART_FPGA_Rx_Buffer[4];
 							memcpy(msg_to_send.TM_data, UART_FPGA_OBC_Tx_Buffer, 3);
@@ -1118,6 +1128,7 @@ void handle_UART_IN_FPGA(void const * argument)
 					{
 						if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 12))
 						{
+							UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_SWT_NPOINTS;
 							UART_FPGA_OBC_Tx_Buffer[1] = UART_FPGA_Rx_Buffer[3];
 							UART_FPGA_OBC_Tx_Buffer[2] = UART_FPGA_Rx_Buffer[4];
 							memcpy(msg_to_send.TM_data, UART_FPGA_OBC_Tx_Buffer, 3);
@@ -1158,6 +1169,7 @@ void handle_UART_IN_FPGA(void const * argument)
 					{
 						if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 12))
 						{
+							UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_SENSOR_DATA;
 							UART_FPGA_OBC_Tx_Buffer[1] = UART_FPGA_Rx_Buffer[3];
 							UART_FPGA_OBC_Tx_Buffer[2] = UART_FPGA_Rx_Buffer[4];
 							UART_FPGA_OBC_Tx_Buffer[3] = UART_FPGA_Rx_Buffer[5];
