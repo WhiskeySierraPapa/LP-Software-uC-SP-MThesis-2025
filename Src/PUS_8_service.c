@@ -141,6 +141,13 @@ TM_Err_Codes PUS_8_unpack_msg(PUS_8_msg *pus8_msg_received, PUS_8_msg_unpacked* 
 				memcpy((uint8_t*)&pus8_msg_unpacked->FRAM_Table_ID, data_interator, sizeof(pus8_msg_unpacked->FRAM_Table_ID));
 				data_interator += sizeof(pus8_msg_unpacked->FRAM_Table_ID);
 				break;
+			// ADDED
+			case HK_ARG_ID:
+				if ((data_end - data_interator) < sizeof(pus8_msg_unpacked->HK_ID))
+					return NOT_ENOUGH_DATA_ERROR;
+				memcpy((uint8_t*)&pus8_msg_unpacked->HK_ID, data_interator, sizeof(pus8_msg_unpacked->HK_ID));
+				data_interator += sizeof(pus8_msg_unpacked->HK_ID);
+				break;
 			default:
 				return UNSUPPORTED_ARGUMENT_ERROR;
 				break;
@@ -659,12 +666,14 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 			msg[msg_cnt++] = FPGA_MSG_PREMABLE_0;
 			msg[msg_cnt++] = FPGA_MSG_PREMABLE_1;
 			msg[msg_cnt++] = FPGA_GET_SENSOR_DATA;
+			msg[msg_cnt++] = pus8_msg_unpacked->HK_ID;
 			msg[msg_cnt++] = FPGA_MSG_POSTAMBLE;
 
 			memset(UART_FPGA_Rx_Buffer, 0, sizeof(UART_FPGA_Rx_Buffer));
 			memset(UART_FPGA_OBC_Tx_Buffer, 0, sizeof(UART_FPGA_OBC_Tx_Buffer));
 
 			UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_SENSOR_DATA;
+			UART_FPGA_OBC_Tx_Buffer[1] = pus8_msg_unpacked->HK_ID;
 
 			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
 				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);

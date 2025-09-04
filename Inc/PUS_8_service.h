@@ -47,35 +47,37 @@ typedef struct {
     GS_Target_t  target;
     uint16_t N_samples_per_step;
     uint8_t FRAM_Table_ID;
+    uint8_t HK_ID; //ADDED
 } PUS_8_msg_unpacked;
 
 typedef enum {
-    FPGA_EN_CB_MODE          		= 0xCA,
-    FPGA_DIS_CB_MODE         		= 0xC0,
+    FPGA_EN_CB_MODE          		= 0x08,
+    FPGA_DIS_CB_MODE         		= 0x10,
 
-    FPGA_SET_CB_VOL_LVL      		= 0xCB,
-    FPGA_GET_CB_VOL_LVL      		= 0xCC,
+    FPGA_SET_CB_VOL_LVL      		= 0x1B,
+    FPGA_GET_CB_VOL_LVL      		= 0x21,
 
-    FPGA_SWT_ACTIVATE_SWEEP         = 0xAA,
-    FPGA_SET_SWT_VOL_LVL            = 0xAB,
-    FPGA_SET_SWT_STEPS              = 0xAC,
-    FPGA_SET_SWT_SAMPLES_PER_STEP   = 0xAD,
-    FPGA_SET_SWT_SAMPLE_SKIP        = 0xAE,
-    FPGA_SET_SWT_SAMPLES_PER_POINT  = 0xAF,
-    FPGA_SET_SWT_NPOINTS            = 0xB0,
+    FPGA_SWT_ACTIVATE_SWEEP         = 0x50,
+    FPGA_SET_SWT_VOL_LVL            = 0x24,
+    FPGA_SET_SWT_STEPS              = 0x61,
+    FPGA_SET_SWT_SAMPLES_PER_STEP   = 0x72,
+    FPGA_SET_SWT_SAMPLE_SKIP        = 0x82,
+    FPGA_SET_SWT_SAMPLES_PER_POINT  = 0x92,
+    FPGA_SET_SWT_NPOINTS            = 0xA2,
 
-    FPGA_GET_SWT_SWEEP_CNT          = 0xA0,
-    FPGA_GET_SWT_VOL_LVL            = 0xA1,
-    FPGA_GET_SWT_STEPS              = 0xA2,
-    FPGA_GET_SWT_SAMPLES_PER_STEP   = 0xA3,
-    FPGA_GET_SWT_SAMPLE_SKIP        = 0xA4,
-    FPGA_GET_SWT_SAMPLES_PER_POINT  = 0xA5,
-    FPGA_GET_SWT_NPOINTS            = 0xA6,
+    FPGA_GET_SWT_SWEEP_CNT          = 0x58,
+    FPGA_GET_SWT_VOL_LVL            = 0xBA,
+    FPGA_GET_SWT_STEPS              = 0x68,
+    FPGA_GET_SWT_SAMPLES_PER_STEP   = 0x78,
+    FPGA_GET_SWT_SAMPLE_SKIP        = 0x88,
+    FPGA_GET_SWT_SAMPLES_PER_POINT  = 0x98,
+    FPGA_GET_SWT_NPOINTS            = 0xA8,
 	CPY_TABLE_FRAM_TO_FPGA	 		= 0xE0,
 
 	REBOOT_DEVICE 					= 0xF3,
 	JUMP_TO_IMAGE					= 0xF4,
-	FPGA_GET_SENSOR_DATA			= 0xF6,
+	FPGA_GET_SENSOR_DATA			= 0xF9,
+
 
 } PUS_8_Func_ID;
 
@@ -90,6 +92,7 @@ typedef enum {
     GS_TARGET_ARG_ID            = 0x08, // GS Target = Get Set Target
     FRAM_TABLE_ID_ARG_ID        = 0x09,
     N_SAMPLES_PER_STEP_ARG_ID   = 0x0A,
+    HK_ARG_ID                   = 0x0C, // ADDED
 } FPGA_Arg_ID_t;
 
 /* PUS_8_service */
