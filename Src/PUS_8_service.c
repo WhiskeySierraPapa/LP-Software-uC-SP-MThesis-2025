@@ -148,6 +148,22 @@ TM_Err_Codes PUS_8_unpack_msg(PUS_8_msg *pus8_msg_received, PUS_8_msg_unpacked* 
 				memcpy((uint8_t*)&pus8_msg_unpacked->HK_ID, data_interator, sizeof(pus8_msg_unpacked->HK_ID));
 				data_interator += sizeof(pus8_msg_unpacked->HK_ID);
 				break;
+
+			case HK_PERIODIC_ARG_ID:
+				if ((data_end - data_interator) < sizeof(pus8_msg_unpacked->HK_PERIODIC_ID))
+					return NOT_ENOUGH_DATA_ERROR;
+				memcpy((uint8_t*)&pus8_msg_unpacked->HK_PERIODIC_ID, data_interator, sizeof(pus8_msg_unpacked->HK_PERIODIC_ID));
+				data_interator += sizeof(pus8_msg_unpacked->HK_PERIODIC_ID);
+				break;
+
+			case HK_PERIOD_ARG_ID:
+				if ((data_end - data_interator) < sizeof(pus8_msg_unpacked->HK_PERIOD_ID))
+					return NOT_ENOUGH_DATA_ERROR;
+				memcpy((uint8_t*)&pus8_msg_unpacked->HK_PERIOD_ID, data_interator, sizeof(pus8_msg_unpacked->HK_PERIOD_ID));
+				data_interator += sizeof(pus8_msg_unpacked->HK_PERIOD_ID);
+				break;
+
+				
 			default:
 				return UNSUPPORTED_ARGUMENT_ERROR;
 				break;
@@ -680,6 +696,25 @@ TM_Err_Codes PUS_8_perform_function(SPP_header_t* SPP_h, PUS_TC_header_t* PUS_TC
 				return FPGA_MESSAGE_ERROR;
 			}
 
+			break;
+		}
+
+		case FPGA_SET_PERIOD_HK:
+		{
+			uint8_t msg[64] = {0};
+			uint8_t msg_cnt = 0;
+
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_0;
+			msg[msg_cnt++] = FPGA_MSG_PREMABLE_1;
+			msg[msg_cnt++] = FPGA_SET_PERIOD_HK;
+			msg[msg_cnt++] = ((uint8_t*)(&pus8_msg_unpacked->HK_PERIODIC_ID))[0];
+			msg[msg_cnt++] = ((uint8_t*)(&pus8_msg_unpacked->HK_PERIOD_ID))[0];
+			msg[msg_cnt++] = FPGA_MSG_POSTAMBLE;
+
+			if (HAL_UART_Transmit(&huart5, msg, msg_cnt, 100)!= HAL_OK) {
+				HAL_GPIO_WritePin(GPIOB, LED4_Pin|LED3_Pin, GPIO_PIN_SET);
+				return FPGA_MESSAGE_ERROR;
+			}
 			break;
 		}
 

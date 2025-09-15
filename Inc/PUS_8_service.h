@@ -48,6 +48,9 @@ typedef struct {
     uint16_t N_samples_per_step;
     uint8_t FRAM_Table_ID;
     uint8_t HK_ID; //ADDED
+    uint8_t HK_PERIODIC_ID; //ADDED
+    uint8_t HK_PERIOD_ID;
+
 } PUS_8_msg_unpacked;
 
 typedef enum {
@@ -58,7 +61,7 @@ typedef enum {
     FPGA_GET_CB_VOL_LVL      		= 0x21,
 
     FPGA_SWT_ACTIVATE_SWEEP         = 0x50,
-    FPGA_SET_SWT_VOL_LVL            = 0x24,
+    FPGA_SET_SWT_VOL_LVL            = 0xB4,
     FPGA_SET_SWT_STEPS              = 0x61,
     FPGA_SET_SWT_SAMPLES_PER_STEP   = 0x72,
     FPGA_SET_SWT_SAMPLE_SKIP        = 0x82,
@@ -76,6 +79,7 @@ typedef enum {
 
 	REBOOT_DEVICE 					= 0xF3,
 	JUMP_TO_IMAGE					= 0xF4,
+    FPGA_SET_PERIOD_HK  			= 0xF2,
 	FPGA_GET_SENSOR_DATA			= 0xF9,
 
 
@@ -93,6 +97,8 @@ typedef enum {
     FRAM_TABLE_ID_ARG_ID        = 0x09,
     N_SAMPLES_PER_STEP_ARG_ID   = 0x0A,
     HK_ARG_ID                   = 0x0C, // ADDED
+    HK_PERIODIC_ARG_ID          = 0x0D,
+    HK_PERIOD_ARG_ID            = 0x0E,
 } FPGA_Arg_ID_t;
 
 /* PUS_8_service */
