@@ -80,8 +80,6 @@ typedef enum {
 	REBOOT_DEVICE 					= 0xF3,
 	JUMP_TO_IMAGE					= 0xF4,
     FPGA_SET_PERIOD_HK  			= 0xF2,
-	FPGA_GET_SENSOR_DATA			= 0xF9,
-
 
 } PUS_8_Func_ID;
 
@@ -96,9 +94,9 @@ typedef enum {
     GS_TARGET_ARG_ID            = 0x08, // GS Target = Get Set Target
     FRAM_TABLE_ID_ARG_ID        = 0x09,
     N_SAMPLES_PER_STEP_ARG_ID   = 0x0A,
-    HK_ARG_ID                   = 0x0C, // ADDED
-    HK_PERIODIC_ARG_ID          = 0x0D,
-    HK_PERIOD_ARG_ID            = 0x0E,
+   // HK_ARG_ID                   = 0x0C, // TODO: DELETE WHEN IMPLEMENTED PUS 3
+    HK_PERIODIC_ARG_ID          = 0x0D, // TODO: DELETE WHEN IMPLEMENTED PUS 3
+    HK_PERIOD_ARG_ID            = 0x0E, // TODO: DELETE WHEN IMPLEMENTED PUS 3
 } FPGA_Arg_ID_t;
 
 /* PUS_8_service */

@@ -88,25 +88,9 @@ osThreadId Watchdog_TaskHandle;
 #define UART_MAX_RETRIES 3
 #define CB_MODE_BUFFERED_MEASUREMENTS 4
 
-float temperature = 0;
-float uc3v = 0;
-float fpga3v = 0;
-float fpga1p5v = 0;
-float vbat = 0;
 
-volatile int a = 0;
-
-uint16_t vbat_i = 1;
-uint16_t temperature_i = 2;
-uint16_t uc3v_i = 3;
-uint16_t fpga3v_i = 4;
-uint16_t fpga1p5v_i = 5;
-
-uint16_t HK_SPP_APP_ID = 0;
+uint16_t HK_SPP_APP_ID = 0;  
 uint16_t HK_PUS_SOURCE_ID = 0;
-
-extern uint8_t current_uC_report_frequency;
-extern uint8_t current_FPGA_report_frequency;
 
 extern QueueHandle_t UART_OBC_Out_Queue;
 extern QueueHandle_t PUS_3_Queue;
@@ -782,15 +766,15 @@ void handle_PUS_3_Service(void const * argument)
   /* USER CODE BEGIN 5 */
 
     uint32_t current_ticks = 0;
-    uint8_t periodic_report = 0;
+    // uint8_t periodic_report = 0;
     PUS_3_msg pus3_msg_received;
     uint8_t result = NO_ERROR;
 
     /* Infinite loop */
     for(;;)
     {
-    	if(!periodic_report)
-    	{
+    	// if(!periodic_report)
+    	// {
     		if (xQueueReceive(PUS_3_Queue, &pus3_msg_received, portMAX_DELAY) == pdPASS)
     		{
     			result = PUS_3_set_report_frequency(pus3_msg_received.data, &pus3_msg_received);
@@ -798,38 +782,38 @@ void handle_PUS_3_Service(void const * argument)
     			if(result == NO_ERROR)
     			{
     				current_ticks = xTaskGetTickCount();
-					PUS_3_collect_HK_data(current_ticks);
+            // PUS_3_collect_HK_data(current_ticks);
 
-					PUS_3_HK_send(&pus3_msg_received);
+            // PUS_3_HK_send(&pus3_msg_received);
 
-					PUS_1_send_succ_comp(&pus3_msg_received.SPP_header, &pus3_msg_received.PUS_TC_header);
+            PUS_1_send_succ_comp(&pus3_msg_received.SPP_header, &pus3_msg_received.PUS_TC_header);
 
-					if(current_uC_report_frequency == 2 || current_FPGA_report_frequency == 2)
-					{
-						periodic_report = 1;
-					}
+            // if(current_uC_report_frequency == 2 || current_FPGA_report_frequency == 2)
+            // {
+            //   periodic_report = 1;
+            // }
     			}
     			else
     			{
     				PUS_1_send_fail_comp(&pus3_msg_received.SPP_header, &pus3_msg_received.PUS_TC_header, result);
     			}
     		}
-    	}
-    	else
-    	{
-    		if (xQueuePeek(PUS_3_Queue, &pus3_msg_received, 2000) == pdPASS)
-    		{
-    			periodic_report = 0;
-    		}
-    		else
-    		{
-    			current_ticks = xTaskGetTickCount();
+    	// }
+    	// else
+    	// {
+    	// 	if (xQueuePeek(PUS_3_Queue, &pus3_msg_received, 2000) == pdPASS)
+    	// 	{
+    	// 		periodic_report = 0;
+    	// 	}
+    	// 	else
+    	// 	{
+    	// 		current_ticks = xTaskGetTickCount();
 
-				PUS_3_collect_HK_data(current_ticks);
+			// 	PUS_3_collect_HK_data(current_ticks);
 
-				PUS_3_HK_send(&pus3_msg_received);
-    		}
-    	}
+			// 	PUS_3_HK_send(&pus3_msg_received);
+    	// 	}
+    	// }
     	osDelay(1);
     }
   /* USER CODE END 5 */
@@ -1127,24 +1111,21 @@ void handle_UART_IN_FPGA(void const * argument)
 					}
 
 					case FPGA_GET_SENSOR_DATA:
-					{
-						if(PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 12))
-						{
-							UART_FPGA_OBC_Tx_Buffer[0] = FPGA_GET_SENSOR_DATA;
-							UART_FPGA_OBC_Tx_Buffer[1] = UART_FPGA_Rx_Buffer[3];
-							UART_FPGA_OBC_Tx_Buffer[2] = UART_FPGA_Rx_Buffer[4];
-							UART_FPGA_OBC_Tx_Buffer[3] = UART_FPGA_Rx_Buffer[5];
-							UART_FPGA_OBC_Tx_Buffer[4] = UART_FPGA_Rx_Buffer[6];
-							UART_FPGA_OBC_Tx_Buffer[5] = UART_FPGA_Rx_Buffer[7];
-							UART_FPGA_OBC_Tx_Buffer[6] = UART_FPGA_Rx_Buffer[8];
-							UART_FPGA_OBC_Tx_Buffer[7] = UART_FPGA_Rx_Buffer[9];
-							UART_FPGA_OBC_Tx_Buffer[8] = UART_FPGA_Rx_Buffer[10];
+          {
+            if (PUS_8_check_FPGA_msg_format(UART_FPGA_Rx_Buffer, 12)) {
 
-							memcpy(msg_to_send.TM_data, UART_FPGA_OBC_Tx_Buffer, 9);
-							msg_to_send.TM_data_len			= 9;
-						}
-						break;
-					}
+              msg_to_send.PUS_HEADER_PRESENT = 1;
+              msg_to_send.SERVICE_ID = HOUSEKEEPING_SERVICE_ID;   
+              msg_to_send.SUBTYPE_ID = HK_PARAMETER_REPORT;       
+
+              msg_to_send.TM_data[0] = UART_FPGA_Rx_Buffer[3]; // HK ID 
+
+              memcpy(&msg_to_send.TM_data[1], &UART_FPGA_Rx_Buffer[4], 7);
+
+              msg_to_send.TM_data_len = 8;
+            }
+            break;
+          }
 
 					default:
 						break;
@@ -1153,8 +1134,12 @@ void handle_UART_IN_FPGA(void const * argument)
 				if(UART_FPGA_Rx_Buffer[2] != FPGA_EN_CB_MODE ||
 					(UART_FPGA_Rx_Buffer[2] == FPGA_EN_CB_MODE && send_buffered_data == 1))
 				{
-					xQueueSend(UART_OBC_Out_Queue, &msg_to_send, portMAX_DELAY);
-				}
+          xQueueSend(UART_OBC_Out_Queue, &msg_to_send, portMAX_DELAY);
+          //if (msg_to_send.TM_data_len > 0)
+          //{
+          //  xQueueSend(UART_OBC_Out_Queue, &msg_to_send, portMAX_DELAY);
+          //}
+        }
 				HAL_UART_Receive_DMA(&huart5, UART_FPGA_Rx_Buffer, 2 + 9 + 1);
 			}
 		}

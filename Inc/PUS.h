@@ -16,6 +16,19 @@ typedef enum {
     TEST_SERVICE_ID                      = 17,
 } PUS_Service_ID;
 
+// House Keeping service [3] subtype IDs
+typedef enum {
+    HK_CREATE_HK_PAR_REPORT_STRUCT         = 1,  // TC
+    HK_DELETE_HK_PAR_REPORT_STRUCT         = 3,  // TC
+    HK_EN_PERIODIC_REPORTS                 = 5,  // TC
+    HK_DIS_PERIODIC_REPORTS                = 6,  // TC
+    HK_REPORT_HK_PAR_REPORT_STRUCT         = 9,  // TC
+    HK_REPORT_HK_PAR_REPORT_STRUCT_REPORT  = 10, // TM (response to 9)
+    HK_PARAMETER_REPORT                    = 25, // TM
+    HK_ONE_SHOT                            = 27, // TC
+    HK_SET_PERIOD                          = 31, // TC
+} PUS_HK_Subtype_ID;
+
 typedef struct {
     uint8_t  PUS_version_number;    // 4
     uint8_t  ACK_flags;             // 4
